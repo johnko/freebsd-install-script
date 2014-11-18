@@ -1,4 +1,4 @@
 freebsd-bsdinstall-script
 =========================
 
-Script(s) for installing FreeBSD using bsdinstall
+experimental script(s) for installing FreeBSD using bsdinstall
