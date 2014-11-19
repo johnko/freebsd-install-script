@@ -238,6 +238,10 @@ bsdinstall distextract
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.cam.boot_delay=10000"
 ########## I prefer no disk ID
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.disk_ident.enable=0"
+/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gpt.enable=0"
+########## But I allow UUID
+/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gptid.enable=1"
+########## Kernel max
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.maxfiles=65530"
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.maxswzone=512M"
 ########## loader_logo should stop logo from showing, appears to be BROKEN
