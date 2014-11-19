@@ -1,4 +1,10 @@
-Copyright (c) 2014, John Ko
+Portions of code modified from the compilation of software known
+as mfsBSD: Copyright (C) 2007-2013 Martin Matuska
+
+They are noted in code comments as beind borrowed of modified
+from https://github.com/mmatuska/mfsbsd
+
+The rest of the code: Copyright (c) 2014, John Ko
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
