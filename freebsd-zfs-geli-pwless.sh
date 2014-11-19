@@ -3,16 +3,15 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141118-034013
+SCRIPTVERSION=141118-231600
 
 ######################################################################
 # Variables you can edit / pass
 ######################################################################
 
-: ${rpool:=rpool}
-: ${bpool:=bpool}
-: ${disks:="ada0"}
-: ${type:=stripe}
+: ${rpool:=pool}
+: ${bpool:=bootpool}
+: ${raidtype:=stripe}
 : ${mnt:=/mnt}
 : ${bsize:=1g}
 : ${ssize:=2g}
@@ -24,35 +23,72 @@ SCRIPTVERSION=141118-034013
 
 usage() {
   cat <<EOF
-usage: $0 [-f] [mfsroot]
+usage: $0 -d disk [-d disk ...] [-b boot_size] [-f] [-h] [-m]
+       [-p poolname] [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
+
+       -b size  Boot partition size.
+       -d disk  Disk to install on (eg. da0).
        -f       Force export of existing pool.
+       -h       Help.
+       -m       Create mfsroot type of system.
+       -M mount Mountpoint, if not using /mnt.
+       -p name  ZFS pool name, must be unique.
+       -r       Select ZFS raid mode if multiple -d given.
+       -s size  Swap partition size.
        -v       Version.
-       mfsroot  Create mfsroot type of system.
 
 examples:
 
   Install on mirror disks:
-       disks="ada0 ada1" type=mirror $0
+       $0 -d ada0 -d ada1 -r mirror
 
   Make a bootable ZFS USB, which loads as mfs:
-       disks=da0 rpool=rusb bpool=busb $0 mfsroot
+       $0 -d da0 -m -p usb
   Note we change the pool name so they don't conflict.
 EOF
-  exit
 }
 
 ######################################################################
-# Options
+# Options parsing
+# modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-while [ "$1" ]; do
-  case "$1" in
-    "mfsroot")  MAKEMFSROOT=1 ; shift ;;
-    "-f")       FORCEEXPORT=1 ; shift ;;
-    "-v")       echo $SCRIPTVERSION ; exit ;;
-    *)          usage ;;
+while getopts b:d:p:r:s:M:mfvh o; do
+  case "$o" in
+    b) bsize="$OPTARG" ;;
+    d) disks="$disks ${OPTARG##/dev/}" ;;
+    p) rpool="$OPTARG" ; bpool="boot${rpool}" ;;
+    r) raidtype="$OPTARG" ;;
+    s) ssize="$OPTARG" ;;
+    M) mnt="$OPTARG" ;;
+    m) MAKEMFSROOT=1 ;;
+    f) FORCEEXPORT=1 ;;
+    v) echo $SCRIPTVERSION ; exit 1 ;;
+    h) usage; exit 1 ;;
+    [?]) usage; exit 1 ;;
   esac
 done
+
+######################################################################
+# Disk parsing for testing raid type
+# modified from https://github.com/mmatuska/mfsbsd
+######################################################################
+
+count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
+if [ "$count" -lt "3" -a "$raidtype" = "raidz" ]; then
+  echo "Error: raidz needs at least three devices (-d switch)" ; exit 1
+elif [ "$count" -lt "4" -a "$raidtype" = "raidz2" ]; then
+  echo "Error: raidz2 needs at least four devices (-d switch)" ; exit 1
+elif [ "$count" -lt "5" -a "$raidtype" = "raidz3" ]; then
+  echo "Error: raidz3 needs at least five devices (-d switch)" ; exit 1
+elif [ "$count" = "1" -a "$raidtype" = "mirror" ]; then
+  echo "Error: mirror needs at least two devices (-d switch)" ; exit 1
+elif [ "$count" = "2" -a "$raidtype" != "mirror" ]; then
+  echo "Notice: two drives selected, automatically choosing mirror mode"
+  raidtype="mirror"
+elif [ "$count" -gt "2" -a "$raidtype" != "mirror" -a "$raidtype" != "raidz" -a "$raidtype" != "raidz2" -a "$raidtype" != "raidz3" ]; then
+  echo "Error: please choose raid mode with the -r switch (mirror or raidz{1,2,3})" ; exit 1
+fi
 
 ######################################################################
 # If force, delete pools and detach partition 3 and 4
@@ -128,7 +164,7 @@ rm -r /tmp/bsdinstall*
 ######################################################################
 
 ZFSBOOT_DISKS="$disks" \
-ZFSBOOT_VDEV_TYPE=$type \
+ZFSBOOT_VDEV_TYPE=$raidtype \
 ZFSBOOT_POOL_NAME=$rpool \
 ZFSBOOT_BEROOT_NAME=rfs \
 ZFSBOOT_GELI_ENCRYPTION=1 \
@@ -297,19 +333,19 @@ start_cmd="mdinit_start"
 stop_cmd=":"
 mdinit_start()
 {
-	if [ -f /.usr.tar.xz ]; then
+  if [ -f /.usr.tar.xz ]; then
     /rescue/test -d /usr || /rescue/mkdir /usr
-		/rescue/test -d /usr && /rescue/mount -t tmpfs tmpfs /usr
-		/rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.xz
-	elif [ -f /.usr.tar.bz2 ]; then
+    /rescue/test -d /usr && /rescue/mount -t tmpfs tmpfs /usr
+    /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.xz
+  elif [ -f /.usr.tar.bz2 ]; then
     /rescue/test -d /usr || /rescue/mkdir /usr
-		/rescue/test -d /usr && /rescue/mount -t tmpfs tmpfs /usr
-		/rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.bz2
-	elif [ -f /.usr.tar.gz ]; then
+    /rescue/test -d /usr && /rescue/mount -t tmpfs tmpfs /usr
+    /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.bz2
+  elif [ -f /.usr.tar.gz ]; then
     /rescue/test -d /usr || /rescue/mkdir /usr
-		/rescue/test -d /usr && /rescue/mount -t tmpfs tmpfs /usr
-		/rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.gz
-	fi
+    /rescue/test -d /usr && /rescue/mount -t tmpfs tmpfs /usr
+    /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.gz
+  fi
   if [ ! -f /usr/bin/which ]; then
     echo "Something went wrong in mdinit. Entering shell:"
     /rescue/sh
