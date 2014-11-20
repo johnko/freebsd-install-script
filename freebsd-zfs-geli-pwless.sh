@@ -121,7 +121,9 @@ fi
 # Bootstrap pkgng
 ######################################################################
 
-test -e /usr/local/sbin/pkg-static || pkg
+if [ ! -f /usr/sbin/p ]; then
+  test -e /usr/local/sbin/pkg-static || pkg bootstrap
+fi
 
 ######################################################################
 # How to create a b64 patch
@@ -253,7 +255,11 @@ bsdinstall distextract
 # Copy pkg-static
 ######################################################################
 
-install -m 755 -o root -g wheel /usr/local/sbin/pkg-static $mnt/usr/sbin/p
+if [ -f /usr/sbin/p ]; then
+  install -m 755 -o root -g wheel /usr/sbin/p $mnt/usr/sbin/p
+elif [ -f /usr/local/sbin/pkg-static ]; then
+  install -m 755 -o root -g wheel /usr/local/sbin/pkg-static $mnt/usr/sbin/p
+fi
 
 ######################################################################
 # Set some loader.conf options
@@ -397,7 +403,7 @@ mdinit_start()
       zfs set canmount=off \$Z
     done
   fi
-  if /bin/kenv -q mdinit_shell ; then
+  if /bin/kenv -q mdinit_shell | grep YES ; then
     echo "Found mdinit_shell, entering shell:"
     /rescue/sh
   fi
@@ -445,6 +451,8 @@ mdconfig -d -u ${mdevice#md}
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mfs_type="mfs_root"
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mfs_name="/mfsroot"
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "vfs.root.mountfrom=ufs:/dev/md0"
+########## optional set mdinit_shell
+/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mdinit_shell="YES"
 fi
 
 ######################################################################
