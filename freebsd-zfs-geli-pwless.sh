@@ -235,6 +235,7 @@ if [ "$MAKEMFSROOT" ]; then
   zfs create -o canmount=off -o mountpoint=/root $rpool/root
   install -d -m 700 ${mnt}/root/.ssh
   zfs create $rpool/root/.ssh
+  zfs create $rpool/usr/local
   zfs create $rpool/var/backups
   zfs create $rpool/var/cache
   zfs create $rpool/var/db
@@ -460,9 +461,7 @@ fi
 ######################################################################
 
 cat <<EOF
+Don't export the ZFS pools!
 You should probably change the root password of the new system:
        chroot $mnt passwd
-Then export both pools:
-       zpool export $bpool
-       zpool export $rpool
 EOF
