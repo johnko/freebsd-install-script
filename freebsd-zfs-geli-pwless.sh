@@ -99,20 +99,20 @@ fi
 ######################################################################
 
 if [ "$FORCEEXPORT" ]; then
-  zpool export -f $bpool # have to export bpool before rpool
-  zpool export -f $rpool
-  for D in $disks ; do geli detach ${D}p3 ; geli detach ${D}p4 ; done
+  zpool status $bpool >/dev/null 2>/dev/null && zpool export -f $bpool # have to export bpool before rpool
+  zpool status $rpool >/dev/null 2>/dev/null && zpool export -f $rpool
+  for D in $disks ; do test -e /dev/${D}p3.eli && geli detach ${D}p3 ; test -e /dev/${D}p4.eli && geli detach ${D}p4 ; done
 fi
 
 ######################################################################
 # Quit if pools exist
 ######################################################################
 
-if zfs list $rpool >/dev/null ; then
+if zpool status $rpool >/dev/null 2>/dev/null ; then
   echo "ERROR: A pool named $rpool already exists."
   exit 1
 fi
-if zfs list $bpool >/dev/null ; then
+if zpool status $bpool >/dev/null 2>/dev/null ; then
   echo "ERROR: A pool named $bpool already exists."
   exit 1
 fi
@@ -227,6 +227,12 @@ fi
 ######################################################################
 
 if [ "$MAKEMFSROOT" ]; then
+  zfs create -o canmount=off -o mountpoint=/etc $rpool/etc
+  zfs create $rpool/etc/pf
+  zfs create $rpool/etc/ssh
+  zfs create -o canmount=off -o mountpoint=/root $rpool/root
+  install -d -m 700 ${mnt}/root/.ssh
+  zfs create $rpool/root/.ssh
   zfs create $rpool/var/backups
   zfs create $rpool/var/cache
   zfs create $rpool/var/db
@@ -292,7 +298,7 @@ install -m 755 -o root -g wheel /usr/local/sbin/pkg-static $mnt/usr/sbin/p
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" ntpdate_enable="YES"
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" openntpd_enable="YES"
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" pf_enable="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" pf_rules="/server/pf/pf.conf"
+/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" pf_rules="/etc/pf/pf.conf"
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" pflog_enable="YES"
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" pflog_logfile="/var/log/pflog"
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" sendmail_enable="NO"
@@ -380,7 +386,7 @@ mdinit_start()
     /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.gz
   fi
   if [ ! -f /usr/bin/which ]; then
-    echo "Something went wrong in mdinit while extracting /usr. Entering shell:"
+    echo "Something went wrong in mdinit while extracting /usr, entering shell:"
     /rescue/sh
   fi
   if zfs list -H -o name,canmount,mountpoint | awk '\$2 ~ /on/ {print}' | grep 'on[^/]*/\$' ; then
@@ -390,7 +396,18 @@ mdinit_start()
       echo zfs set canmount=off \$Z
       zfs set canmount=off \$Z
     done
-    echo "Type 'exit' to continue booting:"
+  fi
+  if [ -f /boot/rc.conf.append ]; then
+    cat /boot/rc.conf.append >> /etc/rc.conf
+  fi
+  if [ -f /boot/sysctl.conf.append ]; then
+    cat /boot/sysctl.conf.append >> /etc/sysctl.conf
+  fi
+  if [ -f /boot/periodic.conf.append ]; then
+    cat /boot/periodic.conf.append >> /etc/periodic.conf
+  fi
+  if [ -f /boot/mdinit.shell ]; then
+    echo "Found /boot/mdinit.shell, entering shell:"
     /rescue/sh
   fi
 }
