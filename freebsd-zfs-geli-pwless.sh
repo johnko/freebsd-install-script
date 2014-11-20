@@ -233,8 +233,10 @@ if [ "$MAKEMFSROOT" ]; then
   zfs create $rpool/etc/pf
   zfs create $rpool/etc/ssh
   zfs create -o canmount=off -o mountpoint=/root $rpool/root
-  install -d -m 700 ${mnt}/root/.ssh
   zfs create $rpool/root/.ssh
+  chmod 700 ${mnt}/root/.ssh
+  zfs create $rpool/root/bin
+  chmod 700 ${mnt}/root/bin
   zfs create $rpool/usr/local
   zfs create $rpool/var/backups
   zfs create $rpool/var/cache
@@ -413,35 +415,50 @@ load_rc_config \$name
 run_rc_command "\$1"
 EOF
 chmod 555 /mnt2/etc/rc.d/mdinit
-########## Append stuff
-cat >/mnt2/etc/rc.d/append <<EOF
+########## appendconf because we are in mfs and harder to persist
+cat >/mnt2/etc/rc.d/appendconf <<EOF
 #!/bin/sh
 # \$Id\$
-# PROVIDE: append
+# PROVIDE: appendconf
 # BEFORE: hostname netif
 # REQUIRE: mdinit FILESYSTEMS
 # KEYWORD: FreeBSD
 . /etc/rc.subr
-name="append"
-start_cmd="append_start"
+name="appendconf"
+start_cmd="appendconf_start"
 stop_cmd=":"
-append_start()
+appendconf_start()
 {
   if [ -f /boot/rc.conf.append ]; then
-    cat /boot/rc.conf.append >> /etc/rc.conf
+    cat /boot/rc.conf.append | grep hostname >> /etc/rc.conf.d/hostname
+    cat /boot/rc.conf.append | grep ifconfig_ >> /etc/rc.conf.d/network
+    cat /boot/rc.conf.append | grep defaultrouter >> /etc/rc.conf.d/routing
+    cat /boot/rc.conf.append | grep static_routes >> /etc/rc.conf.d/routing
+    cat /boot/rc.conf.append | grep route_ >> /etc/rc.conf.d/routing
   fi
-  if [ -f /boot/periodic.conf.append ]; then
+  if [ -f /boot/resolv.conf.overwrite ]; then
+    cat /boot/resolv.conf.overwrite > /etc/resolv.conf
+  elif [ -f /boot/resolv.conf.append ]; then
+    cat /boot/resolv.conf.append >> /etc/resolv.conf
+  fi
+  if [ -f /boot/periodic.conf.overwrite ]; then
+    cat /boot/periodic.conf.overwrite > /etc/periodic.conf
+  elif [ -f /boot/periodic.conf.append ]; then
     cat /boot/periodic.conf.append >> /etc/periodic.conf
   fi
-  if [ -f /boot/sysctl.conf.append ]; then
-    cat /boot/sysctl.conf.append >> /etc/sysctl.conf
+  if [ -f /boot/sysctl.conf.overwrite -o -f /boot/sysctl.conf.append ]; then
+    if [ -f /boot/sysctl.conf.overwrite ]; then
+      cat /boot/sysctl.conf.overwrite > /etc/sysctl.conf
+    elif [ -f /boot/sysctl.conf.append ]; then
+      cat /boot/sysctl.conf.append >> /etc/sysctl.conf
+    fi
     service sysctl start
   fi
 }
 load_rc_config \$name
 run_rc_command "\$1"
 EOF
-chmod 555 /mnt2/etc/rc.d/append
+chmod 555 /mnt2/etc/rc.d/appendconf
 ########## Package /usr
 tar -c -J -f /mnt2/.usr.tar.xz --exclude ${release} --options xz:compression-level=9 -C ${mnt} usr
 ########## Unmount
@@ -453,7 +470,7 @@ mdconfig -d -u ${mdevice#md}
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mfs_name="/mfsroot"
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "vfs.root.mountfrom=ufs:/dev/md0"
 ########## optional set mdinit_shell
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mdinit_shell="YES"
+# /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mdinit_shell="YES"
 fi
 
 ######################################################################
