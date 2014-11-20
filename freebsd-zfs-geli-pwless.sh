@@ -397,17 +397,8 @@ mdinit_start()
       zfs set canmount=off \$Z
     done
   fi
-  if [ -f /boot/rc.conf.append ]; then
-    cat /boot/rc.conf.append >> /etc/rc.conf
-  fi
-  if [ -f /boot/sysctl.conf.append ]; then
-    cat /boot/sysctl.conf.append >> /etc/sysctl.conf
-  fi
-  if [ -f /boot/periodic.conf.append ]; then
-    cat /boot/periodic.conf.append >> /etc/periodic.conf
-  fi
-  if [ -f /boot/mdinit.shell ]; then
-    echo "Found /boot/mdinit.shell, entering shell:"
+  if /bin/kenv -q mdinit_shell ; then
+    echo "Found mdinit_shell, entering shell:"
     /rescue/sh
   fi
 }
@@ -415,6 +406,35 @@ load_rc_config \$name
 run_rc_command "\$1"
 EOF
 chmod 555 /mnt2/etc/rc.d/mdinit
+########## Append stuff
+cat >/mnt2/etc/rc.d/append <<EOF
+#!/bin/sh
+# \$Id\$
+# PROVIDE: append
+# BEFORE: hostname netif
+# REQUIRE: mdinit FILESYSTEMS
+# KEYWORD: FreeBSD
+. /etc/rc.subr
+name="append"
+start_cmd="append_start"
+stop_cmd=":"
+append_start()
+{
+  if [ -f /boot/rc.conf.append ]; then
+    cat /boot/rc.conf.append >> /etc/rc.conf
+  fi
+  if [ -f /boot/periodic.conf.append ]; then
+    cat /boot/periodic.conf.append >> /etc/periodic.conf
+  fi
+  if [ -f /boot/sysctl.conf.append ]; then
+    cat /boot/sysctl.conf.append >> /etc/sysctl.conf
+    service sysctl start
+  fi
+}
+load_rc_config \$name
+run_rc_command "\$1"
+EOF
+chmod 555 /mnt2/etc/rc.d/append
 ########## Package /usr
 tar -c -J -f /mnt2/.usr.tar.xz --exclude ${release} --options xz:compression-level=9 -C ${mnt} usr
 ########## Unmount
