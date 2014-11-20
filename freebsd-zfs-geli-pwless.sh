@@ -14,6 +14,8 @@ SCRIPTVERSION=141118-231600
 : ${raidtype:=stripe}
 : ${mnt:=/mnt}
 : ${bsize:=1g}
+: ${bename:=rfs}
+: ${bfsname:=default}
 : ${ssize:=2g}
 : ${release:=10.1-RELEASE}
 
@@ -36,6 +38,7 @@ usage: $0 -d disk [-d disk ...] [-b boot_size] [-f] [-h] [-m]
        -r       Select ZFS raid mode if multiple -d given.
        -s size  Swap partition size.
        -v       Version.
+       -z       ZFS partition size.
 
 examples:
 
@@ -53,7 +56,7 @@ EOF
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-while getopts b:d:p:r:s:M:mfvh o; do
+while getopts b:d:p:r:s:M:z:mfvh o; do
   case "$o" in
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
@@ -61,6 +64,7 @@ while getopts b:d:p:r:s:M:mfvh o; do
     r) raidtype="$OPTARG" ;;
     s) ssize="$OPTARG" ;;
     M) mnt="$OPTARG" ;;
+    z) zsize="$OPTARG" ;;
     m) MAKEMFSROOT=1 ;;
     f) FORCEEXPORT=1 ;;
     v) echo $SCRIPTVERSION ; exit 1 ;;
@@ -112,6 +116,12 @@ if zfs list $bpool >/dev/null ; then
   echo "ERROR: A pool named $bpool already exists."
   exit 1
 fi
+
+######################################################################
+# Bootstrap pkgng
+######################################################################
+
+test -e /usr/local/sbin/pkg-static || pkg
 
 ######################################################################
 # How to create a b64 patch
@@ -166,7 +176,9 @@ rm -r /tmp/bsdinstall*
 ZFSBOOT_DISKS="$disks" \
 ZFSBOOT_VDEV_TYPE=$raidtype \
 ZFSBOOT_POOL_NAME=$rpool \
-ZFSBOOT_BEROOT_NAME=rfs \
+ZFSBOOT_POOL_SIZE=$zsize \
+ZFSBOOT_BEROOT_NAME=$bename \
+ZFSBOOT_BOOTFS_NAME=$bfsname \
 ZFSBOOT_GELI_ENCRYPTION=1 \
 ZFSBOOT_BOOT_POOL_NAME=$bpool \
 ZFSBOOT_BOOT_POOL_SIZE=$bsize \
@@ -211,6 +223,17 @@ bsdinstall distfetch
 fi
 
 ######################################################################
+# Create some extra datasets if mfsroot
+######################################################################
+
+if [ "$MAKEMFSROOT" ]; then
+  zfs create $rpool/var/backups
+  zfs create $rpool/var/cache
+  zfs create $rpool/var/db
+  zfs create $rpool/var/run
+fi
+
+######################################################################
 # Extract ditribution
 ######################################################################
 
@@ -219,6 +242,12 @@ BSDINSTALL_DISTDIR=$distdir \
 BSDINSTALL_CHROOT=$mnt \
 nonInteractive=0 \
 bsdinstall distextract
+
+######################################################################
+# Copy pkg-static
+######################################################################
+
+install -m 755 -o root -g wheel /usr/local/sbin/pkg-static $mnt/usr/sbin/p
 
 ######################################################################
 # Set some loader.conf options
@@ -351,7 +380,17 @@ mdinit_start()
     /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.gz
   fi
   if [ ! -f /usr/bin/which ]; then
-    echo "Something went wrong in mdinit. Entering shell:"
+    echo "Something went wrong in mdinit while extracting /usr. Entering shell:"
+    /rescue/sh
+  fi
+  if zfs list -H -o name,canmount,mountpoint | awk '\$2 ~ /on/ {print}' | grep 'on[^/]*/\$' ; then
+    echo "Disabling some zfs datasets that mount to /"
+    DATASETS=\$(zfs list -H -o name,canmount,mountpoint | awk '\$2 ~ /on/ {print}' | grep 'on[^/]*/\$' | awk '{print \$1}')
+    for Z in \$DATASETS ; do
+      echo zfs set canmount=off \$Z
+      zfs set canmount=off \$Z
+    done
+    echo "Type 'exit' to continue booting:"
     /rescue/sh
   fi
 }
