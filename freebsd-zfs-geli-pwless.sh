@@ -330,7 +330,7 @@ fi
 
 chroot $mnt sh <<EOF
 #!/bin/sh
-ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then sysrc ifconfig_\${line}=DHCP ; fi ; done
+ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then sysrc -f /boot/rc.conf.append ifconfig_\${line}=DHCP ; fi ; done
 EOF
 
 ######################################################################
