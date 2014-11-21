@@ -435,6 +435,12 @@ appendconf_start()
     cat /boot/rc.conf.append | grep defaultrouter >> /etc/rc.conf.d/routing
     cat /boot/rc.conf.append | grep static_routes >> /etc/rc.conf.d/routing
     cat /boot/rc.conf.append | grep route_ >> /etc/rc.conf.d/routing
+    cat /boot/rc.conf.append | \
+      grep -v hostname | \
+      grep -v ifconfig_ | \
+      grep -v defaultrouter | \
+      grep -v static_routes | \
+      grep -v route_ >> /etc/rc.conf
   fi
   if [ -f /boot/resolv.conf.overwrite ]; then
     cat /boot/resolv.conf.overwrite > /etc/resolv.conf
