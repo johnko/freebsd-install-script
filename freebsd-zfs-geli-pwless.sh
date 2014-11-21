@@ -13,6 +13,7 @@ SCRIPTVERSION=141118-231600
 : ${bpool:=bootpool}
 : ${raidtype:=stripe}
 : ${mnt:=/mnt}
+: ${mfsmnt:=/mnt2}
 : ${bsize:=2g}
 : ${bename:=rfs}
 : ${bfsname:=default}
@@ -500,23 +501,23 @@ if [ "$MAKEMFSROOT" ]; then
 echo "Creating mfsroot container at ${mnt}/${bpool}/mfsroot with dd"
 dd if=/dev/zero of=${mnt}/${bpool}/mfsroot bs=512 count=245760 || exiterror $?
 mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot`
-install -d -m 755 /mnt2
+install -d -m 755 $mfsmnt
 echo "Making new fs on /dev/${mdevice}"
 newfs /dev/${mdevice} || exiterror $?
-echo "Mouting /dev/${mdevice} to /mnt2"
-mount /dev/${mdevice} /mnt2 || exiterror $?
+echo "Mouting /dev/${mdevice} to $mfsmnt"
+mount /dev/${mdevice} $mfsmnt || exiterror $?
 ########## Copy everything except /usr
-echo "Copying ${mnt} to /mnt2"
+echo "Copying ${mnt} to $mfsmnt"
 tar -c -f - \
 --exclude $bpool \
 --exclude /boot \
 --exclude null \
 --exclude ${release} \
 --exclude usr \
--C ${mnt} ./ | tar -C /mnt2 -x -f - || exiterror $?
+-C ${mnt} ./ | tar -C $mfsmnt -x -f - || exiterror $?
 ########## rc script for tmpfs /usr
 ########## modified from https://github.com/mmatuska/mfsbsd
-cat >/mnt2/etc/rc.d/mdinit <<EOF
+cat >$mfsmnt/etc/rc.d/mdinit <<EOF
 #!/bin/sh
 # \$Id\$
 # PROVIDE: mdinit
@@ -564,9 +565,9 @@ mdinit_start()
 load_rc_config \$name
 run_rc_command "\$1"
 EOF
-chmod 555 /mnt2/etc/rc.d/mdinit
+chmod 555 $mfsmnt/etc/rc.d/mdinit
 ########## appendconf because we are in mfs and harder to persist
-cat >/mnt2/etc/rc.d/appendconf <<EOF
+cat >$mfsmnt/etc/rc.d/appendconf <<EOF
 #!/bin/sh
 # \$Id\$
 # PROVIDE: appendconf
@@ -620,9 +621,9 @@ appendconf_start()
 load_rc_config \$name
 run_rc_command "\$1"
 EOF
-chmod 555 /mnt2/etc/rc.d/appendconf
+chmod 555 $mfsmnt/etc/rc.d/appendconf
 ########## packages because we are in mfs and harder to persist
-cat >/mnt2/etc/rc.d/packages <<EOF
+cat >$mfsmnt/etc/rc.d/packages <<EOF
 #!/bin/sh
 # \$Id\$
 # PROVIDE: packages
@@ -646,10 +647,10 @@ packages_start()
 load_rc_config \$name
 run_rc_command "\$1"
 EOF
-chmod 555 /mnt2/etc/rc.d/appendconf
+chmod 555 $mfsmnt/etc/rc.d/appendconf
 ########## Package /usr
-echo "Compressing ${mnt}/usr to /mnt2/.usr.tar.xz"
-tar -c -J -f /mnt2/.usr.tar.xz --exclude ${release} \
+echo "Compressing ${mnt}/usr to $mfsmnt/.usr.tar.xz"
+tar -c -J -f $mfsmnt/.usr.tar.xz --exclude ${release} \
 --options xz:compression-level=9 -C ${mnt} usr || exiterror $?
 ########## Unmount
 echo "Unmounting /dev/${mdevice}"
