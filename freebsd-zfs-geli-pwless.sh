@@ -543,32 +543,32 @@ sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES" >/dev/null
 # Set ifconfig DHCP
 ######################################################################
 
-chroot $mnt sh <<EOF
-#!/bin/sh
-ifconfig -l | tr ' ' '\n' | while read line ; \
-do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
-then echo "# ifconfig_\${line}=\"up\"" >> /boot/rc.conf.append ; fi ; done
-ifconfig -l | tr ' ' '\n' | while read line ; \
-do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
-then sysrc -f /boot/rc.conf.append ifconfig_\${line}=DHCP ; fi ; done
-EOF
+ifconfig -l | tr ' ' '\n' | while read line ; do
+  if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
+    echo "# ifconfig_${line}=\"up\"" >> ${mnt}/boot/rc.conf.append
+  fi
+done
+
+ifconfig -l | tr ' ' '\n' | while read line ; do
+  if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
+    sysrc -f "${mnt}/boot/rc.conf.append" ifconfig_${line}="DHCP"
+  fi
+done
 
 ######################################################################
 # Set lagg as optional comments
 ######################################################################
 
-chroot $mnt sh <<EOF
-#!/bin/sh
-nics=""
-echo '########## To enable Link Aggregation: BEGIN' >> /boot/rc.conf.append
-ifconfig -l | tr ' ' '\n' | while read line ; \
-do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
-then nics="\$nics laggport \${line}" ; fi ; done
-echo "# cloned_interfaces=\"lagg0\"" >> /boot/rc.conf.append
-echo "# ifconfig_lagg0=\"laggproto loadbalance \$nics DHCP\"" \
->> /boot/rc.conf.append
-echo '########## To enable Link Aggregation: END' >> /boot/rc.conf.append
-EOF
+echo '########## To enable Link Aggregation: BEGIN' >> ${mnt}/boot/rc.conf.append
+ifconfig -l | tr ' ' '\n' | while read line ; do
+  if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
+    nics="$nics laggport $line"
+  fi
+done
+echo "# cloned_interfaces=\"lagg0\"" >> ${mnt}/boot/rc.conf.append
+echo "# ifconfig_lagg0=\"laggproto loadbalance $nics DHCP\"" \
+>> ${mnt}/boot/rc.conf.append
+echo '########## To enable Link Aggregation: END' >> ${mnt}/boot/rc.conf.append
 
 ######################################################################
 # Set SSH options
