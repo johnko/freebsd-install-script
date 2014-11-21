@@ -333,15 +333,20 @@ fi
 
 if [ "$ADDTOPOOL" = "1" ]; then
 mnt=
-fi
+cat /tmp/bsdinstall_boot/loader.conf.* | \
+grep -v vfs.root.mountfrom | \
+grep -v aesni_load | \
+grep -v geom_eli_load | \
+grep -v zfs_load | \
+grep -v kern.geom.label.gptid.enable >> ${mnt}/boot/loader.conf.local
+exit
+else
 cat /tmp/bsdinstall_boot/loader.conf.* | \
 grep -v aesni_load | \
 grep -v geom_eli_load | \
 grep -v zfs_load | \
 grep -v kern.geom.label.gptid.enable >> ${mnt}/boot/loader.conf.local
 chmod 644 ${mnt}/boot/loader.conf.local
-if [ "$ADDTOPOOL" = "1" ]; then
-exit
 fi
 install -d -m 755 ${mnt}/etc
 install    -m 644 /tmp/bsdinstall_etc/fstab ${mnt}/boot/fstab.append
