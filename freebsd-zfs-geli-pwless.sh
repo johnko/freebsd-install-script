@@ -325,8 +325,52 @@ if [ -f /usr/local/etc/pkg.conf ]; then
   cat /usr/local/etc/pkg.conf > /usr/local/etc/pkg.conf.bkp
 fi
 echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >> /usr/local/etc/pkg.conf
-p fetch -y pkg cmdwatch curl gnupg ezjail iftop openntpd openssl rsync tmux ucarp wget
-# git subversion
+p fetch -y \
+cmdwatch \
+gnupg libksba libgpg-error gettext indexinfo libgcrypt libassuan pth \
+    curl ca_root_nss \
+ezjail \
+iftop \
+openntpd \
+openssl \
+rsync \
+tmux libevent2 \
+ucarp \
+wget indexinfo libidn gettext \
+pkg
+# git expat p5-Authen-SASL p5-GSSAPI perl5 p5-Digest-HMAC p5-Net-SMTP-SSL \
+#   p5-IO-Socket-SSL p5-Mozilla-CA p5-Net-SSLeay: 1.66 p5-Socket \
+#   p5-IO-Socket-IP python27 libffi indexinfo gettext p5-Error \
+#   curl ca_root_nss cvsps p5-MIME-Base64 \
+# subversion serf apr expat gdbm indexinfo gettext db5 sqlite3
+# xfce xfce4-terminal libxfce4menu xfce4-conf libxfce4util perl5 pcre glib \
+#   python27 libffi indexinfo gettext libiconv libX11 xproto libxcb libXdmcp \
+#   libXau libxml2 libpthread-stubs kbproto pango libXrender renderproto \
+#   xorg-fonts-truetype font-misc-meltho mkfontscale libfontenc freetype2 \
+#   mkfontdir fontconfig expat font-misc-ethiopic font-bh-ttf encodings \
+#   font-util dejavu libXft harfbuzz graphite2 cairo xcb-util-renderutil \
+#   xcb-util pixman libXext xextproto png icu gnomehier gtk2 libXrandr \
+#   randrproto libXinerama xineramaproto libXi libXfixes fixesproto \
+#   inputproto libXdamage damageproto libXcursor libXcomposite compositeproto \
+#   cups-client shared-mime-info hicolor-icon-theme python python2 \
+#   gtk-update-icon-cache gdk-pixbuf2 libXt libSM libICE tiff jpeg jbigkit \
+#   jasper atk dbus-glib dbus gnome_subr startup-notification vte \
+#   gnome-pty-helper xfce4-wm libwnck libXres gobject-introspection \
+#   xfce4-session iceauth upower polkit consolekit xfce4-panel libexo p5-URI \
+#   desktop-file-utils garcon xfce4-desktop Thunar libexif libnotify libIDL \
+#   gvfs libcdio-paranoia libcdio libcddb hal policykit dmidecode pciids \
+#   libvolume_id gnome-mount policykit-gnome libxslt libgcrypt libgpg-error \
+#   gnome-doc-utils rarian docbook-xsl xmlcatmgr docbook sdocbook-xml \
+#   docbook-xml xmlcharent docbook-sgml iso8879 bash getopt py27-libxml2 \
+#   py27-setuptools27 gconf2 dconf ORBit2 libgnome-keyring libtasn1 \
+#   samba36-libsmbclient tevent talloc pkgconf tdb avahi-app libdaemon gdbm \
+#   libgphoto2 libgd libltdl libsoup-gnome glib-networking p11-kit \
+#   ca_root_nss gnutls trousers-tddl nettle gmp libidn libproxy \
+#   gsettings-desktop-schemas cantarell-fonts libsoup sqlite3 xfce4-tumbler \
+#   poppler-glib poppler-data poppler openjpeg15 lcms2 exif popt libgsf \
+#   icons-tango-extras icons-tango gtk-xfce-engine xfce4-settings libxklavier \
+#   xkbcomp libxkbfile iso-codes xfce4-appfinder mousepad gtksourceview2 \
+#   xfce4-notifyd orage
 if [ -f /usr/local/etc/pkg.conf.bkp ]; then
   cat /usr/local/etc/pkg.conf.bkp > /usr/local/etc/pkg.conf
   rm /usr/local/etc/pkg.conf.bkp
@@ -351,7 +395,8 @@ sysrc -f "${mnt}/boot/loader.conf" "hw.usb.no_shutdown_wait=1" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf" if_lagg_load="YES" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf" "kern.cam.boot_delay=10000" >/dev/null
 ########## I prefer no disk ID
-sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.disk_ident.enable=0" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.disk_ident.enable=0" \
+>/dev/null
 sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gpt.enable=0" >/dev/null
 ########## But I allow UUID
 sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gptid.enable=1" >/dev/null
@@ -402,7 +447,9 @@ sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES" >/dev/null
 
 chroot $mnt sh <<EOF
 #!/bin/sh
-ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then sysrc -f /boot/rc.conf.append ifconfig_\${line}=DHCP ; fi ; done
+ifconfig -l | tr ' ' '\n' | while read line ; \
+do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
+then sysrc -f /boot/rc.conf.append ifconfig_\${line}=DHCP ; fi ; done
 EOF
 
 ######################################################################
@@ -412,10 +459,15 @@ EOF
 chroot $mnt sh <<EOF
 #!/bin/sh
 echo '########## To enable Link Aggregation: BEGIN' >> /boot/rc.conf.append
-ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then echo "ifconfig_\${line}=\"up\"" >> /boot/rc.conf.append ; fi ; done
-ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then nics="\$nics laggport \${line}" ; fi ; done
+ifconfig -l | tr ' ' '\n' | while read line ; \
+do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
+then echo "ifconfig_\${line}=\"up\"" >> /boot/rc.conf.append ; fi ; done
+ifconfig -l | tr ' ' '\n' | while read line ; \
+do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
+then nics="\$nics laggport \${line}" ; fi ; done
 echo "# echo cloned_interfaces=\"lagg0\"" >> /boot/rc.conf.append
-echo "# echo ifconfig_lagg0=\"laggproto loadbalance \$nics DHCP\"" >> /boot/rc.conf.append
+echo "# echo ifconfig_lagg0=\"laggproto loadbalance \$nics DHCP\"" \
+>> /boot/rc.conf.append
 echo '########## To enable Link Aggregation: END' >> /boot/rc.conf.append
 EOF
 
@@ -486,9 +538,11 @@ mdinit_start()
     echo "Something went wrong in mdinit while extracting /usr, entering shell:"
     /rescue/sh
   fi
-  if zfs list -H -o name,canmount,mountpoint | awk '\$2 ~ /on/ {print}' | grep 'on[^/]*/\$' ; then
+  if zfs list -H -o name,canmount,mountpoint | \
+    awk '\$2 ~ /on/ {print}' | grep 'on[^/]*/\$' ; then
     echo "Disabling some zfs datasets that mount to /"
-    DATASETS=\$(zfs list -H -o name,canmount,mountpoint | awk '\$2 ~ /on/ {print}' | grep 'on[^/]*/\$' | awk '{print \$1}')
+    DATASETS=\$(zfs list -H -o name,canmount,mountpoint | \
+    awk '\$2 ~ /on/ {print}' | grep 'on[^/]*/\$' | awk '{print \$1}')
     for Z in \$DATASETS ; do
       echo zfs set canmount=off \$Z
       zfs set canmount=off \$Z
@@ -587,7 +641,8 @@ EOF
 chmod 555 /mnt2/etc/rc.d/appendconf
 ########## Package /usr
 echo "Compressing ${mnt}/usr to /mnt2/.usr.tar.xz"
-tar -c -J -f /mnt2/.usr.tar.xz --exclude ${release} --options xz:compression-level=9 -C ${mnt} usr || exiterror $?
+tar -c -J -f /mnt2/.usr.tar.xz --exclude ${release} \
+--options xz:compression-level=9 -C ${mnt} usr || exiterror $?
 ########## Unmount
 echo "Unmounting /dev/${mdevice}"
 umount /dev/${mdevice} || exiterror $?
@@ -603,7 +658,8 @@ sysrc -f "${mnt}/boot/loader.conf" "vfs.root.mountfrom=ufs:/dev/md0" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf" packages="" >/dev/null
 ########## optional set ntpdate_hosts
 sysrc -f "${mnt}/boot/rc.conf.append" netwait_enable="YES" >/dev/null
-sysrc -f "${mnt}/boot/rc.conf.append" netwait_ip="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
+sysrc -f "${mnt}/boot/rc.conf.append" \
+netwait_ip="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
 sysrc -f "${mnt}/boot/rc.conf.append" ntpdate_hosts="pool.ntp.org" >/dev/null
 fi
 
