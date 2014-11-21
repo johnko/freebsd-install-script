@@ -325,21 +325,26 @@ Please wait for resilver to complete!
 You can see the status of the process with:
        zpool status
 EOF
-exit
 fi
 
 ######################################################################
 # Copy the generated /boot/loader.conf and /etc/fstab
 ######################################################################
 
+if [ "$ADDTOPOOL" = "1" ]; then
+mnt=
+fi
 cat /tmp/bsdinstall_boot/loader.conf.* | \
 grep -v aesni_load | \
 grep -v geom_eli_load | \
 grep -v zfs_load | \
-grep -v kern.geom.label.gptid.enable > /mnt/boot/loader.conf.local
-chmod 644 /mnt/boot/loader.conf.local
-install -d -m 755 /mnt/etc
-install    -m 644 /tmp/bsdinstall_etc/fstab /mnt/boot/fstab.append
+grep -v kern.geom.label.gptid.enable >> ${mnt}/boot/loader.conf.local
+chmod 644 ${mnt}/boot/loader.conf.local
+if [ "$ADDTOPOOL" = "1" ]; then
+exit
+fi
+install -d -m 755 ${mnt}/etc
+install    -m 644 /tmp/bsdinstall_etc/fstab ${mnt}/boot/fstab.append
 
 ######################################################################
 # Check if local distribution exists, if so copy to mnt
@@ -348,10 +353,10 @@ install    -m 644 /tmp/bsdinstall_etc/fstab /mnt/boot/fstab.append
 ########## this notation /boot/.. is in case /boot is a symlink (eg. mfsroot)
 distdir=/boot/../${release}
 if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
-distdir=/mnt/boot/../${release}
+distdir=${mnt}/boot/../${release}
 else
-install -d -m 755 /mnt/${release}
-tar -c -f - -C /boot/.. ${release} | tar -C /mnt/boot/.. -x -f -
+install -d -m 755 ${mnt}/${release}
+tar -c -f - -C /boot/.. ${release} | tar -C ${mnt}/boot/.. -x -f -
 fi
 install -d -m 755 $distdir
 
@@ -414,7 +419,7 @@ fi
 install -d -m 755 ${mnt}/boot/packages
 if [ -d /boot/packages ]; then
   echo "Copying /boot/packages to ${mnt}/boot/packages"
-  tar -c -f - -C /boot/ packages | tar -C /mnt/boot/ -x -f - || exiterror $?
+  tar -c -f - -C /boot/ packages | tar -C ${mnt}/boot/ -x -f - || exiterror $?
 else
   if [ -f /usr/local/etc/pkg.conf ]; then
     cat /usr/local/etc/pkg.conf > /usr/local/etc/pkg.conf.bkp
