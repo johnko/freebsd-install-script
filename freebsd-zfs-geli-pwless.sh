@@ -302,14 +302,21 @@ grep ONLINE | head -1 | awk '{print $1}'`
 ########## destroy pool
 zpool destroy -f $bpooltmp
 zpool destroy -f $rpooltmp
-########## clear zfs labels
-zpool labelclear $bpooltmp
-zpool labelclear $rpooltmp
 ########## attach bpool
 zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk
 ########## attach rpool
 geli detach $rpooltmpdisk
-geli init -b -B "/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P -K "/${bpoolreal}/boot/encryption.key" -l 256 -s 4096 ${rpooltmpdisk%.eli}
+if [ -f /${bpoolreal}/boot/encryption.key ]; then
+  geli init -b \
+  -B "/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P \
+  -K "/${bpoolreal}/boot/encryption.key" -l 256 \
+  -s 4096 ${rpooltmpdisk%.eli}
+elif [ -f ${mnt}/${bpoolreal}/boot/encryption.key ]; then
+  geli init -b \
+  -B "${mnt}/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P \
+  -K "${mnt}/${bpoolreal}/boot/encryption.key" -l 256 \
+  -s 4096 ${rpooltmpdisk%.eli}
+fi
 zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk
 cat <<EOF
 Please wait for resilver to complete!
@@ -527,6 +534,9 @@ chroot $mnt sh <<EOF
 #!/bin/sh
 ifconfig -l | tr ' ' '\n' | while read line ; \
 do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
+then echo "# ifconfig_\${line}=\"up\"" >> /boot/rc.conf.append ; fi ; done
+ifconfig -l | tr ' ' '\n' | while read line ; \
+do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
 then sysrc -f /boot/rc.conf.append ifconfig_\${line}=DHCP ; fi ; done
 EOF
 
@@ -536,15 +546,13 @@ EOF
 
 chroot $mnt sh <<EOF
 #!/bin/sh
+nics=""
 echo '########## To enable Link Aggregation: BEGIN' >> /boot/rc.conf.append
 ifconfig -l | tr ' ' '\n' | while read line ; \
 do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
-then echo "ifconfig_\${line}=\"up\"" >> /boot/rc.conf.append ; fi ; done
-ifconfig -l | tr ' ' '\n' | while read line ; \
-do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; \
 then nics="\$nics laggport \${line}" ; fi ; done
-echo "# echo cloned_interfaces=\"lagg0\"" >> /boot/rc.conf.append
-echo "# echo ifconfig_lagg0=\"laggproto loadbalance \$nics DHCP\"" \
+echo "# cloned_interfaces=\"lagg0\"" >> /boot/rc.conf.append
+echo "# ifconfig_lagg0=\"laggproto loadbalance \$nics DHCP\"" \
 >> /boot/rc.conf.append
 echo '########## To enable Link Aggregation: END' >> /boot/rc.conf.append
 EOF
@@ -666,7 +674,9 @@ appendconf_start()
       grep -v ntpdate_ | \
       grep -v defaultrouter | \
       grep -v static_routes | \
-      grep -v route_ >> /etc/rc.conf
+      grep -v route_ | \
+      grep -v '##########' | \
+      grep -v '^ *\$' >> /etc/rc.conf
   fi
   if [ -f /boot/resolv.conf.overwrite ]; then
     cat /boot/resolv.conf.overwrite > /etc/resolv.conf
