@@ -51,6 +51,11 @@ examples:
 EOF
 }
 
+exiterror() {
+  echo "ERROR: Exit code $1"
+  exit $1
+}
+
 ######################################################################
 # Options parsing
 # modified from https://github.com/mmatuska/mfsbsd
@@ -138,26 +143,73 @@ chmod 755 /usr/libexec/bsdinstall/zfsboot
 
 b64decode -o /dev/stdout <<EOF | patch -N -l /usr/libexec/bsdinstall/zfsboot
 begin-base64 644 -
-LS0tIHpmc2Jvb3QJMjAxNC0xMS0xNyAwNDo0Mzo1NS44MTg5NjE4ODIgKzAwMDAKKysrIC91c3Iv
-bGliZXhlYy9ic2RpbnN0YWxsL3pmc2Jvb3QJMjAxNC0xMS0xNyAwNDozNTo0NS40MTY5OTU2MjQg
-KzAwMDAKQEAgLTE4Miw5ICsxODIsOSBAQAogQ0hNT0RfTU9ERT0nY2htb2QgJXMgIiVzIicKIERE
-X1dJVEhfT1BUSU9OUz0nZGQgaWY9IiVzIiBvZj0iJXMiICVzJwogRUNIT19BUFBFTkQ9J2VjaG8g
-IiVzIiA+PiAiJXMiJwotR0VMSV9BVFRBQ0g9J2dlbGkgYXR0YWNoIC1qIC0gLWsgIiVzIiAiJXMi
-JworR0VMSV9BVFRBQ0g9J2dlbGkgYXR0YWNoIC1wIC1rICIlcyIgIiVzIicKIEdFTElfREVUQUNI
-X0Y9J2dlbGkgZGV0YWNoIC1mICIlcyInCi1HRUxJX1BBU1NXT1JEX0lOSVQ9J2dlbGkgaW5pdCAt
-YiAtQiAiJXMiIC1lICVzIC1KIC0gLUsgIiVzIiAtbCAyNTYgLXMgNDA5NiAiJXMiJworR0VMSV9Q
-QVNTV09SRF9JTklUPSdnZWxpIGluaXQgLWIgLUIgIiVzIiAtZSAlcyAtUCAtSyAiJXMiIC1sIDI1
-NiAtcyA0MDk2ICIlcyInCiBHTk9QX0NSRUFURT0nZ25vcCBjcmVhdGUgLVMgNDA5NiAiJXMiJwog
-R05PUF9ERVNUUk9ZPSdnbm9wIGRlc3Ryb3kgIiVzIicKIEdQQVJUX0FERD0nZ3BhcnQgYWRkIC10
-ICVzICIlcyInCkBAIC0xMTUwLDE1ICsxMTUwLDYgQEAKIAkjIENyZWF0ZSB0aGUgZ2VsaSg4KSBH
-RU9NUwogCSMKIAlpZiBbICIkWkZTQk9PVF9HRUxJX0VOQ1JZUFRJT04iIF07IHRoZW4KLQkJIyBQ
-cm9tcHQgdXNlciBmb3IgcGFzc3dvcmQgKHR3aWNlKQotCQlpZiAhIG1zZ19lbnRlcl9uZXdfcGFz
-c3dvcmQ9IiRtc2dfZ2VsaV9wYXNzd29yZCIgXAotCQkJZl9kaWFsb2dfaW5wdXRfcGFzc3dvcmQK
-LQkJdGhlbgotCQkJZl9kcHJpbnRmICIkZnVuY25hbWU6IFVzZXIgY2FuY2VsbGVkIgotCQkJZl9z
-aG93X2VyciAiJG1zZ191c2VyX2NhbmNlbGxlZCIKLQkJCXJldHVybiAkRkFJTFVSRQotCQlmaQot
-CiAJCSMgSW5pdGlhbGl6ZSBnZWxpKDgpIG9uIGVhY2ggb2YgdGhlIHRhcmdldCBwYXJ0aXRpb25z
-CiAJCWZvciBkaXNrIGluICRkaXNrczsgZG8KIAkJCWZfZGlhbG9nX2luZm8gIiRtc2dfZ2VsaV9z
-ZXR1cCIgXAo=
+LS0tIHpmc2Jvb3QJMjAxNC0xMS0yMSAwMDo1OToxMi4wMDAwMDAwMDAgKzAwMDAKKysrIC91c3Iv
+bGliZXhlYy9ic2RpbnN0YWxsL3pmc2Jvb3QJMjAxNC0xMS0yMSAwMjoxNTo1MS4wMDAwMDAwMDAg
+KzAwMDAKQEAgLTQ1LDYgKzQ1LDExIEBACiA6ICR7WkZTQk9PVF9QT09MX05BTUU6PXpyb290fQog
+CiAjCisjIERlZmF1bHQgcG9vbCBzaXplCisjCis6ICR7WkZTQk9PVF9QT09MX1NJWkU9fQorCisj
+CiAjIERlZmF1bHQgb3B0aW9ucyB0byB1c2Ugd2hlbiBjcmVhdGluZyB6cm9vdCBwb29sCiAjCiA6
+ICR7WkZTQk9PVF9QT09MX0NSRUFURV9PUFRJT05TOj0tTyBjb21wcmVzcz1sejQgLU8gYXRpbWU9
+b2ZmfQpAQCAtMTgyLDkgKzE4Nyw5IEBACiBDSE1PRF9NT0RFPSdjaG1vZCAlcyAiJXMiJwogRERf
+V0lUSF9PUFRJT05TPSdkZCBpZj0iJXMiIG9mPSIlcyIgJXMnCiBFQ0hPX0FQUEVORD0nZWNobyAi
+JXMiID4+ICIlcyInCi1HRUxJX0FUVEFDSD0nZ2VsaSBhdHRhY2ggLWogLSAtayAiJXMiICIlcyIn
+CitHRUxJX0FUVEFDSD0nZ2VsaSBhdHRhY2ggLXAgLWsgIiVzIiAiJXMiJwogR0VMSV9ERVRBQ0hf
+Rj0nZ2VsaSBkZXRhY2ggLWYgIiVzIicKLUdFTElfUEFTU1dPUkRfSU5JVD0nZ2VsaSBpbml0IC1i
+IC1CICIlcyIgLWUgJXMgLUogLSAtSyAiJXMiIC1sIDI1NiAtcyA0MDk2ICIlcyInCitHRUxJX1BB
+U1NXT1JEX0lOSVQ9J2dlbGkgaW5pdCAtYiAtQiAiJXMiIC1lICVzIC1QIC1LICIlcyIgLWwgMjU2
+IC1zIDQwOTYgIiVzIicKIEdOT1BfQ1JFQVRFPSdnbm9wIGNyZWF0ZSAtUyA0MDk2ICIlcyInCiBH
+Tk9QX0RFU1RST1k9J2dub3AgZGVzdHJveSAiJXMiJwogR1BBUlRfQUREPSdncGFydCBhZGQgLXQg
+JXMgIiVzIicKQEAgLTI0Niw2ICsyNTEsNyBAQAogbXNnX2ludmFsaWRfYm9vdF9wb29sX3NpemU9
+IkludmFsaWQgYm9vdCBwb29sIHNpemUgXGAlcyciCiBtc2dfaW52YWxpZF9kaXNrX2FyZ3VtZW50
+PSJJbnZhbGlkIGRpc2sgYXJndW1lbnQgXGAlcyciCiBtc2dfaW52YWxpZF9pbmRleF9hcmd1bWVu
+dD0iSW52YWxpZCBpbmRleCBhcmd1bWVudCBcYCVzJyIKK21zZ19pbnZhbGlkX3Bvb2xfc2l6ZT0i
+SW52YWxpZCBwb29sIHNpemUgXGAlcyciCiBtc2dfaW52YWxpZF9zd2FwX3NpemU9IkludmFsaWQg
+c3dhcCBzaXplIFxgJXMnIgogbXNnX2ludmFsaWRfdmlydHVhbF9kZXZpY2VfdHlwZT0iSW52YWxp
+ZCBWaXJ0dWFsIERldmljZSB0eXBlIFxgJXMnIgogbXNnX2xhc3RfY2hhbmNlX2FyZV95b3Vfc3Vy
+ZT0iTGFzdCBDaGFuY2UhIEFyZSB5b3Ugc3VyZSB5b3Ugd2FudCB0byBkZXN0cm95XG50aGUgY3Vy
+cmVudCBjb250ZW50cyBvZiB0aGUgZm9sbG93aW5nIGRpc2tzOlxuXG4gICAlcyIKQEAgLTg2Niw4
+ICs4NzIsMTMgQEAKIAkJIwogCQkjIDQuIEFkZCBmcmVlYnNkLXpmcyBwYXJ0aXRpb24gbGFiZWxl
+ZCBgemZzIycgZm9yIHpyb290CiAJCSMKKwkgICAgICAgaWYgWyAiJFpGU0JPT1RfUE9PTF9TSVpF
+IiBdOyB0aGVuCisJCWZfZXZhbF9jYXRjaCAkZnVuY25hbWUgZ3BhcnQgIiRHUEFSVF9BRERfTEFC
+RUxfV0lUSF9TSVpFIiBcCisJCSAgICAgICAgICAgICB6ZnMkaW5kZXggZnJlZWJzZC16ZnMgJHtw
+b29sc2l6ZX1iICRkaXNrIHx8IHJldHVybiAkRkFJTFVSRQorCSAgICAgICBlbHNlCiAJCWZfZXZh
+bF9jYXRjaCAkZnVuY25hbWUgZ3BhcnQgIiRHUEFSVF9BRERfTEFCRUwiIFwKIAkJICAgICAgICAg
+ICAgIHpmcyRpbmRleCBmcmVlYnNkLXpmcyAkZGlzayB8fCByZXR1cm4gJEZBSUxVUkUKKwkgICAg
+ICAgZmkKIAkJZl9ldmFsX2NhdGNoIC1kICRmdW5jbmFtZSB6cG9vbCAiJFpQT09MX0xBQkVMQ0xF
+QVJfRiIgXAogCQkgICAgICAgICAgICAgICAgL2Rldi8kZGlzayR0YXJnZXRwYXJ0CiAJCTs7CkBA
+IC0xMDI5LDcgKzEwNDAsNyBAQAogCSMgRXhwYW5kIFNJIHVuaXRzIGluIGRlc2lyZWQgc2l6ZXMK
+IAkjCiAJZl9kcHJpbnRmICIkZnVuY25hbWU6IEV4cGFuZGluZyBzdXBwbGllZCBzaXplIHZhbHVl
+cy4uLiIKLQlsb2NhbCBzd2Fwc2l6ZSBib290c2l6ZQorCWxvY2FsIHN3YXBzaXplIGJvb3RzaXpl
+IHBvb2xzaXplCiAJaWYgISBmX2V4cGFuZF9udW1iZXIgIiRaRlNCT09UX1NXQVBfU0laRSIgc3dh
+cHNpemU7IHRoZW4KIAkJZl9kcHJpbnRmICIkZnVuY25hbWU6IEludmFsaWQgc3dhcCBzaXplIFxg
+JXMnIiBcCiAJCSAgICAgICAgICAiJFpGU0JPT1RfU1dBUF9TSVpFIgpAQCAtMTA0MywxMCArMTA1
+NCwxOSBAQAogCQkgICAgICAgICAgICIkWkZTQk9PVF9CT09UX1BPT0xfU0laRSIKIAkJcmV0dXJu
+ICRGQUlMVVJFCiAJZmkKKwlpZiAhIGZfZXhwYW5kX251bWJlciAiJFpGU0JPT1RfUE9PTF9TSVpF
+IiBwb29sc2l6ZTsgdGhlbgorCQlmX2RwcmludGYgIiRmdW5jbmFtZTogSW52YWxpZCBwb29sIHNp
+emUgXGAlcyciIFwKKwkJICAgICAgICAgICIkWkZTQk9PVF9QT09MX1NJWkUiCisJCWZfc2hvd19l
+cnIgIiRtc2dfaW52YWxpZF9wb29sX3NpemUiIFwKKwkJICAgICAgICAgICAiJFpGU0JPT1RfUE9P
+TF9TSVpFIgorCQlyZXR1cm4gJEZBSUxVUkUKKwlmaQogCWZfZHByaW50ZiAiJGZ1bmNuYW1lOiBa
+RlNCT09UX1NXQVBfU0laRT1bJXNdIHN3YXBzaXplPVslc10iIFwKIAkgICAgICAgICAgIiRaRlNC
+T09UX1NXQVBfU0laRSIgIiRzd2Fwc2l6ZSIKIAlmX2RwcmludGYgIiRmdW5jbmFtZTogWkZTQk9P
+VF9CT09UX1BPT0xfU0laRT1bJXNdIGJvb3RzaXplPVslc10iIFwKIAkgICAgICAgICAgIiRaRlNC
+T09UX0JPT1RfUE9PTF9TSVpFIiAiJGJvb3RzaXplIgorCWZfZHByaW50ZiAiJGZ1bmNuYW1lOiBa
+RlNCT09UX1BPT0xfU0laRT1bJXNdIHBvb2xzaXplPVslc10iIFwKKwkgICAgICAgICAgIiRaRlNC
+T09UX1BPT0xfU0laRSIgIiRwb29sc2l6ZSIKIAogCSMKIAkjIERlc3Ryb3kgdGhlIHBvb2wgaW4t
+Y2FzZSB0aGlzIGlzIG91ciBzZWNvbmQgdGltZSAncm91bmQgKGNhc2Ugb2YKQEAgLTExNTAsMTUg
+KzExNzAsNiBAQAogCSMgQ3JlYXRlIHRoZSBnZWxpKDgpIEdFT01TCiAJIwogCWlmIFsgIiRaRlNC
+T09UX0dFTElfRU5DUllQVElPTiIgXTsgdGhlbgotCQkjIFByb21wdCB1c2VyIGZvciBwYXNzd29y
+ZCAodHdpY2UpCi0JCWlmICEgbXNnX2VudGVyX25ld19wYXNzd29yZD0iJG1zZ19nZWxpX3Bhc3N3
+b3JkIiBcCi0JCQlmX2RpYWxvZ19pbnB1dF9wYXNzd29yZAotCQl0aGVuCi0JCQlmX2RwcmludGYg
+IiRmdW5jbmFtZTogVXNlciBjYW5jZWxsZWQiCi0JCQlmX3Nob3dfZXJyICIkbXNnX3VzZXJfY2Fu
+Y2VsbGVkIgotCQkJcmV0dXJuICRGQUlMVVJFCi0JCWZpCi0KIAkJIyBJbml0aWFsaXplIGdlbGko
+OCkgb24gZWFjaCBvZiB0aGUgdGFyZ2V0IHBhcnRpdGlvbnMKIAkJZm9yIGRpc2sgaW4gJGRpc2tz
+OyBkbwogCQkJZl9kaWFsb2dfaW5mbyAiJG1zZ19nZWxpX3NldHVwIiBcCkBAIC0xNDc2LDcgKzE0
+ODcsOCBAQAogCiAJCSMgTWFrZSBzdXJlIGVhY2ggZGlzayB3aWxsIGJlIGF0IGxlYXN0IDUwJSBa
+RlMKIAkJaWYgZl9leHBhbmRfbnVtYmVyICIkWkZTQk9PVF9TV0FQX1NJWkUiIHN3YXBzaXplICYm
+Ci0JCSAgIGZfZXhwYW5kX251bWJlciAiJFpGU0JPT1RfQk9PVF9QT09MX1NJWkUiIGJvb3RzaXpl
+CisJCSAgIGZfZXhwYW5kX251bWJlciAiJFpGU0JPT1RfQk9PVF9QT09MX1NJWkUiIGJvb3RzaXpl
+ICYmCisJCSAgIGZfZXhwYW5kX251bWJlciAiJFpGU0JPT1RfUE9PTF9TSVpFIiBwb29sc2l6ZQog
+CQl0aGVuCiAJCQltaW5zaXplPSRzd2Fwc2l6ZSB0ZWVueV9kaXNrcz0KIAkJCVsgIiRaRlNCT09U
+X0JPT1RfUE9PTCIgXSAmJgo=
 ====
 EOF
 
@@ -187,7 +239,7 @@ ZFSBOOT_BOOT_POOL_SIZE=$bsize \
 ZFSBOOT_SWAP_SIZE=$ssize \
 ZFSBOOT_SWAP_ENCRYPTION=1 \
 nonInteractive=0 \
-bsdinstall zfsboot
+bsdinstall zfsboot || exiterror $?
 
 ######################################################################
 # Copy the generated /boot/loader.conf and /etc/fstab
@@ -221,7 +273,7 @@ DISTRIBUTIONS="kernel.txz base.txz" \
 BSDINSTALL_DISTDIR=$distdir \
 BSDINSTALL_DISTSITE="http://ftp4.freebsd.org/pub/FreeBSD/releases/`uname -m`/`uname -p`/${release}" \
 nonInteractive=0 \
-bsdinstall distfetch
+bsdinstall distfetch || exiterror $?
 fi
 
 ######################################################################
@@ -252,7 +304,7 @@ DISTRIBUTIONS="kernel.txz base.txz" \
 BSDINSTALL_DISTDIR=$distdir \
 BSDINSTALL_CHROOT=$mnt \
 nonInteractive=0 \
-bsdinstall distextract
+bsdinstall distextract || exiterror $?
 
 ######################################################################
 # Copy pkg-static
@@ -303,6 +355,7 @@ fi
 
 #	/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" ntpdate_hosts=""
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" auditd_enable="YES"
+/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" entropy_file="/var/db/entropy-file"
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" ftpproxy_enable="YES"
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" ntpdate_enable="YES"
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" openntpd_enable="YES"
@@ -327,12 +380,26 @@ fi
 /usr/sbin/sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES"
 
 ######################################################################
-# Set ifconfig SYNCDHCP
+# Set ifconfig DHCP
 ######################################################################
 
 chroot $mnt sh <<EOF
 #!/bin/sh
 ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then sysrc -f /boot/rc.conf.append ifconfig_\${line}=DHCP ; fi ; done
+EOF
+
+######################################################################
+# Set lagg as optional comments
+######################################################################
+
+chroot $mnt sh <<EOF
+#!/bin/sh
+echo '########## To enable Link Aggregation: BEGIN' >> /boot/rc.conf.append
+ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then echo 'ifconfig_\${line}="up"' >> /boot/rc.conf.append ; fi ; done
+ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then nics="\$nics laggport \${line}" ; fi ; done
+echo '# cloned_interfaces="lagg0"' >> /boot/rc.conf.append
+echo '# ifconfig_lagg0="laggproto failover \$nics DHCP"' >> /boot/rc.conf.append
+echo '########## To enable Link Aggregation: END' >> /boot/rc.conf.append
 EOF
 
 ######################################################################
@@ -353,19 +420,23 @@ yes '' | chroot $mnt passwd
 ######################################################################
 
 if [ "$MAKEMFSROOT" ]; then
-dd if=/dev/zero of=${mnt}/${bpool}/mfsroot bs=512 count=245760
+echo "Creating mfsroot container at ${mnt}/${bpool}/mfsroot with dd"
+dd if=/dev/zero of=${mnt}/${bpool}/mfsroot bs=512 count=245760 || exiterror $?
 mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot`
 install -d -m 755 /mnt2
-newfs /dev/${mdevice}
-mount /dev/${mdevice} /mnt2
+echo "Making new fs on /dev/${mdevice}"
+newfs /dev/${mdevice} || exiterror $?
+echo "Mouting /dev/${mdevice} to /mnt2"
+mount /dev/${mdevice} /mnt2 || exiterror $?
 ########## Copy everything except /usr
+echo "Copying ${mnt} to /mnt2"
 tar -c -f - \
 --exclude $bpool \
 --exclude /boot \
 --exclude null \
 --exclude ${release} \
 --exclude usr \
--C ${mnt} ./ | tar -C /mnt2 -x -f -
+-C ${mnt} ./ | tar -C /mnt2 -x -f - || exiterror $?
 ########## rc script for tmpfs /usr
 ########## modified from https://github.com/mmatuska/mfsbsd
 cat >/mnt2/etc/rc.d/mdinit <<EOF
@@ -432,6 +503,7 @@ appendconf_start()
   if [ -f /boot/rc.conf.append ]; then
     cat /boot/rc.conf.append | grep hostname >> /etc/rc.conf.d/hostname
     cat /boot/rc.conf.append | grep ifconfig_ >> /etc/rc.conf.d/network
+    cat /boot/rc.conf.append | grep cloned_interfaces >> /etc/rc.conf.d/network
     cat /boot/rc.conf.append | grep defaultrouter >> /etc/rc.conf.d/routing
     cat /boot/rc.conf.append | grep static_routes >> /etc/rc.conf.d/routing
     cat /boot/rc.conf.append | grep route_ >> /etc/rc.conf.d/routing
@@ -466,10 +538,12 @@ run_rc_command "\$1"
 EOF
 chmod 555 /mnt2/etc/rc.d/appendconf
 ########## Package /usr
-tar -c -J -f /mnt2/.usr.tar.xz --exclude ${release} --options xz:compression-level=9 -C ${mnt} usr
+echo "Compressing ${mnt}/usr to /mnt2/.usr.tar.xz"
+tar -c -J -f /mnt2/.usr.tar.xz --exclude ${release} --options xz:compression-level=9 -C ${mnt} usr || exiterror $?
 ########## Unmount
-umount /dev/${mdevice}
-mdconfig -d -u ${mdevice#md}
+echo "Unmounting /dev/${mdevice}"
+umount /dev/${mdevice} || exiterror $?
+mdconfig -d -u ${mdevice#md} || exiterror $?
 ########## mfs_ settings in loader.conf
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mfs_load="YES"
 /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mfs_type="mfs_root"
