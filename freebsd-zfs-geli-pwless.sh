@@ -332,7 +332,12 @@ fi
 # Copy the generated /boot/loader.conf and /etc/fstab
 ######################################################################
 
-cat /tmp/bsdinstall_boot/loader.conf.* > /mnt/boot/loader.conf.local
+cat /tmp/bsdinstall_boot/loader.conf.* | \
+grep -v aesni_load | \
+grep -v geom_eli_load | \
+grep -v zfs_load | \
+grep -v kern.geom.label.gptid.enable | \
+> /mnt/boot/loader.conf.local
 chmod 644 /mnt/boot/loader.conf.local
 install -d -m 755 /mnt/etc
 install    -m 644 /tmp/bsdinstall_etc/fstab /mnt/boot/fstab.append
@@ -756,10 +761,10 @@ echo "Unmounting /dev/${mdevice}"
 umount /dev/${mdevice} || exiterror $?
 mdconfig -d -u ${mdevice#md} || exiterror $?
 ########## mfs_ settings in loader.conf
-sysrc -f "${mnt}/boot/loader.conf" mfs_load="YES" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" mfs_type="mfs_root" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" mfs_name="/mfsroot" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" "vfs.root.mountfrom=ufs:/dev/md0" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf.local" mfs_load="YES" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf.local" mfs_type="mfs_root" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf.local" mfs_name="/mfsroot" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf.local" "vfs.root.mountfrom=ufs:/dev/md0" >/dev/null
 ########## set defaultrouter
 sysrc -f "${mnt}/boot/loader.conf.local" \
 defaultrouter="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
