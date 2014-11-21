@@ -30,6 +30,7 @@ usage() {
 usage: $0 -d disk [-d disk ...] [-b boot_size] [-f] [-h] [-m]
        [-p poolname] [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
 
+       -a       Add a disk to an existing mirror pool.
        -b size  Boot partition size.
        -d disk  Disk to install on (eg. da0).
        -f       Force export of existing pool.
@@ -40,16 +41,25 @@ usage: $0 -d disk [-d disk ...] [-b boot_size] [-f] [-h] [-m]
        -r       Select ZFS raid mode if multiple -d given.
        -s size  Swap partition size.
        -v       Version.
-       -z       ZFS partition size.
+       -z       ZFS pool size.
 
 examples:
 
   Install on mirror disks:
-       $0 -d ada0 -d ada1 -r mirror
+       $0 -d ada0 -d ada1
+
+  Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
+       $0 -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror
 
   Make a bootable ZFS USB, which loads as mfs:
        $0 -d da0 -m -p usb
   Note we change the pool name so they don't conflict.
+
+  Minimal mfs server:
+       $0 -d ada0 -d ada1 -z 2g -f -m -p mini
+
+  Add a disk to an existing pool:
+       $0 -d ada0 -z 2g -p mini -a
 EOF
 }
 
@@ -63,7 +73,7 @@ exiterror() {
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-while getopts b:d:p:r:s:M:z:mfvh o; do
+while getopts b:d:p:r:s:M:z:amfvh o; do
   case "$o" in
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
@@ -72,6 +82,7 @@ while getopts b:d:p:r:s:M:z:mfvh o; do
     s) ssize="$OPTARG" ;;
     M) mnt="$OPTARG" ;;
     z) zsize="$OPTARG" ;;
+    a) ADDTOPOOL=1 ;;
     m) MAKEMFSROOT=1 ;;
     f) FORCEEXPORT=1 ;;
     v) echo $SCRIPTVERSION ; exit 1 ;;
@@ -85,50 +96,65 @@ done
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
-if [ "$count" -lt "3" -a "$raidtype" = "raidz" ]; then
-  echo "Error: raidz needs at least three devices (-d switch)" ; exit 1
-elif [ "$count" -lt "4" -a "$raidtype" = "raidz2" ]; then
-  echo "Error: raidz2 needs at least four devices (-d switch)" ; exit 1
-elif [ "$count" -lt "5" -a "$raidtype" = "raidz3" ]; then
-  echo "Error: raidz3 needs at least five devices (-d switch)" ; exit 1
-elif [ "$count" = "1" -a "$raidtype" = "mirror" ]; then
-  echo "Error: mirror needs at least two devices (-d switch)" ; exit 1
-elif [ "$count" = "2" -a "$raidtype" != "mirror" ]; then
-  echo "Notice: two drives selected, automatically choosing mirror mode"
-  raidtype="mirror"
-elif [ "$count" -gt "2" -a "$raidtype" != "mirror" -a "$raidtype" != "raidz" \
-  -a "$raidtype" != "raidz2" -a "$raidtype" != "raidz3" ]; then
-  echo \
-  "Error: please choose raid mode with the -r switch (mirror or raidz{1,2,3})"
-  exit 1
+if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
+  count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
+  if [ "$count" -lt "3" -a "$raidtype" = "raidz" ]; then
+    echo "Error: raidz needs at least three devices (-d switch)" ; exit 1
+  elif [ "$count" -lt "4" -a "$raidtype" = "raidz2" ]; then
+    echo "Error: raidz2 needs at least four devices (-d switch)" ; exit 1
+  elif [ "$count" -lt "5" -a "$raidtype" = "raidz3" ]; then
+    echo "Error: raidz3 needs at least five devices (-d switch)" ; exit 1
+  elif [ "$count" = "1" -a "$raidtype" = "mirror" ]; then
+    echo "Error: mirror needs at least two devices (-d switch)" ; exit 1
+  elif [ "$count" = "2" -a "$raidtype" != "mirror" ]; then
+    echo "Notice: two drives selected, automatically choosing mirror mode"
+    raidtype="mirror"
+  elif [ "$count" -gt "2" -a "$raidtype" != "mirror" -a "$raidtype" != "raidz" \
+    -a "$raidtype" != "raidz2" -a "$raidtype" != "raidz3" ]; then
+    echo \
+    "Error: please choose raid mode with the -r switch (mirror or raidz{1,2,3})"
+    exit 1
+  fi
 fi
 
 ######################################################################
 # If force, delete pools and detach partition 3 and 4
 ######################################################################
 
-if [ "$FORCEEXPORT" ]; then
-  ########## have to export bpool before rpool
-  zpool status $bpool >/dev/null 2>&1 && zpool export -f $bpool
-  zpool status $rpool >/dev/null 2>&1 && zpool export -f $rpool
-  for D in $disks ; do
-    test -e /dev/${D}p3.eli && geli detach ${D}p3
-    test -e /dev/${D}p4.eli && geli detach ${D}p4
-  done
+if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
+  if [ "$FORCEEXPORT" ]; then
+    ########## have to export bpool before rpool
+    zpool status $bpool >/dev/null 2>&1 && zpool export -f $bpool
+    zpool status $rpool >/dev/null 2>&1 && zpool export -f $rpool
+    for D in $disks ; do
+      test -e /dev/${D}p3.eli && geli detach ${D}p3
+      test -e /dev/${D}p4.eli && geli detach ${D}p4
+    done
+  fi
 fi
 
 ######################################################################
-# Quit if pools exist
+# Quit if pools exist, but if ADDTOPOOL, quit if not exist
 ######################################################################
 
-if zpool status $rpool >/dev/null 2>&1 ; then
-  echo "ERROR: A pool named $rpool already exists."
-  exit 1
-fi
-if zpool status $bpool >/dev/null 2>&1 ; then
-  echo "ERROR: A pool named $bpool already exists."
-  exit 1
+if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
+  if zpool status $rpool >/dev/null 2>&1 ; then
+    echo "ERROR: A pool named $rpool already exists."
+    exit 1
+  fi
+  if zpool status $bpool >/dev/null 2>&1 ; then
+    echo "ERROR: A pool named $bpool already exists."
+    exit 1
+  fi
+elif [ "$ADDTOPOOL" = "1" ]; then
+  if ! zpool status $rpool >/dev/null 2>&1 ; then
+    echo "ERROR: A pool named $rpool doesn't exists."
+    exit 1
+  fi
+  if ! zpool status $bpool >/dev/null 2>&1 ; then
+    echo "ERROR: A pool named $bpool doesn't exists."
+    exit 1
+  fi
 fi
 
 ######################################################################
@@ -236,6 +262,14 @@ rm -r /tmp/bsdinstall*
 # Perform creation of zfsboot
 ######################################################################
 
+if [ "$ADDTOPOOL" = "1" ]; then
+  bpoolreal=$bpool
+  bpooltmp=tmpbpool
+  bpool=$bpooltmp
+  rpoolreal=$rpool
+  rpooltmp=tmprpool
+  rpool=$rpooltmp
+fi
 ZFSBOOT_DISKS="$disks" \
 ZFSBOOT_VDEV_TYPE=$raidtype \
 ZFSBOOT_POOL_NAME=$rpool \
@@ -251,13 +285,48 @@ nonInteractive=0 \
 bsdinstall zfsboot || exiterror $?
 
 ######################################################################
+# Do ADDTOPOOL stuff
+######################################################################
+
+if [ "$ADDTOPOOL" = "1" ]; then
+########## get existing disk
+bpoolrealdisk=`zpool status $bpoolreal | grep -v $bpoolreal | grep -v state | \
+grep ONLINE | head -1 | awk '{print $1}'`
+rpoolrealdisk=`zpool status $rpoolreal | grep -v $rpoolreal | grep -v state | \
+grep ONLINE | head -1 | awk '{print $1}'`
+########## get new disk
+bpooltmpdisk=`zpool status $bpooltmp | grep -v $bpooltmp | grep -v state | \
+grep ONLINE | head -1 | awk '{print $1}'`
+rpooltmpdisk=`zpool status $rpooltmp | grep -v $rpooltmp | grep -v state | \
+grep ONLINE | head -1 | awk '{print $1}'`
+########## destroy pool
+zpool destroy -f $bpooltmp
+zpool destroy -f $rpooltmp
+########## clear zfs labels
+zpool labelclear $bpooltmp
+zpool labelclear $rpooltmp
+########## attach bpool
+zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk
+########## attach rpool
+geli detach $rpooltmpdisk
+geli init -b -B "/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P -K "/${bpoolreal}/boot/encryption.key" -l 256 -s 4096 ${rpooltmpdisk%.eli}
+zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk
+cat <<EOF
+Please wait for resilver to complete!
+You can see the status of the process with:
+       zpool status
+EOF
+exit
+fi
+
+######################################################################
 # Copy the generated /boot/loader.conf and /etc/fstab
 ######################################################################
 
 cat /tmp/bsdinstall_boot/loader.conf.* > /mnt/boot/loader.conf
 chmod 644 /mnt/boot/loader.conf
 install -d -m 755 /mnt/etc
-install    -m 644 /tmp/bsdinstall_etc/fstab /mnt/etc/fstab
+install    -m 644 /tmp/bsdinstall_etc/fstab /mnt/boot/fstab.append
 
 ######################################################################
 # Check if local distribution exists, if so copy to mnt
@@ -603,6 +672,11 @@ appendconf_start()
     cat /boot/resolv.conf.overwrite > /etc/resolv.conf
   elif [ -f /boot/resolv.conf.append ]; then
     cat /boot/resolv.conf.append >> /etc/resolv.conf
+  fi
+  if [ -f /boot/fstab.overwrite ]; then
+    cat /boot/fstab.overwrite > /etc/fstab
+  elif [ -f /boot/fstab.append ]; then
+    cat /boot/fstab.append >> /etc/fstab
   fi
   if [ -f /boot/periodic.conf.overwrite ]; then
     cat /boot/periodic.conf.overwrite > /etc/periodic.conf
