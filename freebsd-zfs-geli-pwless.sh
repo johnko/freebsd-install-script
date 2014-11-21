@@ -775,7 +775,7 @@ defaultrouter="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
 ########## optional set mdinit_shell
 # sysrc -f "${mnt}/boot/loader.conf" mdinit_shell="YES" >/dev/null
 ########## optional set packages to list we can pkg install -y ____
-sysrc -f "${mnt}/boot/loader.conf" packages="" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf.local" packages="" >/dev/null
 ########## optional set netwait_
 sysrc -f "${mnt}/boot/loader.conf.local" netwait_enable="YES" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf.local" \
