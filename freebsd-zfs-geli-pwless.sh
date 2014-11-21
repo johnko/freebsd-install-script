@@ -18,6 +18,7 @@ SCRIPTVERSION=141118-231600
 : ${bfsname:=default}
 : ${ssize:=2g}
 : ${release:=10.1-RELEASE}
+: ${distsite:="http://ftp4.freebsd.org/pub/FreeBSD/releases"}
 
 ######################################################################
 # Usage
@@ -95,8 +96,11 @@ elif [ "$count" = "1" -a "$raidtype" = "mirror" ]; then
 elif [ "$count" = "2" -a "$raidtype" != "mirror" ]; then
   echo "Notice: two drives selected, automatically choosing mirror mode"
   raidtype="mirror"
-elif [ "$count" -gt "2" -a "$raidtype" != "mirror" -a "$raidtype" != "raidz" -a "$raidtype" != "raidz2" -a "$raidtype" != "raidz3" ]; then
-  echo "Error: please choose raid mode with the -r switch (mirror or raidz{1,2,3})" ; exit 1
+elif [ "$count" -gt "2" -a "$raidtype" != "mirror" -a "$raidtype" != "raidz" \
+  -a "$raidtype" != "raidz2" -a "$raidtype" != "raidz3" ]; then
+  echo \
+  "Error: please choose raid mode with the -r switch (mirror or raidz{1,2,3})"
+  exit 1
 fi
 
 ######################################################################
@@ -104,9 +108,13 @@ fi
 ######################################################################
 
 if [ "$FORCEEXPORT" ]; then
-  zpool status $bpool >/dev/null 2>&1 && zpool export -f $bpool # have to export bpool before rpool
+  ########## have to export bpool before rpool
+  zpool status $bpool >/dev/null 2>&1 && zpool export -f $bpool
   zpool status $rpool >/dev/null 2>&1 && zpool export -f $rpool
-  for D in $disks ; do test -e /dev/${D}p3.eli && geli detach ${D}p3 ; test -e /dev/${D}p4.eli && geli detach ${D}p4 ; done
+  for D in $disks ; do
+    test -e /dev/${D}p3.eli && geli detach ${D}p3
+    test -e /dev/${D}p4.eli && geli detach ${D}p4
+  done
 fi
 
 ######################################################################
@@ -271,7 +279,7 @@ install -d -m 755 $distdir
 if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
 DISTRIBUTIONS="kernel.txz base.txz" \
 BSDINSTALL_DISTDIR=$distdir \
-BSDINSTALL_DISTSITE="http://ftp4.freebsd.org/pub/FreeBSD/releases/`uname -m`/`uname -p`/${release}" \
+BSDINSTALL_DISTSITE="$distsite/`uname -m`/`uname -p`/${release}" \
 nonInteractive=0 \
 bsdinstall distfetch || exiterror $?
 fi
@@ -535,7 +543,7 @@ mdinit_start()
     /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.gz
   fi
   if [ ! -f /usr/bin/which ]; then
-    echo "Something went wrong in mdinit while extracting /usr, entering shell:"
+    echo "Error in mdinit while extracting /usr, entering shell:"
     /rescue/sh
   fi
   if zfs list -H -o name,canmount,mountpoint | \
