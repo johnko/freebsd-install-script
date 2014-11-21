@@ -559,6 +559,8 @@ fi
 
 cat <<EOF
 Don't export the ZFS pools!
+You may want to set the hostname:
+       sysrc -f "${mnt}/boot/rc.conf.append" hostname="name"
 You should probably change the root password of the new system:
        chroot $mnt passwd
 EOF
