@@ -31,9 +31,9 @@ usage: $0 -d disk [-d disk ...] [-e disk] [-b boot_size] [-f] [-h] [-m]
        [-M /mnt] [-p poolname] [-r stripe|mirror|raidz|raidz2|raidz3]
        [-s swap_size] [-v] [-z pool_size]
 
-       -e disk  Attach to this existing disk that is part of -p pool.
        -b size  Boot partition size.
        -d disk  Disk to install on (eg. da0).
+       -e disk  Attach to this existing disk that is part of -p pool.
        -f       Force export of existing pool.
        -h       Help.
        -m       Create mfsroot type of system.
