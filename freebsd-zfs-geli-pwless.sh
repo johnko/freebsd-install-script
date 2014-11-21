@@ -104,8 +104,8 @@ fi
 ######################################################################
 
 if [ "$FORCEEXPORT" ]; then
-  zpool status $bpool >/dev/null 2>/dev/null && zpool export -f $bpool # have to export bpool before rpool
-  zpool status $rpool >/dev/null 2>/dev/null && zpool export -f $rpool
+  zpool status $bpool >/dev/null 2>&1 && zpool export -f $bpool # have to export bpool before rpool
+  zpool status $rpool >/dev/null 2>&1 && zpool export -f $rpool
   for D in $disks ; do test -e /dev/${D}p3.eli && geli detach ${D}p3 ; test -e /dev/${D}p4.eli && geli detach ${D}p4 ; done
 fi
 
@@ -113,11 +113,11 @@ fi
 # Quit if pools exist
 ######################################################################
 
-if zpool status $rpool >/dev/null 2>/dev/null ; then
+if zpool status $rpool >/dev/null 2>&1 ; then
   echo "ERROR: A pool named $rpool already exists."
   exit 1
 fi
-if zpool status $bpool >/dev/null 2>/dev/null ; then
+if zpool status $bpool >/dev/null 2>&1 ; then
   echo "ERROR: A pool named $bpool already exists."
   exit 1
 fi
@@ -317,10 +317,22 @@ elif [ -f /usr/local/sbin/pkg-static ]; then
 fi
 
 ######################################################################
-# Install OpenNTPd
+# Fetch some packages we can cache in /boot/packages
 ######################################################################
 
-chroot ${mnt} p install -y openntpd
+install -d -m 755 ${mnt}/boot/packages
+if [ -f /usr/local/etc/pkg.conf ]; then
+  cat /usr/local/etc/pkg.conf > /usr/local/etc/pkg.conf.bkp
+fi
+echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >> /usr/local/etc/pkg.conf
+p fetch -y pkg cmdwatch curl gnupg ezjail iftop openntpd openssl rsync tmux ucarp wget
+# git subversion
+if [ -f /usr/local/etc/pkg.conf.bkp ]; then
+  cat /usr/local/etc/pkg.conf.bkp > /usr/local/etc/pkg.conf
+  rm /usr/local/etc/pkg.conf.bkp
+else
+  rm /usr/local/etc/pkg.conf
+fi
 
 ######################################################################
 # Set some loader.conf options
@@ -547,6 +559,32 @@ load_rc_config \$name
 run_rc_command "\$1"
 EOF
 chmod 555 /mnt2/etc/rc.d/appendconf
+########## packages because we are in mfs and harder to persist
+cat >/mnt2/etc/rc.d/packages <<EOF
+#!/bin/sh
+# \$Id\$
+# PROVIDE: packages
+# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN
+# KEYWORD: FreeBSD
+. /etc/rc.subr
+name="packages"
+start_cmd="packages_start"
+stop_cmd=":"
+packages_start()
+{
+  for P in \$( /bin/kenv -q packages ) ; do
+    echo -n "Installing \$P..."
+    p install -y \$P >/var/log/packages.net.log 2>&1
+    echo "done"
+  done
+  if ls /boot/packages/*.t?z >/dev/null 2>&1 ; then
+    p add \$( ls /boot/packages/*.t?z ) >/var/log/packages.local.log 2>&1
+  fi
+}
+load_rc_config \$name
+run_rc_command "\$1"
+EOF
+chmod 555 /mnt2/etc/rc.d/appendconf
 ########## Package /usr
 echo "Compressing ${mnt}/usr to /mnt2/.usr.tar.xz"
 tar -c -J -f /mnt2/.usr.tar.xz --exclude ${release} --options xz:compression-level=9 -C ${mnt} usr || exiterror $?
@@ -561,6 +599,8 @@ sysrc -f "${mnt}/boot/loader.conf" mfs_name="/mfsroot" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf" "vfs.root.mountfrom=ufs:/dev/md0" >/dev/null
 ########## optional set mdinit_shell
 # sysrc -f "${mnt}/boot/loader.conf" mdinit_shell="YES" >/dev/null
+########## optional set packages to list we can pkg install -y ____
+sysrc -f "${mnt}/boot/loader.conf" packages="" >/dev/null
 ########## optional set ntpdate_hosts
 sysrc -f "${mnt}/boot/rc.conf.append" netwait_enable="YES" >/dev/null
 sysrc -f "${mnt}/boot/rc.conf.append" netwait_ip="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
