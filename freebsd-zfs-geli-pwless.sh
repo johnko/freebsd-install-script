@@ -27,11 +27,11 @@ SCRIPTVERSION=141118-231600
 
 usage() {
   cat <<EOF
-usage: $0 -d disk [-d disk ...] [-a disk] [-b boot_size] [-f] [-h] [-m]
+usage: $0 -d disk [-d disk ...] [-a vdev] [-b boot_size] [-f] [-h] [-m]
        [-M /mnt] [-p poolname] [-r stripe|mirror|raidz|raidz2|raidz3]
        [-s swap_size] [-v] [-z pool_size]
 
-       -a disk  Attach to this disk that is part of -p pool.
+       -a vdev  Attach to this existing vdev that is part of -p pool.
        -b size  Boot partition size.
        -d disk  Disk to install on (eg. da0).
        -f       Force export of existing pool.
@@ -49,7 +49,7 @@ examples:
   Install on disk 0:
        $0 -d ada0 -z 2g -p mini
 
-  Add disk 1 to an existing pool mirroring vdev ada0p4.eli:
+  Add disk 1 as mirror to an existing pool that contains vdev ada0p4.eli:
        $0 -d ada1 -z 2g -p mini -a ada0p4.eli
 
   Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
