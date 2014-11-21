@@ -560,11 +560,7 @@ done
 ######################################################################
 
 echo '########## To enable Link Aggregation: BEGIN' >> ${mnt}/boot/rc.conf.append
-ifconfig -l | tr ' ' '\n' | while read line ; do
-  if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
-    nics="$nics laggport $line"
-  fi
-done
+nics=`ifconfig -l | tr ' ' '\n' | awk '$1 !~ /lo[0-9]/ && $1 !~ /pflog[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
 echo "# cloned_interfaces=\"lagg0\"" >> ${mnt}/boot/rc.conf.append
 echo "# ifconfig_lagg0=\"laggproto loadbalance $nics DHCP\"" \
 >> ${mnt}/boot/rc.conf.append
