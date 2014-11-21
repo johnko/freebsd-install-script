@@ -74,8 +74,9 @@ exiterror() {
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-while getopts b:d:p:r:s:M:z:amfvh o; do
+while getopts a:b:d:p:r:s:M:z:mfvh o; do
   case "$o" in
+    a) adisk="$OPTARG" ; ADDTOPOOL=1 ;;
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
     p) rpool="$OPTARG" ; bpool="boot${rpool}" ;;
@@ -83,7 +84,6 @@ while getopts b:d:p:r:s:M:z:amfvh o; do
     s) ssize="$OPTARG" ;;
     M) mnt="$OPTARG" ;;
     z) zsize="$OPTARG" ;;
-    a) adisk="$OPTARG" ; ADDTOPOOL=1 ;;
     m) MAKEMFSROOT=1 ;;
     f) FORCEEXPORT=1 ;;
     v) echo $SCRIPTVERSION ; exit 1 ;;
