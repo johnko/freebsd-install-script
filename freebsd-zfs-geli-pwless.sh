@@ -317,67 +317,72 @@ elif [ -f /usr/local/sbin/pkg-static ]; then
 fi
 
 ######################################################################
+# Install OpenNTPd
+######################################################################
+
+chroot ${mnt} p install -y openntpd
+
+######################################################################
 # Set some loader.conf options
 ######################################################################
 
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" aesni_load="YES"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" ahci_load="YES"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" autoboot_delay="1"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" geom_eli_load="YES"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" geom_label_load="YES"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" geom_mirror_load="YES"
+sysrc -f "${mnt}/boot/loader.conf" aesni_load="YES" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" ahci_load="YES" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" autoboot_delay="1" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" geom_eli_load="YES" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" geom_label_load="YES" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" geom_mirror_load="YES" >/dev/null
 ########## hw.bge.allow_asf for my HP server to stop network disconnect
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "hw.bge.allow_asf=0"
+sysrc -f "${mnt}/boot/loader.conf" "hw.bge.allow_asf=0" >/dev/null
 ########## hw.usb.no_shutdown_wait allows USB not to stall poweroff
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "hw.usb.no_shutdown_wait=1"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" if_lagg_load="YES"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.cam.boot_delay=10000"
+sysrc -f "${mnt}/boot/loader.conf" "hw.usb.no_shutdown_wait=1" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" if_lagg_load="YES" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" "kern.cam.boot_delay=10000" >/dev/null
 ########## I prefer no disk ID
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.disk_ident.enable=0"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gpt.enable=0"
+sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.disk_ident.enable=0" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gpt.enable=0" >/dev/null
 ########## But I allow UUID
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gptid.enable=1"
+sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gptid.enable=1" >/dev/null
 ########## Kernel max
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.maxfiles=65530"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "kern.maxswzone=512M"
+sysrc -f "${mnt}/boot/loader.conf" "kern.maxfiles=65530" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" "kern.maxswzone=512M" >/dev/null
 ########## loader_logo should stop logo from showing, appears to be BROKEN
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" loader_logo="none"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" nullfs_load="YES"
+sysrc -f "${mnt}/boot/loader.conf" loader_logo="none" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" nullfs_load="YES" >/dev/null
 ########## tmpfs_load for mfsroot /usr
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" tmpfs_load="YES"
+sysrc -f "${mnt}/boot/loader.conf" tmpfs_load="YES" >/dev/null
 ########## vfs.zfs.arc_max limit arc usage on low RAM systems
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "vfs.zfs.arc_max=256M"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" zfs_load="YES"
+sysrc -f "${mnt}/boot/loader.conf" "vfs.zfs.arc_max=256M" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" zfs_load="YES" >/dev/null
 
 ######################################################################
 # Set some rc.conf options
 ######################################################################
 
-#	/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" ntpdate_hosts=""
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" auditd_enable="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" entropy_file="/var/db/entropy-file"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" ftpproxy_enable="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" ntpdate_enable="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" openntpd_enable="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" pf_enable="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" pf_rules="/etc/pf/pf.conf"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" pflog_enable="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" pflog_logfile="/var/log/pflog"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" sendmail_enable="NO"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" sendmail_submit_enable="NO"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" sendmail_outbound_enable="NO"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" sendmail_msp_queue_enable="NO"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" sshd_enable="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" sshd_rsa1_enable="NO"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" sshd_dsa_enable="NO"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" syslogd_flags="-s -b127.0.0.1"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" zfs_enable="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" virtio_load="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" virtio_pci_load="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" virtio_blk_load="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" if_vtnet_load="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" virtio_balloon_load="YES"
-/usr/sbin/sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES"
+sysrc -f "${mnt}/etc/rc.conf" auditd_enable="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" entropy_file="/var/db/entropy-file" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" ftpproxy_enable="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" ntpdate_enable="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" openntpd_enable="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" pf_enable="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" pf_rules="/etc/pf/pf.conf" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" pflog_enable="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" pflog_logfile="/var/log/pflog" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" sendmail_enable="NO" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" sendmail_submit_enable="NO" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" sendmail_outbound_enable="NO" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" sendmail_msp_queue_enable="NO" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" sshd_enable="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" sshd_rsa1_enable="NO" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" sshd_dsa_enable="NO" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" syslogd_flags="-s -b127.0.0.1" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" zfs_enable="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" virtio_load="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" virtio_pci_load="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" virtio_blk_load="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" if_vtnet_load="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" virtio_balloon_load="YES" >/dev/null
+sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES" >/dev/null
 
 ######################################################################
 # Set ifconfig DHCP
@@ -395,12 +400,10 @@ EOF
 chroot $mnt sh <<EOF
 #!/bin/sh
 echo '########## To enable Link Aggregation: BEGIN' >> /boot/rc.conf.append
-ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then echo 'ifconfig_\${line}="up"' >> /boot/rc.conf.append ; fi ; done
+ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then echo "ifconfig_\${line}=\"up\"" >> /boot/rc.conf.append ; fi ; done
 ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then nics="\$nics laggport \${line}" ; fi ; done
-echo -n '# '
-echo cloned_interfaces="lagg0" >> /boot/rc.conf.append
-echo -n '# '
-echo ifconfig_lagg0="laggproto loadbalance \$nics DHCP" >> /boot/rc.conf.append
+echo "# echo cloned_interfaces=\"lagg0\"" >> /boot/rc.conf.append
+echo "# echo ifconfig_lagg0=\"laggproto loadbalance \$nics DHCP\"" >> /boot/rc.conf.append
 echo '########## To enable Link Aggregation: END' >> /boot/rc.conf.append
 EOF
 
@@ -504,14 +507,19 @@ appendconf_start()
 {
   if [ -f /boot/rc.conf.append ]; then
     cat /boot/rc.conf.append | grep hostname >> /etc/rc.conf.d/hostname
+    cat /boot/rc.conf.append | grep netwait_ >> /etc/rc.conf.d/netwait
     cat /boot/rc.conf.append | grep ifconfig_ >> /etc/rc.conf.d/network
     cat /boot/rc.conf.append | grep cloned_interfaces >> /etc/rc.conf.d/network
+    cat /boot/rc.conf.append | grep ntpdate_ >> /etc/rc.conf.d/ntpdate
     cat /boot/rc.conf.append | grep defaultrouter >> /etc/rc.conf.d/routing
     cat /boot/rc.conf.append | grep static_routes >> /etc/rc.conf.d/routing
     cat /boot/rc.conf.append | grep route_ >> /etc/rc.conf.d/routing
     cat /boot/rc.conf.append | \
       grep -v hostname | \
+      grep -v netwait_ | \
       grep -v ifconfig_ | \
+      grep -v cloned_interfaces | \
+      grep -v ntpdate_ | \
       grep -v defaultrouter | \
       grep -v static_routes | \
       grep -v route_ >> /etc/rc.conf
@@ -547,12 +555,16 @@ echo "Unmounting /dev/${mdevice}"
 umount /dev/${mdevice} || exiterror $?
 mdconfig -d -u ${mdevice#md} || exiterror $?
 ########## mfs_ settings in loader.conf
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mfs_load="YES"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mfs_type="mfs_root"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mfs_name="/mfsroot"
-/usr/sbin/sysrc -f "${mnt}/boot/loader.conf" "vfs.root.mountfrom=ufs:/dev/md0"
+sysrc -f "${mnt}/boot/loader.conf" mfs_load="YES" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" mfs_type="mfs_root" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" mfs_name="/mfsroot" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf" "vfs.root.mountfrom=ufs:/dev/md0" >/dev/null
 ########## optional set mdinit_shell
-# /usr/sbin/sysrc -f "${mnt}/boot/loader.conf" mdinit_shell="YES"
+# sysrc -f "${mnt}/boot/loader.conf" mdinit_shell="YES" >/dev/null
+########## optional set ntpdate_hosts
+sysrc -f "${mnt}/boot/rc.conf.append" netwait_enable="YES" >/dev/null
+sysrc -f "${mnt}/boot/rc.conf.append" netwait_ip="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
+sysrc -f "${mnt}/boot/rc.conf.append" ntpdate_hosts="pool.ntp.org" >/dev/null
 fi
 
 ######################################################################
