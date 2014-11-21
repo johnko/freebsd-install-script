@@ -31,7 +31,7 @@ usage: $0 -d disk [-d disk ...] [-a vdev] [-b boot_size] [-f] [-h] [-m]
        [-M /mnt] [-p poolname] [-r stripe|mirror|raidz|raidz2|raidz3]
        [-s swap_size] [-v] [-z pool_size]
 
-       -a vdev  Attach to this existing vdev that is part of -p pool.
+       -a disk  Attach to this existing disk that is part of -p pool.
        -b size  Boot partition size.
        -d disk  Disk to install on (eg. da0).
        -f       Force export of existing pool.
@@ -49,8 +49,13 @@ examples:
   Install on disk 0:
        $0 -d ada0 -z 2g -p mini
 
-  Add disk 1 as mirror to an existing pool that contains vdev ada0p4.eli:
-       $0 -d ada1 -z 2g -p mini -a ada0p4.eli
+  Check that a zpool named mini exists, note the vdev:
+       zpool status mini
+
+  Add disk 1 as mirror to an existing pool that contains disk ada0:
+       $0 -d ada1 -z 2g -p mini -a ada0
+
+other examples:
 
   Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
        $0 -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror
@@ -290,6 +295,8 @@ bsdinstall zfsboot || exiterror $?
 ######################################################################
 
 if [ "$ADDTOPOOL" = "1" ]; then
+bootpart=p2 swappart=p3 targetpart=p3
+[ -n "$ssize" ] && targetpart=p4
 ########## get existing disk
 bpoolrealdisk=`zpool status $bpoolreal | grep -v $bpoolreal | grep -v state | \
 grep ONLINE | tail -1 | awk '{print $1}'`
@@ -301,8 +308,11 @@ grep ONLINE | tail -1 | awk '{print $1}'`
 ########## destroy pool
 zpool destroy -f $bpooltmp
 zpool destroy -f $rpooltmp
+########## gnop for bpooltmpdisk
+gnop create -S 4096 ${disks}${bootpart}
 ########## attach bpool
-zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk
+echo "Trying: zpool attach -f $bpoolreal $bpoolrealdisk ${disks}${bootpart}.nop"
+zpool attach -f $bpoolreal $bpoolrealdisk ${disks}${bootpart}.nop
 ########## attach rpool
 geli detach $rpooltmpdisk
 if [ -f /${bpoolreal}/boot/encryption.key ]; then
@@ -324,8 +334,8 @@ elif [ -f ${mnt}/${bpoolreal}/boot/encryption.key ]; then
   geli attach -p -k "${mnt}/${bpoolreal}/boot/encryption.key" \
     ${rpooltmpdisk%.eli}
 fi
-echo "Trying: zpool attach -f $rpoolreal $adisk $rpooltmpdisk"
-zpool attach -f $rpoolreal $adisk $rpooltmpdisk || exiterror $?
+echo "Trying: zpool attach -f $rpoolreal ${adisk}${targetpart}.eli $rpooltmpdisk"
+zpool attach -f $rpoolreal ${adisk}${targetpart}.eli ${disks}${targetpart}.eli || exiterror $?
 cat <<EOF
 Please wait for resilver to complete!
 You can see the status of the process with:
@@ -545,13 +555,13 @@ sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES" >/dev/null
 
 ifconfig -l | tr ' ' '\n' | while read line ; do
   if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
-    echo "# ifconfig_${line}=\"up\"" >> ${mnt}/boot/rc.conf.append
+    echo "# ifconfig_${line}=\"up\"" >> ${mnt}/boot/loader.conf.local
   fi
 done
 
 ifconfig -l | tr ' ' '\n' | while read line ; do
   if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
-    sysrc -f "${mnt}/boot/rc.conf.append" ifconfig_${line}="DHCP"
+    sysrc -f "${mnt}/boot/loader.conf.local" ifconfig_${line}="DHCP"
   fi
 done
 
@@ -559,12 +569,12 @@ done
 # Set lagg as optional comments
 ######################################################################
 
-echo '########## To enable Link Aggregation: BEGIN' >> ${mnt}/boot/rc.conf.append
+echo '########## To enable Link Aggregation: BEGIN' >> ${mnt}/boot/loader.conf.local
 nics=`ifconfig -l | tr ' ' '\n' | awk '$1 !~ /lo[0-9]/ && $1 !~ /pflog[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
-echo "# cloned_interfaces=\"lagg0\"" >> ${mnt}/boot/rc.conf.append
+echo "# cloned_interfaces=\"lagg0\"" >> ${mnt}/boot/loader.conf.local
 echo "# ifconfig_lagg0=\"laggproto loadbalance $nics DHCP\"" \
->> ${mnt}/boot/rc.conf.append
-echo '########## To enable Link Aggregation: END' >> ${mnt}/boot/rc.conf.append
+>> ${mnt}/boot/loader.conf.local
+echo '########## To enable Link Aggregation: END' >> ${mnt}/boot/loader.conf.local
 
 ######################################################################
 # Set SSH options
@@ -666,26 +676,33 @@ start_cmd="appendconf_start"
 stop_cmd=":"
 appendconf_start()
 {
-  if [ -f /boot/rc.conf.append ]; then
-    cat /boot/rc.conf.append | grep hostname >> /etc/rc.conf.d/hostname
-    cat /boot/rc.conf.append | grep netwait_ >> /etc/rc.conf.d/netwait
-    cat /boot/rc.conf.append | grep ifconfig_ >> /etc/rc.conf.d/network
-    cat /boot/rc.conf.append | grep cloned_interfaces >> /etc/rc.conf.d/network
-    cat /boot/rc.conf.append | grep ntpdate_ >> /etc/rc.conf.d/ntpdate
-    cat /boot/rc.conf.append | grep defaultrouter >> /etc/rc.conf.d/routing
-    cat /boot/rc.conf.append | grep static_routes >> /etc/rc.conf.d/routing
-    cat /boot/rc.conf.append | grep route_ >> /etc/rc.conf.d/routing
-    cat /boot/rc.conf.append | \
-      grep -v hostname | \
-      grep -v netwait_ | \
-      grep -v ifconfig_ | \
-      grep -v cloned_interfaces | \
-      grep -v ntpdate_ | \
-      grep -v defaultrouter | \
-      grep -v static_routes | \
-      grep -v route_ | \
-      grep -v '##########' | \
-      grep -v '^ *\$' >> /etc/rc.conf
+  if /bin/kenv -v hostname 2>/dev/null ; then
+    /bin/kenv -v hostname >> /etc/rc.conf.d/hostname
+  fi
+  if /bin/kenv | grep netwait_ >/dev/null 2>&1 ; then
+    /bin/kenv | grep netwait_ >> /etc/rc.conf.d/netwait
+  fi
+  if /bin/kenv | grep ifconfig_ >/dev/null 2>&1 ; then
+    /bin/kenv | grep ifconfig_ >> /etc/rc.conf.d/network
+  fi
+  if /bin/kenv | grep cloned_interfaces >/dev/null 2>&1 ; then
+    /bin/kenv | grep cloned_interfaces >> /etc/rc.conf.d/network
+  fi
+  if /bin/kenv | grep ntpdate_ >/dev/null 2>&1 ; then
+    /bin/kenv | grep ntpdate_ >> /etc/rc.conf.d/ntpdate
+  fi
+  if /bin/kenv | grep defaultrouter >/dev/null 2>&1 ; then
+    /bin/kenv | grep defaultrouter >> /etc/rc.conf.d/routing
+  fi
+  if /bin/kenv | grep static_routes >/dev/null 2>&1 ; then
+    /bin/kenv | grep static_routes >> /etc/rc.conf.d/routing
+  fi
+  if /bin/kenv | grep route_ >/dev/null 2>&1 ; then
+    /bin/kenv | grep route_ >> /etc/rc.conf.d/routing
+  fi
+  ########## import before trying /boot/*
+  if /bin/kenv -q zpool_import 2>/dev/null ; then
+    /sbin/zpool import \$( /bin/kenv -q zpool_import )
   fi
   if [ -f /boot/resolv.conf.overwrite ]; then
     cat /boot/resolv.conf.overwrite > /etc/resolv.conf
@@ -759,10 +776,10 @@ sysrc -f "${mnt}/boot/loader.conf" "vfs.root.mountfrom=ufs:/dev/md0" >/dev/null
 ########## optional set packages to list we can pkg install -y ____
 sysrc -f "${mnt}/boot/loader.conf" packages="" >/dev/null
 ########## optional set ntpdate_hosts
-sysrc -f "${mnt}/boot/rc.conf.append" netwait_enable="YES" >/dev/null
-sysrc -f "${mnt}/boot/rc.conf.append" \
+sysrc -f "${mnt}/boot/loader.conf.local" netwait_enable="YES" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf.local" \
 netwait_ip="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
-sysrc -f "${mnt}/boot/rc.conf.append" ntpdate_hosts="pool.ntp.org" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf.local" ntpdate_hosts="pool.ntp.org" >/dev/null
 fi
 
 ######################################################################
@@ -772,8 +789,8 @@ fi
 cat <<EOF
 Don't export the ZFS pools!
 You may want to set the hostname with:
-       sysrc -f "${mnt}/boot/rc.conf.append" hostname="name"
-See file ${mnt}/boot/rc.conf.append for more options.
+       sysrc -f "${mnt}/boot/loader.conf.local" hostname="name"
+See file ${mnt}/boot/loader.conf.local for more options.
 You should probably change the root password of the new system with:
        chroot $mnt passwd
 EOF
