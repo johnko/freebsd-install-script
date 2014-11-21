@@ -761,14 +761,18 @@ sysrc -f "${mnt}/boot/loader.conf" mfs_load="YES" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf" mfs_type="mfs_root" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf" mfs_name="/mfsroot" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf" "vfs.root.mountfrom=ufs:/dev/md0" >/dev/null
+########## set defaultrouter
+sysrc -f "${mnt}/boot/loader.conf.local" \
+defaultrouter="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
 ########## optional set mdinit_shell
 # sysrc -f "${mnt}/boot/loader.conf" mdinit_shell="YES" >/dev/null
 ########## optional set packages to list we can pkg install -y ____
 sysrc -f "${mnt}/boot/loader.conf" packages="" >/dev/null
-########## optional set ntpdate_hosts
+########## optional set netwait_
 sysrc -f "${mnt}/boot/loader.conf.local" netwait_enable="YES" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf.local" \
 netwait_ip="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
+########## optional set ntpdate_hosts
 sysrc -f "${mnt}/boot/loader.conf.local" ntpdate_hosts="pool.ntp.org" >/dev/null
 fi
 
