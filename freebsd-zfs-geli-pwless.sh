@@ -27,10 +27,11 @@ SCRIPTVERSION=141118-231600
 
 usage() {
   cat <<EOF
-usage: $0 -d disk [-d disk ...] [-b boot_size] [-f] [-h] [-m]
-       [-p poolname] [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
+usage: $0 -d disk [-d disk ...] [-a disk] [-b boot_size] [-f] [-h] [-m]
+       [-M /mnt] [-p poolname] [-r stripe|mirror|raidz|raidz2|raidz3]
+       [-s swap_size] [-v] [-z pool_size]
 
-       -a       Add a disk to an existing mirror pool.
+       -a disk  Attach to this disk that is part of -p pool.
        -b size  Boot partition size.
        -d disk  Disk to install on (eg. da0).
        -f       Force export of existing pool.
@@ -45,8 +46,11 @@ usage: $0 -d disk [-d disk ...] [-b boot_size] [-f] [-h] [-m]
 
 examples:
 
-  Install on mirror disks:
-       $0 -d ada0 -d ada1
+  Install on disk 0:
+       $0 -d ada0 -z 2g -p mini
+
+  Add disk 1 to an existing pool mirroring vdev ada0p4.eli:
+       $0 -d ada1 -z 2g -p mini -a ada0p4.eli
 
   Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
        $0 -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror
@@ -55,11 +59,8 @@ examples:
        $0 -d da0 -m -p usb
   Note we change the pool name so they don't conflict.
 
-  Minimal mfs server:
+  Minimal mirror mfs server:
        $0 -d ada0 -d ada1 -z 2g -f -m -p mini
-
-  Add a disk to an existing pool:
-       $0 -d ada0 -z 2g -p mini -a
 EOF
 }
 
@@ -82,7 +83,7 @@ while getopts b:d:p:r:s:M:z:amfvh o; do
     s) ssize="$OPTARG" ;;
     M) mnt="$OPTARG" ;;
     z) zsize="$OPTARG" ;;
-    a) ADDTOPOOL=1 ;;
+    a) adisk="$OPTARG" ; ADDTOPOOL=1 ;;
     m) MAKEMFSROOT=1 ;;
     f) FORCEEXPORT=1 ;;
     v) echo $SCRIPTVERSION ; exit 1 ;;
@@ -291,14 +292,12 @@ bsdinstall zfsboot || exiterror $?
 if [ "$ADDTOPOOL" = "1" ]; then
 ########## get existing disk
 bpoolrealdisk=`zpool status $bpoolreal | grep -v $bpoolreal | grep -v state | \
-grep ONLINE | head -1 | awk '{print $1}'`
-rpoolrealdisk=`zpool status $rpoolreal | grep -v $rpoolreal | grep -v state | \
-grep ONLINE | head -1 | awk '{print $1}'`
+grep ONLINE | tail -1 | awk '{print $1}'`
 ########## get new disk
 bpooltmpdisk=`zpool status $bpooltmp | grep -v $bpooltmp | grep -v state | \
-grep ONLINE | head -1 | awk '{print $1}'`
+grep ONLINE | tail -1 | awk '{print $1}'`
 rpooltmpdisk=`zpool status $rpooltmp | grep -v $rpooltmp | grep -v state | \
-grep ONLINE | head -1 | awk '{print $1}'`
+grep ONLINE | tail -1 | awk '{print $1}'`
 ########## destroy pool
 zpool destroy -f $bpooltmp
 zpool destroy -f $rpooltmp
@@ -307,17 +306,26 @@ zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk
 ########## attach rpool
 geli detach $rpooltmpdisk
 if [ -f /${bpoolreal}/boot/encryption.key ]; then
+  echo "Trying: geli init"
   geli init -b \
-  -B "/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P \
-  -K "/${bpoolreal}/boot/encryption.key" -l 256 \
-  -s 4096 ${rpooltmpdisk%.eli}
+    -B "/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P \
+    -K "/${bpoolreal}/boot/encryption.key" \
+    -l 256 -s 4096 ${rpooltmpdisk%.eli}
+  echo "Trying: geli attach"
+  geli attach -p -k "/${bpoolreal}/boot/encryption.key" \
+    ${rpooltmpdisk%.eli}
 elif [ -f ${mnt}/${bpoolreal}/boot/encryption.key ]; then
+  echo "Trying: geli init"
   geli init -b \
-  -B "${mnt}/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P \
-  -K "${mnt}/${bpoolreal}/boot/encryption.key" -l 256 \
-  -s 4096 ${rpooltmpdisk%.eli}
+    -B "${mnt}/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P \
+    -K "${mnt}/${bpoolreal}/boot/encryption.key" \
+    -l 256 -s 4096 ${rpooltmpdisk%.eli}
+  echo "Trying: geli attach"
+  geli attach -p -k "${mnt}/${bpoolreal}/boot/encryption.key" \
+    ${rpooltmpdisk%.eli}
 fi
-zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk
+echo "Trying: zpool attach -f $rpoolreal $adisk $rpooltmpdisk"
+zpool attach -f $rpoolreal $adisk $rpooltmpdisk || exiterror $?
 cat <<EOF
 Please wait for resilver to complete!
 You can see the status of the process with:
