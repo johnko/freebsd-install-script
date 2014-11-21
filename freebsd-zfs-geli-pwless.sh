@@ -27,11 +27,11 @@ SCRIPTVERSION=141118-231600
 
 usage() {
   cat <<EOF
-usage: $0 -d disk [-d disk ...] [-a vdev] [-b boot_size] [-f] [-h] [-m]
+usage: $0 -d disk [-d disk ...] [-e disk] [-b boot_size] [-f] [-h] [-m]
        [-M /mnt] [-p poolname] [-r stripe|mirror|raidz|raidz2|raidz3]
        [-s swap_size] [-v] [-z pool_size]
 
-       -a disk  Attach to this existing disk that is part of -p pool.
+       -e disk  Attach to this existing disk that is part of -p pool.
        -b size  Boot partition size.
        -d disk  Disk to install on (eg. da0).
        -f       Force export of existing pool.
@@ -53,7 +53,7 @@ examples:
        zpool status mini
 
   Add disk 1 as mirror to an existing pool that contains disk ada0:
-       $0 -d ada1 -z 2g -p mini -a ada0
+       $0 -d ada1 -z 2g -p mini -e ada0
 
 other examples:
 
@@ -79,11 +79,11 @@ exiterror() {
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-while getopts a:b:d:p:r:s:M:z:mfvh o; do
+while getopts b:d:e:p:r:s:M:z:mfvh o; do
   case "$o" in
-    a) adisk="$OPTARG" ; ADDTOPOOL=1 ;;
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
+    e) edisk="$OPTARG" ; ADDTOPOOL=1 ;;
     p) rpool="$OPTARG" ; bpool="boot${rpool}" ;;
     r) raidtype="$OPTARG" ;;
     s) ssize="$OPTARG" ;;
@@ -276,12 +276,14 @@ if [ "$ADDTOPOOL" = "1" ]; then
   rpooltmp=tmprpool
   rpool=$rpooltmp
 fi
+########## No ZFSBOOT_GNOP_4K_FORCE_ALIGN because can't add mirror later
 ZFSBOOT_DISKS="$disks" \
 ZFSBOOT_VDEV_TYPE=$raidtype \
 ZFSBOOT_POOL_NAME=$rpool \
 ZFSBOOT_POOL_SIZE=$zsize \
 ZFSBOOT_BEROOT_NAME=$bename \
 ZFSBOOT_BOOTFS_NAME=$bfsname \
+ZFSBOOT_GNOP_4K_FORCE_ALIGN= \
 ZFSBOOT_GELI_ENCRYPTION=1 \
 ZFSBOOT_BOOT_POOL_NAME=$bpool \
 ZFSBOOT_BOOT_POOL_SIZE=$bsize \
@@ -309,10 +311,11 @@ grep ONLINE | tail -1 | awk '{print $1}'`
 zpool destroy -f $bpooltmp
 zpool destroy -f $rpooltmp
 ########## gnop for bpooltmpdisk
-gnop create -S 4096 ${disks}${bootpart}
-########## attach bpool
-echo "Trying: zpool attach -f $bpoolreal $bpoolrealdisk ${disks}${bootpart}.nop"
-zpool attach -f $bpoolreal $bpoolrealdisk ${disks}${bootpart}.nop
+# gnop create -S 4096 ${disks}${bootpart}
+# echo "Trying: zpool attach -f $bpoolreal $bpoolrealdisk ${disks}${bootpart}.nop"
+# zpool attach -f $bpoolreal $bpoolrealdisk ${disks}${bootpart}.nop
+echo "Trying: zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk"
+zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk
 ########## attach rpool
 geli detach $rpooltmpdisk
 if [ -f /${bpoolreal}/boot/encryption.key ]; then
@@ -334,8 +337,8 @@ elif [ -f ${mnt}/${bpoolreal}/boot/encryption.key ]; then
   geli attach -p -k "${mnt}/${bpoolreal}/boot/encryption.key" \
     ${rpooltmpdisk%.eli}
 fi
-echo "Trying: zpool attach -f $rpoolreal ${adisk}${targetpart}.eli $rpooltmpdisk"
-zpool attach -f $rpoolreal ${adisk}${targetpart}.eli ${disks}${targetpart}.eli || exiterror $?
+echo "Trying: zpool attach -f $rpoolreal ${edisk}${targetpart}.eli ${disks}${targetpart}.eli"
+zpool attach -f $rpoolreal ${edisk}${targetpart}.eli ${disks}${targetpart}.eli || exiterror $?
 cat <<EOF
 Please wait for resilver to complete!
 You can see the status of the process with:
@@ -570,9 +573,14 @@ done
 ######################################################################
 
 echo '########## To enable Link Aggregation: BEGIN' >> ${mnt}/boot/loader.conf.local
-nics=`ifconfig -l | tr ' ' '\n' | awk '$1 !~ /lo[0-9]/ && $1 !~ /pflog[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
+nics=`ifconfig -l | tr ' ' '\n' | \
+awk '$1 !~ /lo[0-9]/ && \
+$1 !~ /pflog[0-9]/ && \
+$1 !~ /lagg[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
 echo "# cloned_interfaces=\"lagg0\"" >> ${mnt}/boot/loader.conf.local
-echo "# ifconfig_lagg0=\"laggproto loadbalance $nics DHCP\"" \
+echo "# ifconfig_lagg0=\"DHCP laggproto loadbalance $nics\"" \
+>> ${mnt}/boot/loader.conf.local
+echo "# ifconfig_lagg0=\"inet 192.168.0.2/24 laggproto loadbalance $nics\"" \
 >> ${mnt}/boot/loader.conf.local
 echo '########## To enable Link Aggregation: END' >> ${mnt}/boot/loader.conf.local
 
