@@ -345,7 +345,7 @@ if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
 distdir=/mnt/boot/../${release}
 else
 install -d -m 755 /mnt/${release}
-tar cf - -C /boot/.. ${release} | tar -C /mnt/boot/.. -xf -
+tar -c -f - -C /boot/.. ${release} | tar -C /mnt/boot/.. -x -f -
 fi
 install -d -m 755 $distdir
 
@@ -406,10 +406,14 @@ fi
 ######################################################################
 
 install -d -m 755 ${mnt}/boot/packages
-if [ -f /usr/local/etc/pkg.conf ]; then
-  cat /usr/local/etc/pkg.conf > /usr/local/etc/pkg.conf.bkp
-fi
-echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >> /usr/local/etc/pkg.conf
+if [ -d /boot/packages ]; then
+  echo "Copying /boot/packages to ${mnt}/boot/packages"
+  tar -c -f - -C /boot/ packages | tar -C /mnt/boot/ -x -f - || exiterror $?
+else
+  if [ -f /usr/local/etc/pkg.conf ]; then
+    cat /usr/local/etc/pkg.conf > /usr/local/etc/pkg.conf.bkp
+  fi
+  echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >> /usr/local/etc/pkg.conf
 p fetch -y \
 cmdwatch \
 gnupg libksba libgpg-error gettext indexinfo libgcrypt libassuan pth \
@@ -456,11 +460,12 @@ pkg
 #   icons-tango-extras icons-tango gtk-xfce-engine xfce4-settings libxklavier \
 #   xkbcomp libxkbfile iso-codes xfce4-appfinder mousepad gtksourceview2 \
 #   xfce4-notifyd orage
-if [ -f /usr/local/etc/pkg.conf.bkp ]; then
-  cat /usr/local/etc/pkg.conf.bkp > /usr/local/etc/pkg.conf
-  rm /usr/local/etc/pkg.conf.bkp
-else
-  rm /usr/local/etc/pkg.conf
+  if [ -f /usr/local/etc/pkg.conf.bkp ]; then
+    cat /usr/local/etc/pkg.conf.bkp > /usr/local/etc/pkg.conf
+    rm /usr/local/etc/pkg.conf.bkp
+  else
+    rm /usr/local/etc/pkg.conf
+  fi
 fi
 
 ######################################################################
@@ -731,7 +736,7 @@ packages_start()
 load_rc_config \$name
 run_rc_command "\$1"
 EOF
-chmod 555 $mfsmnt/etc/rc.d/appendconf
+chmod 555 $mfsmnt/etc/rc.d/packages
 ########## Package /usr
 echo "Compressing ${mnt}/usr to $mfsmnt/.usr.tar.xz"
 tar -c -J -f $mfsmnt/.usr.tar.xz --exclude ${release} \
