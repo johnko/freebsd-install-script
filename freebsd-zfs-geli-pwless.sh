@@ -281,28 +281,28 @@ if [ "$ADDTOPOOL" = "1" ]; then
 bootpart=p2 swappart=p3 targetpart=p3
 [ -n "$ssize" ] && targetpart=p4
 ########## get existing disk
-bpoolrealdisk=`zpool status $bpoolreal | grep -v $bpoolreal | grep -v state | \
+bpoolrealdisk=`zpool status $bpoolreal | grep -v state | \
+grep ONLINE | tail -1 | awk '{print $1}'`
+rpoolrealdisk=`zpool status $rpoolreal | grep -v state | \
 grep ONLINE | tail -1 | awk '{print $1}'`
 ########## get new disk
-bpooltmpdisk=`zpool status $bpooltmp | grep -v $bpooltmp | grep -v state | \
+bpooltmpdisk=`zpool status $bpooltmp | grep -v state | \
 grep ONLINE | tail -1 | awk '{print $1}'`
-rpooltmpdisk=`zpool status $rpooltmp | grep -v $rpooltmp | grep -v state | \
+rpooltmpdisk=`zpool status $rpooltmp | grep -v state | \
 grep ONLINE | tail -1 | awk '{print $1}'`
 ########## destroy pool
 zpool destroy -f $bpooltmp
 zpool destroy -f $rpooltmp
-########## gnop for bpooltmpdisk
-# gnop create -S 4096 ${disks}${bootpart}
-# echo "Trying: zpool attach -f $bpoolreal $bpoolrealdisk ${disks}${bootpart}.nop"
-# zpool attach -f $bpoolreal $bpoolrealdisk ${disks}${bootpart}.nop
+########## attach bpool
 echo "Trying: zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk"
 zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk
 ########## attach rpool
 geli detach $rpooltmpdisk
+safefilename=` echo $rpooltmpdisk | sed 's#/#_#'`
 if [ -f /${bpoolreal}/boot/encryption.key ]; then
   echo "Trying: geli init"
   geli init -b \
-    -B "/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P \
+    -B "/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
     -K "/${bpoolreal}/boot/encryption.key" \
     -l 256 -s 4096 ${rpooltmpdisk%.eli}
   echo "Trying: geli attach"
@@ -311,15 +311,15 @@ if [ -f /${bpoolreal}/boot/encryption.key ]; then
 elif [ -f ${mnt}/${bpoolreal}/boot/encryption.key ]; then
   echo "Trying: geli init"
   geli init -b \
-    -B "${mnt}/${bpoolreal}/boot/${rpooltmpdisk}" -e AES-XTS -P \
+    -B "${mnt}/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
     -K "${mnt}/${bpoolreal}/boot/encryption.key" \
     -l 256 -s 4096 ${rpooltmpdisk%.eli}
   echo "Trying: geli attach"
   geli attach -p -k "${mnt}/${bpoolreal}/boot/encryption.key" \
     ${rpooltmpdisk%.eli}
 fi
-echo "Trying: zpool attach -f $rpoolreal ${edisk}${targetpart}.eli ${disks}${targetpart}.eli"
-zpool attach -f $rpoolreal ${edisk}${targetpart}.eli ${disks}${targetpart}.eli || exiterror $?
+echo "Trying: zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk"
+zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk || exiterror $?
 cat <<EOF
 Please wait for resilver to complete!
 You can see the status of the process with:
