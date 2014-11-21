@@ -397,8 +397,10 @@ chroot $mnt sh <<EOF
 echo '########## To enable Link Aggregation: BEGIN' >> /boot/rc.conf.append
 ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then echo 'ifconfig_\${line}="up"' >> /boot/rc.conf.append ; fi ; done
 ifconfig -l | tr ' ' '\n' | while read line ; do if [ "\$line" != "lo0" -a "\$line" != "pflog0" ]; then nics="\$nics laggport \${line}" ; fi ; done
-echo '# cloned_interfaces="lagg0"' >> /boot/rc.conf.append
-echo '# ifconfig_lagg0="laggproto failover \$nics DHCP"' >> /boot/rc.conf.append
+echo -n '# '
+echo cloned_interfaces="lagg0" >> /boot/rc.conf.append
+echo -n '# '
+echo ifconfig_lagg0="laggproto loadbalance \$nics DHCP" >> /boot/rc.conf.append
 echo '########## To enable Link Aggregation: END' >> /boot/rc.conf.append
 EOF
 
@@ -559,8 +561,9 @@ fi
 
 cat <<EOF
 Don't export the ZFS pools!
-You may want to set the hostname:
+You may want to set the hostname with:
        sysrc -f "${mnt}/boot/rc.conf.append" hostname="name"
-You should probably change the root password of the new system:
+See file ${mnt}/boot/rc.conf.append for more options.
+You should probably change the root password of the new system with:
        chroot $mnt passwd
 EOF
