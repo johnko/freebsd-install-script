@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141122-094914
+SCRIPTVERSION=141122-095051
 
 ######################################################################
 # Variables you can edit / pass
@@ -49,11 +49,8 @@ examples:
   Install on disk 0:
        $0 -d ada0 -z 2g -p mini
 
-  Check that a zpool named mini exists, note the vdev:
-       zpool status mini
-
   Add disk 1 as mirror to an existing pool that contains disk ada0:
-       $0 -d ada1 -z 2g -p mini -e ada0
+       $0 -e ada0 -z 2g -p mini -d ada1
 
 other examples:
 
