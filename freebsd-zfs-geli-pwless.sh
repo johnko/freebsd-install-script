@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141122-095051
+SCRIPTVERSION=141122-095421
 
 ######################################################################
 # Variables you can edit / pass
@@ -27,9 +27,10 @@ SCRIPTVERSION=141122-095051
 
 usage() {
   cat <<EOF
-usage: $0 -d disk [-d disk ...] [-e disk] [-b boot_size] [-f] [-h] [-m]
-       [-M /mnt] [-p poolname] [-r stripe|mirror|raidz|raidz2|raidz3]
-       [-s swap_size] [-v] [-z pool_size]
+usage: $0 -d disk [-d disk ...] [-e disk]
+       [-b boot_size] [-f] [-h] [-m] [-M /mnt] [-p poolname]
+       [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
+       [-z pool_size]
 
        -b size  Boot partition size.
        -d disk  Disk to install on (eg. da0).
