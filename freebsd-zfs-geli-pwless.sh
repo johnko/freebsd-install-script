@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141122-184821
+SCRIPTVERSION=141122-214439
 
 ######################################################################
 # Variables you can edit / pass
@@ -743,7 +743,7 @@ cat >$mfsmnt/etc/rc.d/packages <<EOF
 #!/bin/sh
 # \$Id\$
 # PROVIDE: packages
-# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN
+# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN dhclient
 # KEYWORD: FreeBSD
 . /etc/rc.subr
 name="packages"
