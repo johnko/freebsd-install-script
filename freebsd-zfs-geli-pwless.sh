@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141122-101231
+SCRIPTVERSION=141122-184821
 
 ######################################################################
 # Variables you can edit / pass
@@ -431,6 +431,7 @@ else
   if [ -f /usr/local/etc/pkg.conf ]; then
     cat /usr/local/etc/pkg.conf > /usr/local/etc/pkg.conf.bkp
   fi
+  install -d -m 755 /usr/local/etc
   echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >> /usr/local/etc/pkg.conf
 p fetch -y \
 cmdwatch \
