@@ -206,7 +206,7 @@ if [ "$DATAINIT" ]; then
     crypt < /boot/data.key | geli init -B /boot/${safegptidtarget}.eli \
       -e AES-XTS -J - -l 256 -s 4096 ${gptidtarget}
     vdevs="$vdevs ${gptidtarget}.eli"
-  fi
+  done
   zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
     ${raidtype} ${vdevs}
 ######################################################################
@@ -218,7 +218,7 @@ elif [ "$DATALOCK" ]; then
   zpool export -f ${rpool}
   for disk in $disks; do
     geli detach ${disk}
-  fi
+  done
 ######################################################################
 # DATAUNLOCK
 ######################################################################
@@ -228,7 +228,7 @@ elif [ "$DATAUNLOCK" ]; then
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
     crypt < /boot/data.key | geli attach -d -j - ${gptidtarget}
-  fi
+  done
   zpool import -R ${mnt} ${rpool}
 fi
 
