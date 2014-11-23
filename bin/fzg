@@ -9,10 +9,8 @@ SCRIPTVERSION=141123-205948
 # Variables you can edit / pass
 ######################################################################
 
-: ${rpool:=pool}
 : ${bpool:=bootpool}
 : ${raidtype:=stripe}
-: ${mnt:=/mnt}
 : ${mfsmnt:=/mnt2}
 : ${bsize:=2g}
 : ${bename:=rfs}
@@ -44,6 +42,15 @@ usage:  $0 -d disk [-d disk ...] [-e disk]
         -s size  Swap partition size.
         -v       Version.
         -z       ZFS pool size.
+
+        $0 -i -d disk [-d disk ...] [-p poolname]
+        $0 -i -e disk -d disk [-p poolname]
+        $0 -u -d disk [-d disk ...] [-p poolname]
+        $0 -l [-p poolname]
+
+        -i       Initialize data partition.
+        -l       Lock data partition.
+        -u       Unlock data partition.
 
 examples:
 
@@ -77,7 +84,7 @@ exiterror() {
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-while getopts b:d:e:p:r:s:M:z:mfvh o; do
+while getopts b:d:e:p:r:s:M:z:iulmfvh o; do
   case "$o" in
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
@@ -87,6 +94,9 @@ while getopts b:d:e:p:r:s:M:z:mfvh o; do
     s) ssize="$OPTARG" ;;
     M) mnt="$OPTARG" ;;
     z) zsize="$OPTARG" ;;
+    i) DATAINIT=1 ;;
+    u) DATAUNLOCK=1 ;;
+    l) DATALOCK=1 ;;
     m) MAKEMFSROOT=1 ;;
     f) FORCEEXPORT=1 ;;
     v) echo $SCRIPTVERSION ; exit 1 ;;
@@ -94,6 +104,25 @@ while getopts b:d:e:p:r:s:M:z:mfvh o; do
     [?]) usage; exit 1 ;;
   esac
 done
+
+if [ "$DATAINIT" -a "$DATALOCK" ]; then
+  echo "Only pass -i or -l, not both."
+  exit 1
+elif [ "$DATALOCK" -a "$DATAUNLOCK" ]; then
+  echo "Only pass -l or -u, not both."
+  exit 1
+elif [ "$DATAUNLOCK" -a "$DATAINIT" ]; then
+  echo "Only pass -u or -i, not both."
+  exit 1
+fi
+
+if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
+: ${rpool:=tank}
+: ${mnt:=/z}
+else
+: ${rpool:=pool}
+: ${mnt:=/mnt}
+fi
 
 ######################################################################
 # Disk parsing for testing raid type
@@ -126,14 +155,18 @@ fi
 ######################################################################
 
 if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
-  if [ "$FORCEEXPORT" ]; then
-    ########## have to export bpool before rpool
-    zpool status $bpool >/dev/null 2>&1 && zpool export -f $bpool
-    zpool status $rpool >/dev/null 2>&1 && zpool export -f $rpool
-    for D in $disks ; do
-      test -e /dev/${D}p3.eli && geli detach ${D}p3
-      test -e /dev/${D}p4.eli && geli detach ${D}p4
-    done
+  if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
+    echo >/dev/null
+  else
+    if [ "$FORCEEXPORT" ]; then
+      ########## have to export bpool before rpool
+      zpool status $bpool >/dev/null 2>&1 && zpool export -f $bpool
+      zpool status $rpool >/dev/null 2>&1 && zpool export -f $rpool
+      for D in $disks ; do
+        test -e /dev/${D}p3.eli && geli detach ${D}p3
+        test -e /dev/${D}p4.eli && geli detach ${D}p4
+      done
+    fi
   fi
 fi
 
@@ -162,6 +195,14 @@ elif [ "$ADDTOPOOL" = "1" ]; then
 fi
 
 ######################################################################
+# exit if DATA
+######################################################################
+
+if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
+  exit
+fi
+
+######################################################################
 # Bootstrap pkgng
 ######################################################################
 
@@ -179,7 +220,6 @@ fi
 ######################################################################
 
 chmod 755 /usr/libexec/bsdinstall/zfsboot
-
 b64decode -o /dev/stdout <<EOF | xz -d | patch -N -l /usr/libexec/bsdinstall/zfsboot
 begin-base64 644 -
 /Td6WFoAAATm1rRGAgAhARYAAAB0L+Wj4CmNCqZdABboBA9GY7Mq8PP6LSSXtp4IGg6Ew2c23rG8
@@ -233,7 +273,6 @@ mz4QAZVAZXO7xa6qKVvwv5EvMa1t1a8jh5EoHnUWvuo2zNJjEMxWHTcpm8CwsCrNvwGzzSJ+xjqf
 137ohvtprYdaGBFj7DSyxfkxUnAfAAAAsuf1sxFe770AAcIVjlMAAHEiCVSxxGf7AgAAAAAEWVo=
 ====
 EOF
-
 chmod 555 /usr/libexec/bsdinstall/zfsboot
 
 ######################################################################
@@ -241,7 +280,6 @@ chmod 555 /usr/libexec/bsdinstall/zfsboot
 ######################################################################
 
 geli load
-
 rm -r /tmp/bsdinstall*
 
 ######################################################################
