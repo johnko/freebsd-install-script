@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141122-214439
+SCRIPTVERSION=141123-184645
 
 ######################################################################
 # Variables you can edit / pass
@@ -396,6 +396,7 @@ if [ "$MAKEMFSROOT" ]; then
   zfs create $rpool/var/backups
   zfs create $rpool/var/cache
   zfs create $rpool/var/db
+  zfs create $rpool/var/lib
   zfs create $rpool/var/run
 fi
 
