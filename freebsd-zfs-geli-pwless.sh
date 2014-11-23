@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141123-184645
+SCRIPTVERSION=141123-205948
 
 ######################################################################
 # Variables you can edit / pass
@@ -372,7 +372,7 @@ install -d -m 755 $distdir
 ######################################################################
 
 if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
-DISTRIBUTIONS="kernel.txz base.txz" \
+DISTRIBUTIONS="kernel.txz base.txz lib32.txz" \
 BSDINSTALL_DISTDIR=$distdir \
 BSDINSTALL_DISTSITE="$distsite/`uname -m`/`uname -p`/${release}" \
 nonInteractive=0 \
