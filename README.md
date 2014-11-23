@@ -8,7 +8,7 @@ Mildly tested on FreeBSD 10.1-RELEASE
 # Usage
 
 ```
-freebsd-zfs-geli-pwless.sh -d disk [-d disk ...] [-e disk]
+fzg -d disk [-d disk ...] [-e disk]
        [-b boot_size] [-f] [-h] [-m] [-M /mnt] [-p poolname]
        [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
        [-z pool_size]
@@ -31,28 +31,28 @@ freebsd-zfs-geli-pwless.sh -d disk [-d disk ...] [-e disk]
 
   Install on disk 0:
 ```
-       freebsd-zfs-geli-pwless.sh -d ada0 -z 2g -p mini
+       fzg -d ada0 -z 2g -p mini
 ```
 
   Add disk 1 as mirror to an existing pool that contains disk 0:
 ```
-       freebsd-zfs-geli-pwless.sh -e ada0 -z 2g -p mini -d ada1
+       fzg -e ada0 -z 2g -p mini -d ada1
 ```
 
 # Other examples:
 
   Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
 ```
-       freebsd-zfs-geli-pwless.sh -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror
+       fzg -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror
 ```
 
   Make a bootable ZFS USB, which loads as mfs:
 ```
-       freebsd-zfs-geli-pwless.sh -d da0 -m -p usb
+       fzg -d da0 -m -p usb
 ```
   Note we change the pool name so they don't conflict.
 
   Minimal mirror mfs server:
 ```
-       freebsd-zfs-geli-pwless.sh -d ada0 -d ada1 -z 2g -f -m -p mini
+       fzg -d ada0 -d ada1 -z 2g -f -m -p mini
 ```
