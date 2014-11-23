@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141123-205948
+SCRIPTVERSION=141123-220154
 
 ######################################################################
 # Variables you can edit / pass
@@ -43,14 +43,15 @@ usage:  $0 -d disk [-d disk ...] [-e disk]
         -v       Version.
         -z       ZFS pool size.
 
-        $0 -i -d disk [-d disk ...] [-p poolname]
-        $0 -i -e disk -d disk [-p poolname]
-        $0 -u -d disk [-d disk ...] [-p poolname]
+        $0 -i -d vdev [-d vdev ...] [-p poolname]
+        $0 -i -e vdev -d vdev [-p poolname]
+        $0 -u -d vdev [-d vdev ...] [-p poolname]
         $0 -l [-p poolname]
 
-        -i       Initialize data partition.
-        -l       Lock data partition.
-        -u       Unlock data partition.
+        -i       Initialize data partition with geli and create pool.
+        -l       Export pool and lock data partition.
+        -u       Unlock data partition and mount pool.
+        -d vdev  Virtual device to grab gptid label from (eg. da0p5)
 
 examples:
 
@@ -192,6 +193,43 @@ elif [ "$ADDTOPOOL" = "1" ]; then
     echo "ERROR: A pool named $bpool doesn't exists."
     exit 1
   fi
+fi
+
+######################################################################
+# DATAINIT
+######################################################################
+if [ "$DATAINIT" ]; then
+  for disk in $disks; do
+    gptidtarget=`glabel list $disk | grep Name | head -1 | \
+      awk '{print $NF}'`
+    safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
+    crypt < /boot/data.key | geli init -B /boot/${safegptidtarget}.eli \
+      -e AES-XTS -J - -l 256 -s 4096 ${gptidtarget}
+    vdevs="$vdevs ${gptidtarget}.eli"
+  fi
+  zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
+    ${raidtype} ${vdevs}
+######################################################################
+# DATALOCK
+######################################################################
+elif [ "$DATALOCK" ]; then
+  disks=`zpool status ace | grep 'eli *ONLINE' | awk '{print $1}' | \
+    tr '\n' ' '`
+  zpool export -f ${rpool}
+  for disk in $disks; do
+    geli detach ${disk}
+  fi
+######################################################################
+# DATAUNLOCK
+######################################################################
+elif [ "$DATAUNLOCK" ]; then
+  for disk in $disks; do
+    gptidtarget=`glabel list $disk | grep Name | head -1 | \
+      awk '{print $NF}'`
+    safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
+    crypt < /boot/data.key | geli attach -d -j - ${gptidtarget}
+  fi
+  zpool import -R ${mnt} ${rpool}
 fi
 
 ######################################################################
