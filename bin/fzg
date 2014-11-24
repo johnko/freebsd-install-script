@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-175326
+SCRIPTVERSION=141124-180350
 
 ######################################################################
 # Variables you can edit / pass
@@ -101,6 +101,7 @@ EOF
 
 exiterror() {
   echo "ERROR: Exit code $1"
+  umount ${crypttmp} >/dev/null 2>&1
   exit $1
 }
 
@@ -563,7 +564,7 @@ if [ "$DATAINIT" ]; then
   cryptdecode
   if [ ! -e $TMPFILE ]; then
     echo "ERROR: Can't cryptdecode."
-    exit 1
+    exiterror 1
   fi
   echo -n "Initializing data partitions ..."
   for disk in $disks; do
@@ -574,14 +575,14 @@ if [ "$DATAINIT" ]; then
     if ! geli init -B /boot/${safegptidtarget}.eli \
       -e AES-XTS -J $TMPFILE -l 256 -s 4096 ${gptidtarget} >/dev/null 2>&1 ; then
       echo " error"
-      exit 1
+      exiterror 1
     fi
     [ -e ${mnt}/boot ] && cp -a /boot/${safegptidtarget}.eli \
       ${mnt}/boot/${safegptidtarget}.eli
     if ! geli attach \
       -j $TMPFILE ${gptidtarget} >/dev/null 2>&1 ; then
       echo " error"
-      exit 1
+      exiterror 1
     fi
     vdevs="$vdevs ${gptidtarget}.eli"
   done
@@ -595,7 +596,7 @@ if [ "$DATAINIT" ]; then
     if ! zpool attach ${rpool} \
       ${rpoolrealdisk} ${vdevs} >/dev/null 2>&1 ; then
       echo " error"
-      exit 1
+      exiterror 1
     fi
     echo " done"
   else
@@ -604,7 +605,7 @@ if [ "$DATAINIT" ]; then
     if ! zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
       ${TRAID} ${vdevs} >/dev/null 2>&1 ; then
       echo " error"
-      exit 1
+      exiterror 1
     fi
     echo " done"
   fi
@@ -623,11 +624,13 @@ elif [ "$DATALOCK" ]; then
   sync
   echo -n "Detaching disks ..."
   for disk in $disks; do
-    echo -n " $disk"
-    if ! geli detach ${disk} >/dev/null 2>&1 ; then
-      sleep 1
-      if [ -e ${disk} ]; then
-        echo " error"
+    if [ -e /dev/${disk} ]; then
+      echo -n " $disk"
+      if ! geli detach ${disk} >/dev/null 2>&1 ; then
+        sleep 1
+        if [ -e /dev/${disk} ]; then
+          echo " error"
+        fi
       fi
     fi
   done
@@ -639,18 +642,20 @@ elif [ "$DATAUNLOCK" ]; then
   cryptdecode
   if [ ! -e $TMPFILE ]; then
     echo "ERROR: Can't cryptdecode."
-    exit 1
+    exiterror 1
   fi
   echo -n "Attaching disks ..."
   for disk in $disks; do
-    echo -n " $disk"
     gptidtarget=`glabel list $disk | grep Name | head -1 | \
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
-    if ! geli attach -d -j $TMPFILE ${gptidtarget} \
-      >/dev/null 2>&1 ; then
-      echo " error"
-      exit 1
+    if [ ! -e /dev/${gptidtarget}.eli ]; then
+      echo -n " $disk"
+      if ! geli attach -d -j $TMPFILE ${gptidtarget} \
+        >/dev/null 2>&1 ; then
+        echo " error"
+        exiterror 1
+      fi
     fi
   done
   rm $TMPFILE
@@ -659,7 +664,7 @@ elif [ "$DATAUNLOCK" ]; then
   echo -n "Importing pool ${rpool} ..."
   if ! zpool import -R ${mnt} ${rpool} >/dev/null 2>&1 ; then
     echo " error"
-    exit 1
+    exiterror 1
   fi
   echo " done"
 fi
@@ -669,7 +674,7 @@ fi
 ######################################################################
 
 if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
-  exit
+  exiterror 0
 fi
 
 ######################################################################
