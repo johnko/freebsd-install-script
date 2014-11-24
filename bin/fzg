@@ -297,15 +297,16 @@ makepoolwith() {
       echo " error exporting $rpool"
       exit 1
     fi
-    if ! zpool import -f -R ${mnt} $rpool >/dev/null 2>&1 ; then
+    if ! zpool import -f ${cacheoptions} -R ${mnt} $rpool >/dev/null 2>&1 ; then
       echo " error importing $rpool"
       exit 1
     fi
-    if ! zpool import -f -R ${mnt} $bpool >/dev/null 2>&1 ; then
+    if ! zpool import -f ${cacheoptions} -R ${mnt} $bpool >/dev/null 2>&1 ; then
       echo " error importing $bpool"
       exit 1
     fi
-    if ! /bin/cp /boot/zfs/zpool.cache "${MNT}/boot/zfs/" > /dev/null 2> /dev/null ; then
+    install -d 755 ${mnt}/boot/zfs
+    if ! /bin/cp ${cachetmp} "${mnt}/boot/zfs/" >/dev/null 2>&1 ; then
       echo " error copying zpool.cache"
       exit 1
     fi
