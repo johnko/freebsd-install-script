@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-180350
+SCRIPTVERSION=141124-181902
 
 ######################################################################
 # Variables you can edit / pass
@@ -309,7 +309,7 @@ makepoolwith() {
     ########## create boot pool
     echo -n "Creating bootable ZFS pool $bpool on $BPARTS ..."
     count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
-    [ "$count" -gt "2" ] && BRAID=mirror
+    [ "$count" -gt "1" ] && BRAID=mirror
     if ! zpool create -f ${cacheoptions} -R ${mnt} \
       $bpool $BRAID $BPARTS >/dev/null 2>&1 ; then
       echo " error"
