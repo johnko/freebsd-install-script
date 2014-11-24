@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-093023
+SCRIPTVERSION=141124-093318
 
 ######################################################################
 # Variables you can edit / pass
@@ -581,8 +581,9 @@ if [ "$DATAINIT" ]; then
   umount $crypttmp
   echo " done"
   echo -n "Creating pool $rpool ..."
+  [ "$raidtype" != "stripe" ] && TRAID=$raidtype
   if ! zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
-    ${raidtype} ${vdevs} >/dev/null 2>&1 ; then
+    ${TRAID} ${vdevs} >/dev/null 2>&1 ; then
     echo " error"
     exit 1
   fi
