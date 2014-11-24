@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-073315
+SCRIPTVERSION=141124-073555
 
 ######################################################################
 # Variables you can edit / pass
@@ -104,6 +104,7 @@ cryptdecode() {
   umount ${crypttmp} >/dev/null 2>&1
   mount -t tmpfs tmpfs ${crypttmp}
   TMPFILE=`mktemp ${crypttmp}/crypt.XXXXXX`
+  echo -n "Decrypting Password, "
   crypt < ${datakey} >$TMPFILE
   umask $RESTOREMASK
 }
@@ -502,7 +503,7 @@ if [ "$DATAINIT" ]; then
     read PASSWORD
     stty echo
     printf "\n"
-    echo -n "Crypt Password, "
+    echo -n "Encrypting Password, "
     echo $PASSWORD | crypt > ${datakey}
     unset PASSWORD
   fi
