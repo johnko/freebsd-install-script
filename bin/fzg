@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-072901
+SCRIPTVERSION=141124-073005
 
 ######################################################################
 # Variables you can edit / pass
@@ -529,6 +529,8 @@ if [ "$DATAINIT" ]; then
     fi
     vdevs="$vdevs ${gptidtarget}.eli"
   done
+  rm $TMPFILE
+  umount $crypttmp
   echo " done"
   echo -n "Creating pool $rpool ..."
   if ! zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
@@ -578,6 +580,8 @@ elif [ "$DATAUNLOCK" ]; then
       exit 1
     fi
   done
+  rm $TMPFILE
+  umount $crypttmp
   echo " done"
   echo -n "Importing pool ${rpool} ..."
   if ! zpool import -R ${mnt} ${rpool} >/dev/null 2>&1 ; then
