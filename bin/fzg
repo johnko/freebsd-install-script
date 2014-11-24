@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-181902
+SCRIPTVERSION=141124-194854
 
 ######################################################################
 # Variables you can edit / pass
@@ -602,7 +602,7 @@ if [ "$DATAINIT" ]; then
   else
     echo -n "Creating pool $rpool ..."
     [ "$raidtype" != "stripe" ] && TRAID=$raidtype
-    if ! zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
+    if ! zpool create -O compress=lz4 -O atime=off ${rpool} \
       ${TRAID} ${vdevs} >/dev/null 2>&1 ; then
       echo " error"
       exiterror 1
@@ -662,7 +662,7 @@ elif [ "$DATAUNLOCK" ]; then
   umount $crypttmp
   echo " done"
   echo -n "Importing pool ${rpool} ..."
-  if ! zpool import -R ${mnt} ${rpool} >/dev/null 2>&1 ; then
+  if ! zpool import ${rpool} >/dev/null 2>&1 ; then
     echo " error"
     exiterror 1
   fi
