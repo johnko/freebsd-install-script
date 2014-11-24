@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-093318
+SCRIPTVERSION=141124-094111
 
 ######################################################################
 # Variables you can edit / pass
@@ -499,7 +499,7 @@ elif [ "$ADDTOPOOL" = "1" -o -n "$DATALOCK" ]; then
     echo "ERROR: A pool named $rpool doesn't exists."
     exit 1
   fi
-  if [ -z "$DATALOCK" ]; then
+  if [ -z "$DATALOCK" -a -z "$DATAINIT" ]; then
     if ! zpool status $bpool >/dev/null 2>&1 ; then
       echo "ERROR: A pool named $bpool doesn't exists."
       exit 1
@@ -580,14 +580,26 @@ if [ "$DATAINIT" ]; then
   rm $TMPFILE
   umount $crypttmp
   echo " done"
-  echo -n "Creating pool $rpool ..."
-  [ "$raidtype" != "stripe" ] && TRAID=$raidtype
-  if ! zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
-    ${TRAID} ${vdevs} >/dev/null 2>&1 ; then
-    echo " error"
-    exit 1
+  if [ "$ADDTOPOOL" = "1" ]; then
+    rpoolrealdisk=`zpool status $rpoolreal | grep -v state | \
+      grep ONLINE | tail -1 | awk '{print $1}'`
+    echo -n "Attaching pool $rpool ..."
+    if ! zpool attach ${rpool} \
+      ${rpoolrealdisk} ${vdevs} >/dev/null 2>&1 ; then
+      echo " error"
+      exit 1
+    fi
+    echo " done"
+  else
+    echo -n "Creating pool $rpool ..."
+    [ "$raidtype" != "stripe" ] && TRAID=$raidtype
+    if ! zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
+      ${TRAID} ${vdevs} >/dev/null 2>&1 ; then
+      echo " error"
+      exit 1
+    fi
+    echo " done"
   fi
-  echo " done"
 ######################################################################
 # DATALOCK
 ######################################################################
