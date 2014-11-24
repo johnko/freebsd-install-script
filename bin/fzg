@@ -143,7 +143,11 @@ makepoolwith() {
 # Disk partitioning
 # modified from https://github.com/mmatuska/mfsbsd
 ##########
-    install -d -m 700 /tmp/bsdinstall_boot
+    bsdinstalltmp=/tmp/bsdinstall_boot
+    install -d -m 700 ${bsdinstalltmp}
+    cachetmp=${bsdinstalltmp}/zpool.cache
+    cachereal=/boot/zfs/zpool.cache
+    cacheoptions="-o cachefile=${cachetmp}"
     for DEV in $disks ; do
       ########## GPT create
       echo -n "Creating GUID partitions on $DEV ..."
@@ -202,8 +206,8 @@ makepoolwith() {
       dd if=/dev/zero of="/dev/label/$gptidtarget" bs=512 count=560 \
         >/dev/null 2>&1
       zpool labelclear -f "/dev/label/$gptidtarget" >/dev/null 2>&1
-      geli init -b -B "/boot/${safegptidtarget}.eli" -P -K "$keyfile" \
-        -e AES-XTS -s 4096 "$gptidtarget"
+      geli init -b -B "/tmp/bsdinstall_boot/${safegptidtarget}.eli" \
+        -P -K "$keyfile" -e AES-XTS -s 4096 "$gptidtarget"
       geli attach -p -k "$keyfile" "$gptidtarget"
       TPARTS="$TPARTS $gptidtarget.eli"
       sysrc -f /tmp/bsdinstall_boot/loader.conf.geli \
@@ -225,7 +229,8 @@ makepoolwith() {
     ########## create main root pool
     [ "$raidtype" != "stripe" ] && TRAID=$raidtype
     echo -n "Creating ZFS pool $rpool on $TPARTS ..."
-    if ! zpool create -f -m none -O compress=lz4 -O atime=off -R ${mnt} \
+    if ! zpool create -f -m none ${cacheoptions} \
+      -O compress=lz4 -O atime=off -R ${mnt} \
       $rpool $TRAID $TPARTS >/dev/null 2>&1 ; then
       echo " error"
       exit 1
@@ -264,7 +269,7 @@ makepoolwith() {
     echo -n "Creating bootable ZFS pool $bpool on $BPARTS ..."
     count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
     [ "$count" -gt "2" ] && BRAID=mirror
-    if ! zpool create -f -R ${mnt} \
+    if ! zpool create -f ${cacheoptions} -R ${mnt} \
       $bpool $BRAID $BPARTS >/dev/null 2>&1 ; then
       echo " error"
       exit 1
@@ -273,6 +278,37 @@ makepoolwith() {
     ########## link boot pool
     install -d -m 755 ${mnt}/${bpool}/boot
     ln -sf ${bpool}/boot ${mnt}/boot
+    ########## copy header backups
+    chmod 600 /tmp/bsdinstall_boot/*.eli
+    cp -a /tmp/bsdinstall_boot/*.eli ${mnt}/boot/
+    ########## cachefile
+    echo -n "Copying zpool.cache ..."
+    sysrc -f /tmp/bsdinstall_boot/loader.conf.zfs \
+      zpool_cache_load="YES"
+		sysrc -f /tmp/bsdinstall_boot/loader.conf.zfs \
+      zpool_cache_type="/boot/zfs/zpool.cache"
+		sysrc -f /tmp/bsdinstall_boot/loader.conf.zfs \
+      zpool_cache_name="/boot/zfs/zpool.cache"
+    if ! zpool export -f $bpool >/dev/null 2>&1 ; then
+      echo " error exporting $bpool"
+      exit 1
+    fi
+    if ! zpool export -f $rpool >/dev/null 2>&1 ; then
+      echo " error exporting $rpool"
+      exit 1
+    fi
+    if ! zpool import -f -R ${mnt} $rpool >/dev/null 2>&1 ; then
+      echo " error importing $rpool"
+      exit 1
+    fi
+    if ! zpool import -f -R ${mnt} $bpool >/dev/null 2>&1 ; then
+      echo " error importing $bpool"
+      exit 1
+    fi
+    if ! /bin/cp /boot/zfs/zpool.cache "${MNT}/boot/zfs/" > /dev/null 2> /dev/null ; then
+      echo " error copying zpool.cache"
+      exit 1
+    fi
   fi
 }
 
