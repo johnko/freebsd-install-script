@@ -568,23 +568,23 @@ zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk
 ########## attach rpool
 geli detach $rpooltmpdisk
 safefilename=` echo $rpooltmpdisk | sed 's#/#_#'`
-if [ -f /${bpoolreal}/boot/encryption.key ]; then
+if [ -f /${bpoolreal}${keyfile} ]; then
   echo "Trying: geli init"
   geli init -b \
     -B "/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
-    -K "/${bpoolreal}/boot/encryption.key" \
+    -K "/${bpoolreal}${keyfile}" \
     -l 256 -s 4096 ${rpooltmpdisk%.eli}
   echo "Trying: geli attach"
-  geli attach -p -k "/${bpoolreal}/boot/encryption.key" \
+  geli attach -p -k "/${bpoolreal}${keyfile}" \
     ${rpooltmpdisk%.eli}
-elif [ -f ${mnt}/${bpoolreal}/boot/encryption.key ]; then
+elif [ -f ${mnt}/${bpoolreal}${keyfile} ]; then
   echo "Trying: geli init"
   geli init -b \
     -B "${mnt}/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
-    -K "${mnt}/${bpoolreal}/boot/encryption.key" \
+    -K "${mnt}/${bpoolreal}${keyfile}" \
     -l 256 -s 4096 ${rpooltmpdisk%.eli}
   echo "Trying: geli attach"
-  geli attach -p -k "${mnt}/${bpoolreal}/boot/encryption.key" \
+  geli attach -p -k "${mnt}/${bpoolreal}${keyfile}" \
     ${rpooltmpdisk%.eli}
 fi
 echo "Trying: zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk"
