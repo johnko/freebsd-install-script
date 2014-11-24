@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-073555
+SCRIPTVERSION=141124-074703
 
 ######################################################################
 # Variables you can edit / pass
@@ -473,7 +473,7 @@ fi
 # Quit if pools exist, but if ADDTOPOOL, quit if not exist
 ######################################################################
 
-if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
+if [ -z "$DATALOCK" ] && [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
   if zpool status $rpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $rpool already exists."
     exit 1
@@ -482,14 +482,16 @@ if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
     echo "ERROR: A pool named $bpool already exists."
     exit 1
   fi
-elif [ "$ADDTOPOOL" = "1" ]; then
+elif [ "$ADDTOPOOL" = "1" -o -n "$DATALOCK" ]; then
   if ! zpool status $rpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $rpool doesn't exists."
     exit 1
   fi
-  if ! zpool status $bpool >/dev/null 2>&1 ; then
-    echo "ERROR: A pool named $bpool doesn't exists."
-    exit 1
+  if [ -z "$DATALOCK" ]; then
+    if ! zpool status $bpool >/dev/null 2>&1 ; then
+      echo "ERROR: A pool named $bpool doesn't exists."
+      exit 1
+    fi
   fi
 fi
 
@@ -552,6 +554,7 @@ elif [ "$DATALOCK" ]; then
     exit 1
   fi
   echo " done"
+  sleep 2
   echo -n "Detaching disks ..."
   for disk in $disks; do
     echo " $disk"
