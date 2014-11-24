@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141123-220154
+SCRIPTVERSION=141124-065003
 
 ######################################################################
 # Variables you can edit / pass
@@ -1154,7 +1154,7 @@ EOF
 chmod 555 $mfsmnt/etc/rc.d/packages
 ########## Package /usr
 if [ -e /.usr.tar.xz ]; then
-  echo "Compressing ${mnt}/usr to $mfsmnt/.usr.tar.xz"
+  echo "Copying /.usr.tar.xz to $mfsmnt/.usr.tar.xz"
   cp -a /.usr.tar.xz $mfsmnt/.usr.tar.xz || exiterror $?
 else
   echo "Compressing ${mnt}/usr to $mfsmnt/.usr.tar.xz"
