@@ -561,7 +561,7 @@ if [ "$DATAINIT" ]; then
   fi
   echo -n "Initializing data partitions ..."
   for disk in $disks; do
-    echo " $disk"
+    echo -n " $disk"
     gptidtarget=`glabel list $disk | grep Name | head -1 | \
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
@@ -615,7 +615,7 @@ elif [ "$DATALOCK" ]; then
   sync
   echo -n "Detaching disks ..."
   for disk in $disks; do
-    echo " $disk"
+    echo -n " $disk"
     if ! geli detach ${disk} >/dev/null 2>&1 ; then
       sleep 1
       if [ -e ${disk} ]; then
@@ -635,7 +635,7 @@ elif [ "$DATAUNLOCK" ]; then
   fi
   echo -n "Attaching disks ..."
   for disk in $disks; do
-    echo " $disk"
+    echo -n " $disk"
     gptidtarget=`glabel list $disk | grep Name | head -1 | \
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
