@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-073005
+SCRIPTVERSION=141124-073315
 
 ######################################################################
 # Variables you can edit / pass
@@ -21,9 +21,9 @@ SCRIPTVERSION=141124-073005
 : ${align4k:="-a 4k"}
 : ${keyfile:=/boot/encryption.key}
 
-bsdinstalltmp:=/tmp/bsdinstall_boot
-bsdinstalletc:=/tmp/bsdinstall_etc
-datakey:=/boot/data.key
+bsdinstalltmp=/tmp/bsdinstall_boot
+bsdinstalletc=/tmp/bsdinstall_etc
+datakey=/boot/data.key
 crypttmp=/tmp/crypt
 RESTOREMASK=`umask`
 
