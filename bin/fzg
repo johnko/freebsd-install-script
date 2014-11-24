@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-074703
+SCRIPTVERSION=141124-075027
 
 ######################################################################
 # Variables you can edit / pass
@@ -547,7 +547,7 @@ if [ "$DATAINIT" ]; then
 ######################################################################
 elif [ "$DATALOCK" ]; then
   echo -n "Exporting pool ${rpool} ..."
-  disks=`zpool status ace | grep 'eli *ONLINE' | awk '{print $1}' | \
+  disks=`zpool status ${rpool} | grep 'eli *ONLINE' | awk '{print $1}' | \
     tr '\n' ' '`
   if ! zpool export -f ${rpool} >/dev/null 2>&1 ; then
     echo " error"
