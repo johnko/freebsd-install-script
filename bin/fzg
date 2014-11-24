@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-065147
+SCRIPTVERSION=141124-072901
 
 ######################################################################
 # Variables you can edit / pass
@@ -561,13 +561,18 @@ elif [ "$DATALOCK" ]; then
 # DATAUNLOCK
 ######################################################################
 elif [ "$DATAUNLOCK" ]; then
+  cryptdecode
+  if [ ! -e $TMPFILE ]; then
+    echo "ERROR: Can't cryptdecode."
+    exit 1
+  fi
   echo -n "Attaching disks ..."
   for disk in $disks; do
     echo " $disk"
     gptidtarget=`glabel list $disk | grep Name | head -1 | \
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
-    if ! crypt < ${datakey} | geli attach -d -j - ${gptidtarget} \
+    if ! geli attach -d -j $TMPFILE ${gptidtarget} \
       >/dev/null 2>&1 ; then
       echo " error"
       exit 1
