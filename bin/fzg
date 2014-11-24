@@ -22,6 +22,7 @@ SCRIPTVERSION=141123-220154
 : ${keyfile:=/boot/encryption.key}
 : ${bsdinstalltmp:=/tmp/bsdinstall_boot}
 : ${bsdinstalletc:=/tmp/bsdinstall_etc}
+: ${datakey:=/boot/data.key}
 
 ######################################################################
 # Usage
@@ -475,37 +476,75 @@ fi
 # DATAINIT
 ######################################################################
 if [ "$DATAINIT" ]; then
+  if [ ! -e ${datakey} ]; then
+    echo "ERROR: You need to create ${datakey} with:"
+    echo "        echo a_password | crypt > ${datakey}"
+    exit 1
+  fi
+  echo -n "Initializing data partitions ..."
   for disk in $disks; do
+    echo " $disk"
     gptidtarget=`glabel list $disk | grep Name | head -1 | \
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
-    crypt < /boot/data.key | geli init -B /boot/${safegptidtarget}.eli \
-      -e AES-XTS -J - -l 256 -s 4096 ${gptidtarget}
+    if ! crypt < ${datakey} | geli init -B /boot/${safegptidtarget}.eli \
+      -e AES-XTS -J - -l 256 -s 4096 ${gptidtarget} >/dev/null 2>&1 ; then
+      echo " error"
+      exit 1
+    fi
     vdevs="$vdevs ${gptidtarget}.eli"
   done
-  zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
-    ${raidtype} ${vdevs}
+  echo " done"
+  echo -n "Creating pool $rpool ..."
+  if ! zpool create -O compress=lz4 -O atime=off -R ${mnt} ${rpool} \
+    ${raidtype} ${vdevs} >/dev/null 2>&1 ; then
+    echo " error"
+    exit 1
+  fi
+  echo " done"
 ######################################################################
 # DATALOCK
 ######################################################################
 elif [ "$DATALOCK" ]; then
+  echo -n "Exporting pool ${rpool} ..."
   disks=`zpool status ace | grep 'eli *ONLINE' | awk '{print $1}' | \
     tr '\n' ' '`
-  zpool export -f ${rpool}
+  if ! zpool export -f ${rpool} >/dev/null 2>&1 ; then
+    echo " error"
+    exit 1
+  fi
+  echo " done"
+  echo -n "Detaching disks ..."
   for disk in $disks; do
-    geli detach ${disk}
+    echo " $disk"
+    if ! geli detach ${disk} >/dev/null 2>&1 ; then
+      echo " error"
+    fi
   done
+  echo " done"
 ######################################################################
 # DATAUNLOCK
 ######################################################################
 elif [ "$DATAUNLOCK" ]; then
+  echo -n "Attaching disks ..."
   for disk in $disks; do
+    echo " $disk"
     gptidtarget=`glabel list $disk | grep Name | head -1 | \
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
-    crypt < /boot/data.key | geli attach -d -j - ${gptidtarget}
+    if ! crypt < ${datakey} | geli attach -d -j - ${gptidtarget} \
+      >/dev/null 2>&1 ; then
+      echo " error"
+      exit 1
+    fi
   done
-  zpool import -R ${mnt} ${rpool}
+  echo " done"
+  echo -n "Importing pool ${rpool} ..."
+  if ! zpool import -R ${mnt} ${rpool} >/dev/null 2>&1 ; then
+    echo " error"
+    exit 1
+  fi
+  echo " done"
 fi
 
 ######################################################################
@@ -686,6 +725,7 @@ else
     grep -v kern.geom.label.gptid.enable >> ${mnt}/boot/loader.conf.local
   chmod 644 ${mnt}/boot/loader.conf.local
 fi
+umount ${bsdinstalltmp} >/dev/null 2>&1
 if [ "$ADDTOPOOL" = "1" ]; then
   exit
 fi
