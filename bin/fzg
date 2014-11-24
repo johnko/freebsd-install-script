@@ -100,7 +100,7 @@ EOF
 ######################################################################
 
 exiterror() {
-  echo "ERROR: Exit code $1"
+  [ "$1" != "0" ] && echo "ERROR: Exit code $1"
   umount ${crypttmp} >/dev/null 2>&1
   exit $1
 }
