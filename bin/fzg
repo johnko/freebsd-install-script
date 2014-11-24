@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-075027
+SCRIPTVERSION=141124-085017
 
 ######################################################################
 # Variables you can edit / pass
@@ -18,13 +18,14 @@ SCRIPTVERSION=141124-075027
 : ${ssize:=2g}
 : ${release:=10.1-RELEASE}
 : ${distsite:="http://ftp4.freebsd.org/pub/FreeBSD/releases"}
-: ${align4k:="-a 4k"}
 : ${keyfile:=/boot/encryption.key}
 
+align4k="-a 4k"
 bsdinstalltmp=/tmp/bsdinstall_boot
 bsdinstalletc=/tmp/bsdinstall_etc
-datakey=/boot/data.key
 crypttmp=/tmp/crypt
+datakey=/boot/data.key
+datasizes="3730 3620 2800 2690 1860 1740 940 830" # Preferred descending order
 RESTOREMASK=`umask`
 
 ######################################################################
@@ -357,7 +358,7 @@ makepoolwith() {
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-while getopts b:d:e:p:r:s:M:z:iulmfvh o; do
+while getopts b:d:e:p:r:s:M:z:iulxmfvh o; do
   case "$o" in
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
@@ -370,6 +371,7 @@ while getopts b:d:e:p:r:s:M:z:iulmfvh o; do
     i) DATAINIT=1 ;;
     u) DATAUNLOCK=1 ;;
     l) DATALOCK=1 ;;
+    x) DATAAUTO=1 ;;
     m) MAKEMFSROOT=1 ;;
     f) FORCEEXPORT=1 ;;
     v) echo $SCRIPTVERSION ; exit 1 ;;
@@ -499,6 +501,37 @@ fi
 # DATAINIT
 ######################################################################
 if [ "$DATAINIT" ]; then
+  if [ "$DATAAUTO" ]; then
+    echo -n "Creating data partitions ..."
+    for disk in $disks; do
+      PARTCREATED=0
+      for GSIZE in $datasizes ; do
+        while [ "$PARTCREATED" = "0" ]; do
+          if [ "$PARTCREATED" != "1" ]; then
+            if /sbin/gpart add -i 5 -t freebsd-zfs $align4k -s ${GSIZE}G \
+              ${disk} >/dev/null 2>&1 ; then
+              echo " success adding partition sized ${GSIZE}G at $DEV"
+              PARTCREATED=1
+              gptidtarget=`glabel list ${disk}p5 | grep Name | head -1 | \
+                awk '{print $NF}'`
+              dd if=/dev/zero of="/dev/$gptidtarget" bs=512 count=560 \
+                >/dev/null 2>&1
+              zpool labelclear -f "/dev/$gptidtarget" >/dev/null 2>&1
+            else
+              ########## we should actually use the next datasizes,
+              ########## but for now we'll decrement by 1
+              GSIZE=$(( GSIZE - 1 ))
+            fi
+          fi
+          if [ $GSIZE -lt 1 ]; then
+            PARTCREATED=2
+            echo " error adding partition at $DEV"
+          fi
+        done
+      done
+      [ "$PARTCREATED" != "1" ] && exit 1
+    done
+  fi
   if [ ! -e ${datakey} ]; then
     stty -echo
     printf "Data GELI Partition Key:"
@@ -1248,11 +1281,16 @@ You should probably change the root password of the new system with:
 EOF
 if [ "$MAKEMFSROOT" ]; then
 cat <<EOF
-        mdevice=\`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot\`
-        mount /dev/\${mdevice} $mfsmnt
-        chroot $mfsmnt passwd
-        umount /dev/\${mdevice}
-        mdconfig -d -u \${mdevice#md}
+
+mdevice=\`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot\`
+mount /dev/\${mdevice} $mfsmnt
+mount -t devfs devfs $mfsmnt/dev
+chroot $mfsmnt /etc/rc.d/mdinit start
+chroot $mfsmnt passwd
+umount $mfsmnt/dev
+umount $mfsmnt/usr
+umount /dev/\${mdevice}
+mdconfig -d -u \${mdevice#md}
 EOF
 else
 cat <<EOF
