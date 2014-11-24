@@ -20,6 +20,8 @@ SCRIPTVERSION=141123-220154
 : ${distsite:="http://ftp4.freebsd.org/pub/FreeBSD/releases"}
 : ${align4k:="-a 4k"}
 : ${keyfile:=/boot/encryption.key}
+: ${bsdinstalltmp:=/tmp/bsdinstall_boot}
+: ${bsdinstalletc:=/tmp/bsdinstall_etc}
 
 ######################################################################
 # Usage
@@ -143,11 +145,16 @@ makepoolwith() {
 # Disk partitioning
 # modified from https://github.com/mmatuska/mfsbsd
 ##########
-    bsdinstalltmp=/tmp/bsdinstall_boot
     install -d -m 700 ${bsdinstalltmp}
+    install -d -m 700 ${bsdinstalletc}
+    mount -t tmpfs tmpfs ${bsdinstalltmp}
+    keyfile=${bsdinstalltmp}/encryption.key
     cachetmp=${bsdinstalltmp}/zpool.cache
     cachereal=/boot/zfs/zpool.cache
     cacheoptions="-o cachefile=${cachetmp}"
+    if [ ! -e ${keyfile} ]; then
+      dd if=/dev/random of=${keyfile} bs=4096 count=1
+    fi
     for DEV in $disks ; do
       ########## GPT create
       echo -n "Creating GUID partitions on $DEV ..."
@@ -190,7 +197,7 @@ makepoolwith() {
           >/dev/null 2>&1
         zpool labelclear -f "/dev/label/$gptidswap" >/dev/null 2>&1
         echo "/dev/$gptidswap.eli  none  swap  sw  0  0" \
-          >>/tmp/bsdinstall_boot/fstab
+          >>${bsdinstalletc}/fstab
       fi
       ########## partition for main root pool
       if [ -n "$zsize" ]; then
@@ -206,15 +213,15 @@ makepoolwith() {
       dd if=/dev/zero of="/dev/label/$gptidtarget" bs=512 count=560 \
         >/dev/null 2>&1
       zpool labelclear -f "/dev/label/$gptidtarget" >/dev/null 2>&1
-      geli init -b -B "/tmp/bsdinstall_boot/${safegptidtarget}.eli" \
+      geli init -b -B "${bsdinstalltmp}/${safegptidtarget}.eli" \
         -P -K "$keyfile" -e AES-XTS -s 4096 "$gptidtarget"
       geli attach -p -k "$keyfile" "$gptidtarget"
       TPARTS="$TPARTS $gptidtarget.eli"
-      sysrc -f /tmp/bsdinstall_boot/loader.conf.geli \
+      sysrc -f ${bsdinstalltmp}/loader.conf.geli \
         "geli_${safegptidtarget}_keyfile0_load=YES"
-      sysrc -f /tmp/bsdinstall_boot/loader.conf.geli \
+      sysrc -f ${bsdinstalltmp}/loader.conf.geli \
         "geli_${safegptidtarget}_keyfile0_type=${gptidtarget}:geli_keyfile0"
-      sysrc -f /tmp/bsdinstall_boot/loader.conf.geli \
+      sysrc -f ${bsdinstalltmp}/loader.conf.geli \
         "geli_${safegptidtarget}_keyfile0_name=${keyfile}"
       echo " done"
       ########## Bootcode
@@ -279,15 +286,15 @@ makepoolwith() {
     install -d -m 755 ${mnt}/${bpool}/boot
     ln -sf ${bpool}/boot ${mnt}/boot
     ########## copy header backups
-    chmod 600 /tmp/bsdinstall_boot/*.eli
-    cp -a /tmp/bsdinstall_boot/*.eli ${mnt}/boot/
+    chmod 600 ${bsdinstalltmp}/*.eli
+    cp -a ${bsdinstalltmp}/*.eli ${mnt}/boot/
     ########## cachefile
     echo -n "Copying zpool.cache ..."
-    sysrc -f /tmp/bsdinstall_boot/loader.conf.zfs \
+    sysrc -f ${bsdinstalltmp}/loader.conf.zfs \
       zpool_cache_load="YES"
-		sysrc -f /tmp/bsdinstall_boot/loader.conf.zfs \
+		sysrc -f ${bsdinstalltmp}/loader.conf.zfs \
       zpool_cache_type="/boot/zfs/zpool.cache"
-		sysrc -f /tmp/bsdinstall_boot/loader.conf.zfs \
+		sysrc -f ${bsdinstalltmp}/loader.conf.zfs \
       zpool_cache_name="/boot/zfs/zpool.cache"
     if ! zpool export -f $bpool >/dev/null 2>&1 ; then
       echo " error exporting $bpool"
@@ -297,19 +304,29 @@ makepoolwith() {
       echo " error exporting $rpool"
       exit 1
     fi
-    if ! zpool import -f ${cacheoptions} -R ${mnt} $rpool >/dev/null 2>&1 ; then
+    if ! zpool import -f ${cacheoptions} -R ${mnt} $rpool \
+      >/dev/null 2>&1 ; then
       echo " error importing $rpool"
       exit 1
     fi
-    if ! zpool import -f ${cacheoptions} -R ${mnt} $bpool >/dev/null 2>&1 ; then
+    if ! zpool import -f ${cacheoptions} -R ${mnt} $bpool \
+      >/dev/null 2>&1 ; then
       echo " error importing $bpool"
       exit 1
     fi
     install -d 755 ${mnt}/boot/zfs
-    if ! /bin/cp ${cachetmp} "${mnt}/boot/zfs/" >/dev/null 2>&1 ; then
+    if ! cp ${cachetmp} "${mnt}/boot/zfs/" >/dev/null 2>&1 ; then
       echo " error copying zpool.cache"
       exit 1
     fi
+    echo " done"
+    ########## keyfile
+    echo -n "Copying keyfile ..."
+    if ! cp ${keyfile} "${mnt}/boot/" >/dev/null 2>&1 ; then
+      echo " error copying keyfile"
+      exit 1
+    fi
+    echo " done"
   fi
 }
 
@@ -655,14 +672,14 @@ if [ "$ADDTOPOOL" = "1" ]; then
   mnt=
 fi
 if [ "$ADDTOPOOL" = "1" -o "$MAKEMFSROOT" ]; then
-  cat /tmp/bsdinstall_boot/loader.conf.* | \
+  cat ${bsdinstalltmp}/loader.conf.* | \
     grep -v vfs.root.mountfrom | \
     grep -v aesni_load | \
     grep -v geom_eli_load | \
     grep -v zfs_load | \
     grep -v kern.geom.label.gptid.enable >> ${mnt}/boot/loader.conf.local
 else
-  cat /tmp/bsdinstall_boot/loader.conf.* | \
+  cat ${bsdinstalltmp}/loader.conf.* | \
     grep -v aesni_load | \
     grep -v geom_eli_load | \
     grep -v zfs_load | \
@@ -673,8 +690,8 @@ if [ "$ADDTOPOOL" = "1" ]; then
   exit
 fi
 install -d -m 755 ${mnt}/etc
-test -e /tmp/bsdinstall_etc/fstab && \
-  install -m 644 /tmp/bsdinstall_etc/fstab ${mnt}/boot/fstab.append
+test -e ${bsdinstalletc}/fstab && \
+  install -m 644 ${bsdinstalletc}/fstab ${mnt}/boot/fstab.append
 
 ######################################################################
 # Check if local distribution exists, if so copy to mnt
@@ -896,7 +913,8 @@ done
 # Set lagg as optional comments
 ######################################################################
 
-echo '########## To enable Link Aggregation: BEGIN' >> ${mnt}/boot/loader.conf.local
+echo '########## To enable Link Aggregation: BEGIN' \
+  >>${mnt}/boot/loader.conf.local
 nics=`ifconfig -l | tr ' ' '\n' | \
 awk '$1 !~ /lo[0-9]/ && \
 $1 !~ /pflog[0-9]/ && \
@@ -906,7 +924,8 @@ echo "# ifconfig_lagg0=\"DHCP laggproto loadbalance $nics\"" \
 >> ${mnt}/boot/loader.conf.local
 echo "# ifconfig_lagg0=\"inet 192.168.0.2/24 laggproto loadbalance $nics\"" \
 >> ${mnt}/boot/loader.conf.local
-echo '########## To enable Link Aggregation: END' >> ${mnt}/boot/loader.conf.local
+echo '########## To enable Link Aggregation: END' \
+  >>${mnt}/boot/loader.conf.local
 
 ######################################################################
 # Set SSH options
@@ -1102,7 +1121,8 @@ mdconfig -d -u ${mdevice#md} || exiterror $?
 sysrc -f "${mnt}/boot/loader.conf.local" mfs_load="YES" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf.local" mfs_type="mfs_root" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf.local" mfs_name="/mfsroot" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf.local" "vfs.root.mountfrom=ufs:/dev/md0" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf.local" "vfs.root.mountfrom=ufs:/dev/md0" \
+  >/dev/null
 ########## set defaultrouter
 sysrc -f "${mnt}/boot/loader.conf.local" \
 defaultrouter="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
@@ -1115,7 +1135,8 @@ sysrc -f "${mnt}/boot/loader.conf.local" netwait_enable="YES" >/dev/null
 sysrc -f "${mnt}/boot/loader.conf.local" \
 netwait_ip="`netstat -nr | grep default | awk '{print $2}'`" >/dev/null
 ########## optional set ntpdate_hosts
-sysrc -f "${mnt}/boot/loader.conf.local" ntpdate_hosts="pool.ntp.org" >/dev/null
+sysrc -f "${mnt}/boot/loader.conf.local" ntpdate_hosts="pool.ntp.org" \
+  >/dev/null
 fi
 
 ######################################################################
@@ -1131,7 +1152,7 @@ You should probably change the root password of the new system with:
 EOF
 if [ "$MAKEMFSROOT" ]; then
 cat <<EOF
-        mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot`
+        mdevice=\`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot\`
         mount /dev/\${mdevice} $mfsmnt
         chroot $mfsmnt passwd
         umount /dev/\${mdevice}
