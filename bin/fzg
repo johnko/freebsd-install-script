@@ -647,8 +647,10 @@ distdir=/boot/../${release}
 if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
 distdir=${mnt}/boot/../${release}
 else
-install -d -m 755 ${mnt}/${release}
+echo -n "Copying $distdir to ${mnt}/boot/../${release}"
+install -d -m 755 ${mnt}/boot/../${release}
 tar -c -f - -C /boot/.. ${release} | tar -C ${mnt}/boot/.. -x -f -
+echo " done"
 fi
 install -d -m 755 $distdir
 
