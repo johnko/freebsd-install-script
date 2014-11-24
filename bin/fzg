@@ -148,12 +148,12 @@ makepoolwith() {
     install -d -m 700 ${bsdinstalltmp}
     install -d -m 700 ${bsdinstalletc}
     mount -t tmpfs tmpfs ${bsdinstalltmp}
-    keyfile=${bsdinstalltmp}/encryption.key
+    keyfiletmp=${bsdinstalltmp}/encryption.key
     cachetmp=${bsdinstalltmp}/zpool.cache
     cachereal=/boot/zfs/zpool.cache
     cacheoptions="-o cachefile=${cachetmp}"
-    if [ ! -e ${keyfile} ]; then
-      dd if=/dev/random of=${keyfile} bs=4096 count=1
+    if [ ! -e ${keyfiletmp} ]; then
+      dd if=/dev/random of=${keyfiletmp} bs=4096 count=1
     fi
     for DEV in $disks ; do
       ########## GPT create
@@ -214,8 +214,8 @@ makepoolwith() {
         >/dev/null 2>&1
       zpool labelclear -f "/dev/label/$gptidtarget" >/dev/null 2>&1
       geli init -b -B "${bsdinstalltmp}/${safegptidtarget}.eli" \
-        -P -K "$keyfile" -e AES-XTS -s 4096 "$gptidtarget"
-      geli attach -p -k "$keyfile" "$gptidtarget"
+        -P -K "$keyfiletmp" -e AES-XTS -s 4096 "$gptidtarget"
+      geli attach -p -k "$keyfiletmp" "$gptidtarget"
       TPARTS="$TPARTS $gptidtarget.eli"
       sysrc -f ${bsdinstalltmp}/loader.conf.geli \
         "geli_${safegptidtarget}_keyfile0_load=YES"
@@ -293,9 +293,9 @@ makepoolwith() {
     sysrc -f ${bsdinstalltmp}/loader.conf.zfs \
       zpool_cache_load="YES"
 		sysrc -f ${bsdinstalltmp}/loader.conf.zfs \
-      zpool_cache_type="/boot/zfs/zpool.cache"
+      zpool_cache_type="${cachereal}"
 		sysrc -f ${bsdinstalltmp}/loader.conf.zfs \
-      zpool_cache_name="/boot/zfs/zpool.cache"
+      zpool_cache_name="${cachereal}"
     if ! zpool export -f $bpool >/dev/null 2>&1 ; then
       echo " error exporting $bpool"
       exit 1
@@ -315,14 +315,14 @@ makepoolwith() {
       exit 1
     fi
     install -d 755 ${mnt}/boot/zfs
-    if ! cp ${cachetmp} "${mnt}/boot/zfs/" >/dev/null 2>&1 ; then
+    if ! cp ${cachetmp} "${mnt}${cachereal}" >/dev/null 2>&1 ; then
       echo " error copying zpool.cache"
       exit 1
     fi
     echo " done"
     ########## keyfile
     echo -n "Copying keyfile ..."
-    if ! cp ${keyfile} "${mnt}/boot/" >/dev/null 2>&1 ; then
+    if ! cp ${keyfiletmp} "${mnt}${keyfile}" >/dev/null 2>&1 ; then
       echo " error copying keyfile"
       exit 1
     fi
