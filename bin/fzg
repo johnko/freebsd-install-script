@@ -544,7 +544,7 @@ geli load
 rm -r /tmp/bsdinstall*
 
 ######################################################################
-# Perform creation of zfsboot
+# Perform creation of zfsboot using zfsboot or zfsinstall
 ######################################################################
 
 if [ "$ADDTOPOOL" = "1" ]; then
@@ -555,6 +555,7 @@ if [ "$ADDTOPOOL" = "1" ]; then
   rpooltmp=tmprpool
   rpool=$rpooltmp
 fi
+########## makepoolwith zfsboot or zfsinstall
 makepoolwith zfsinstall
 
 ######################################################################
