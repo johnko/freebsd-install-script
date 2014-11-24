@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-094441
+SCRIPTVERSION=141124-101544
 
 ######################################################################
 # Variables you can edit / pass
@@ -553,6 +553,8 @@ if [ "$DATAINIT" ]; then
     echo -n "Encrypting Password, "
     echo $PASSWORD | crypt > ${datakey}
     unset PASSWORD
+    [ -e ${mnt}/boot ] && cp -a ${datakey} \
+      ${mnt}${datakey}
   fi
   cryptdecode
   if [ ! -e $TMPFILE ]; then
@@ -570,6 +572,8 @@ if [ "$DATAINIT" ]; then
       echo " error"
       exit 1
     fi
+    [ -e ${mnt}/boot ] && cp -a /boot/${safegptidtarget}.eli \
+      ${mnt}/boot/${safegptidtarget}.eli
     if ! geli attach \
       -j $TMPFILE ${gptidtarget} >/dev/null 2>&1 ; then
       echo " error"
