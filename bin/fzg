@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-194854
+SCRIPTVERSION=141124-195306
 
 ######################################################################
 # Variables you can edit / pass
@@ -424,7 +424,7 @@ targetpart=p3
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
+if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ] && [ -z "$DATAUNLOCK" ]; then
   count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
   if [ "$count" -lt "3" -a "$raidtype" = "raidz" ]; then
     echo "ERROR: raidz needs at least three devices (-d switch)" ; exit 1
