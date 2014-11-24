@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-195306
+SCRIPTVERSION=141124-204454
 
 ######################################################################
 # Variables you can edit / pass
@@ -490,7 +490,7 @@ fi
 # Quit if pools exist, but if ADDTOPOOL, quit if not exist
 ######################################################################
 
-if [ -z "$DATALOCK" ] && [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
+if [ -z "$DATALOCK" ] && [ -z "$DATAUNLOCK" ] && [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
   if zpool status $rpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $rpool already exists."
     exit 1
@@ -579,8 +579,7 @@ if [ "$DATAINIT" ]; then
     fi
     [ -e ${mnt}/boot ] && cp -a /boot/${safegptidtarget}.eli \
       ${mnt}/boot/${safegptidtarget}.eli
-    if ! geli attach \
-      -j $TMPFILE ${gptidtarget} >/dev/null 2>&1 ; then
+    if ! geli attach -j $TMPFILE ${gptidtarget} >/dev/null 2>&1 ; then
       echo " error"
       exiterror 1
     fi
@@ -651,7 +650,7 @@ elif [ "$DATAUNLOCK" ]; then
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
     if [ ! -e /dev/${gptidtarget}.eli ]; then
       echo -n " $disk"
-      if ! geli attach -d -j $TMPFILE ${gptidtarget} \
+      if ! geli attach -j $TMPFILE ${gptidtarget} \
         >/dev/null 2>&1 ; then
         echo " error"
         exiterror 1
