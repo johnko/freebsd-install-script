@@ -143,6 +143,7 @@ makepoolwith() {
 # Disk partitioning
 # modified from https://github.com/mmatuska/mfsbsd
 ##########
+    install -d -m 700 /tmp/bsdinstall_boot
     for DEV in $disks ; do
       ########## GPT create
       echo -n "Creating GUID partitions on $DEV ..."
@@ -184,12 +185,14 @@ makepoolwith() {
         dd if=/dev/zero of="/dev/label/$gptidswap" bs=512 count=560 \
           >/dev/null 2>&1
         zpool labelclear -f "/dev/label/$gptidswap" >/dev/null 2>&1
+        echo "/dev/$gptidswap.eli  none  swap  sw  0  0" \
+          >>/tmp/bsdinstall_boot/fstab
       fi
       ########## partition for main root pool
       if [ -n "$zsize" ]; then
-        SZPART="-s ${zsize}b"
+        ZSIZE="-s ${zsize}b"
       fi
-      if ! gpart add -t freebsd-zfs $align4k $SZPART "${DEV}" >/dev/null ; then
+      if ! gpart add -t freebsd-zfs $align4k $ZSIZE "${DEV}" >/dev/null ; then
         echo " error at zsize"
         exit 1
       fi
@@ -203,7 +206,6 @@ makepoolwith() {
         -e AES-XTS -s 4096 "$gptidtarget"
       geli attach -p -k "$keyfile" "$gptidtarget"
       TPARTS="$TPARTS $gptidtarget.eli"
-      install -d -m 700 /tmp/bsdinstall_boot
       sysrc -f /tmp/bsdinstall_boot/loader.conf.geli \
         "geli_${safegptidtarget}_keyfile0_load=YES"
       sysrc -f /tmp/bsdinstall_boot/loader.conf.geli \
