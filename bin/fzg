@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-101544
+SCRIPTVERSION=141124-175326
 
 ######################################################################
 # Variables you can edit / pass
@@ -58,9 +58,10 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         ${0##*/} -l [-p poolname]
 
         -i       Initialize data partition with geli and create pool.
+                 Automatically create partition 5 unless -x is set.
         -l       Export pool and lock data partition.
         -u       Unlock data partition and mount pool.
-        -x       Automatically create partition 5.
+        -x       Explicit -d device, don't create partition 5 automatically.
         -d vdev  Virtual device to grab gptid label from (eg. da0p5)
 
 examples:
@@ -71,11 +72,11 @@ examples:
   Add disk 1 as mirror to existing pool mini that contains disk ada0:
         ${0##*/} -e ada0 -d ada1 -z 2g -p mini
 
-  Add data partition:
-        ${0##*/} -i -d ada0 -p tank -x
+  Add data partition automatically and create pool tank:
+        ${0##*/} -i -d ada0 -p tank
 
-  Attach another disk to data partition:
-        ${0##*/} -i -e ada0 -d ada1 -p tank
+  Create another data partition and attach to pool tank:
+        ${0##*/} -i -e ada0p5 -d ada1 -p tank
 
 other examples:
 
@@ -88,6 +89,9 @@ other examples:
 
   Minimal mirror mfs server:
         ${0##*/} -d ada0 -d ada1 -z 2g -f -m -p mini
+
+  Create data pool with these devices, no auto partition creation:
+        ${0##*/} -i -d ada0p5 -d ada1p5 -p data -x
 EOF
 }
 
@@ -378,15 +382,15 @@ while getopts b:d:e:p:r:s:M:z:iulxmfvh o; do
     s) ssize="$OPTARG" ;;
     M) mnt="$OPTARG" ;;
     z) zsize="$OPTARG" ;;
-    i) DATAINIT=1 ;;
+    i) DATAINIT=1 ; DATAAUTO=1 ;;
     u) DATAUNLOCK=1 ;;
     l) DATALOCK=1 ;;
-    x) DATAAUTO=1 ;;
+    x) unset DATAAUTO ;;
     m) MAKEMFSROOT=1 ;;
     f) FORCEEXPORT=1 ;;
     v) echo $SCRIPTVERSION ; exit 1 ;;
-    h) usage; exit 1 ;;
-    [?]) usage; exit 1 ;;
+    h) usage ; exit 1 ;;
+    [?]) usage ; exit 1 ;;
   esac
 done
 
