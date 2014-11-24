@@ -708,7 +708,9 @@ fi
 ######################################################################
 
 if [ "$ADDTOPOOL" = "1" ]; then
-  mnt=
+  if [ ! -e ${mnt}/${bpoolreal}${keyfile} ]; then
+    mnt=
+  fi
 fi
 if [ "$ADDTOPOOL" = "1" -o "$MAKEMFSROOT" ]; then
   cat ${bsdinstalltmp}/loader.conf.* | \
@@ -726,12 +728,12 @@ else
   chmod 644 ${mnt}/boot/loader.conf.local
 fi
 umount ${bsdinstalltmp} >/dev/null 2>&1
-if [ "$ADDTOPOOL" = "1" ]; then
-  exit
-fi
 if [ -e ${bsdinstalletc}/fstab ]; then
   cat ${bsdinstalletc}/fstab >>${mnt}/boot/fstab.append
   chmod 644 ${mnt}/boot/fstab.append
+fi
+if [ "$ADDTOPOOL" = "1" ]; then
+  exit
 fi
 
 ######################################################################
