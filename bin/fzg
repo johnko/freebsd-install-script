@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-065003
+SCRIPTVERSION=141124-065147
 
 ######################################################################
 # Variables you can edit / pass
@@ -148,6 +148,7 @@ makepoolwith() {
 ##########
     install -d -m 700 ${bsdinstalltmp}
     install -d -m 700 ${bsdinstalletc}
+    umount ${bsdinstalltmp}
     mount -t tmpfs tmpfs ${bsdinstalltmp}
     keyfiletmp=${bsdinstalltmp}/encryption.key
     cachetmp=${bsdinstalltmp}/zpool.cache
