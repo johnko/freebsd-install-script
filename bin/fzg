@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141124-094111
+SCRIPTVERSION=141124-094441
 
 ######################################################################
 # Variables you can edit / pass
@@ -617,7 +617,10 @@ elif [ "$DATALOCK" ]; then
   for disk in $disks; do
     echo " $disk"
     if ! geli detach ${disk} >/dev/null 2>&1 ; then
-      echo " error"
+      sleep 1
+      if [ -e ${disk} ]; then
+        echo " error"
+      fi
     fi
   done
   echo " done"
