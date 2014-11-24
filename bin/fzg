@@ -1088,8 +1088,20 @@ fi
 cat <<EOF
 Don't export the ZFS pools!
 You may want to set the hostname with:
-       sysrc -f "${mnt}/boot/loader.conf.local" hostname="name"
+        sysrc -f "${mnt}/boot/loader.conf.local" hostname="name"
 See file ${mnt}/boot/loader.conf.local for more options.
 You should probably change the root password of the new system with:
-       chroot $mnt passwd
 EOF
+if [ "$MAKEMFSROOT" ]; then
+cat <<EOF
+        mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot`
+        mount /dev/\${mdevice} $mfsmnt
+        chroot $mfsmnt passwd
+        umount /dev/\${mdevice}
+        mdconfig -d -u \${mdevice#md}
+EOF
+else
+cat <<EOF
+        chroot $mnt passwd
+EOF
+fi
