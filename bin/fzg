@@ -729,9 +729,10 @@ umount ${bsdinstalltmp} >/dev/null 2>&1
 if [ "$ADDTOPOOL" = "1" ]; then
   exit
 fi
-install -d -m 755 ${mnt}/etc
-test -e ${bsdinstalletc}/fstab && \
-  install -m 644 ${bsdinstalletc}/fstab ${mnt}/boot/fstab.append
+if [ -e ${bsdinstalletc}/fstab ]; then
+  cat ${bsdinstalletc}/fstab >>${mnt}/boot/fstab.append
+  chmod 644 ${mnt}/boot/fstab.append
+fi
 
 ######################################################################
 # Check if local distribution exists, if so copy to mnt
