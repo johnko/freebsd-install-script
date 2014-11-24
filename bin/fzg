@@ -77,15 +77,24 @@ other examples:
 EOF
 }
 
+######################################################################
+# Exit function
+######################################################################
+
 exiterror() {
   echo "ERROR: Exit code $1"
   exit $1
 }
 
+######################################################################
+# Function wrapper so we can toggle between using bsdinstall and custom
+######################################################################
+
 makepoolwith() {
   ########## $1 is method
   if [ "$1" = "zfsboot" ]; then
-    ########## No ZFSBOOT_GNOP_4K_FORCE_ALIGN because can't add mirror later
+    ########## No ZFSBOOT_GNOP_4K_FORCE_ALIGN because if we use it,
+    ########## we can't add mirror later
     ZFSBOOT_DISKS="$disks" \
     ZFSBOOT_VDEV_TYPE=$raidtype \
     ZFSBOOT_POOL_NAME=$rpool \
@@ -146,12 +155,12 @@ makepoolwith() {
         echo " error at fdisk"
         exit 1
       fi
-      ########## freebsd-boot bootcode
+      ########## freebsd-boot for bootcode
       if ! gpart add -t freebsd-boot $align4k -s 512K "$DEV" >/dev/null ; then
         echo " error at freebsd-boot"
         exit 1
       fi
-      ########## /boot zpool
+      ########## partition for /boot zpool
       if ! gpart add -t freebsd-zfs $align4k -s "${bsize}b" "${DEV}" \
         >/dev/null ; then
         echo " error at bpool"
@@ -163,7 +172,7 @@ makepoolwith() {
         >/dev/null 2>&1
       zpool labelclear -f "/dev/label/$gptidboot" >/dev/null 2>&1
       BPARTS="$BPARTS $gptidboot"
-      ########## swap
+      ########## partition for swap
       if [ -n "$ssize" ]; then
         if ! gpart add -t freebsd-swap $align4k -s "${ssize}b" "${DEV}" \
           >/dev/null ; then
@@ -176,7 +185,7 @@ makepoolwith() {
           >/dev/null 2>&1
         zpool labelclear -f "/dev/label/$gptidswap" >/dev/null 2>&1
       fi
-      ########## / pool
+      ########## partition for main root pool
       if [ -n "$zsize" ]; then
         SZPART="-s ${zsize}b"
       fi
@@ -211,7 +220,7 @@ makepoolwith() {
       echo " done"
     done
     sleep 1
-    ########## main root pool
+    ########## create main root pool
     [ "$raidtype" != "stripe" ] && TRAID=$raidtype
     echo -n "Creating ZFS pool $rpool on $TPARTS ..."
     if ! zpool create -f -m none -O compress=lz4 -O atime=off -R ${mnt} \
@@ -220,7 +229,7 @@ makepoolwith() {
       exit 1
     fi
     echo " done"
-    ########## datasets
+    ########## create datasets
     echo -n "Creating ZFS datasets ..."
     echo "$ZFSBOOT_DATASETS" | while read dataset options; do
       case "$dataset" in "#"*|"") continue; esac
@@ -241,6 +250,7 @@ makepoolwith() {
       echo -n " $dataset"
     done
     echo " done"
+    ########## set bootfs, unsure if still needed
     echo -n "Setting bootfs for $rpool to ${rpool}/${bename}/${bfsname} ..."
     if ! zpool set bootfs="${rpool}/${bename}/${bfsname}" "$rpool" \
       >/dev/null 2>&1 ; then
@@ -248,7 +258,7 @@ makepoolwith() {
       exit 1
     fi
     echo " done"
-    ########## boot
+    ########## create boot pool
     echo -n "Creating bootable ZFS pool $bpool on $BPARTS ..."
     count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
     [ "$count" -gt "2" ] && BRAID=mirror
@@ -258,6 +268,7 @@ makepoolwith() {
       exit 1
     fi
     echo " done"
+    ########## link boot pool
     install -d -m 755 ${mnt}/${bpool}/boot
     ln -sf ${bpool}/boot ${mnt}/boot
   fi
