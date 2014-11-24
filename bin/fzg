@@ -20,9 +20,12 @@ SCRIPTVERSION=141124-065147
 : ${distsite:="http://ftp4.freebsd.org/pub/FreeBSD/releases"}
 : ${align4k:="-a 4k"}
 : ${keyfile:=/boot/encryption.key}
-: ${bsdinstalltmp:=/tmp/bsdinstall_boot}
-: ${bsdinstalletc:=/tmp/bsdinstall_etc}
-: ${datakey:=/boot/data.key}
+
+bsdinstalltmp:=/tmp/bsdinstall_boot
+bsdinstalletc:=/tmp/bsdinstall_etc
+datakey:=/boot/data.key
+crypttmp=/tmp/crypt
+RESTOREMASK=`umask`
 
 ######################################################################
 # Usage
@@ -87,6 +90,22 @@ EOF
 exiterror() {
   echo "ERROR: Exit code $1"
   exit $1
+}
+
+######################################################################
+# Exit function
+######################################################################
+
+cryptdecode() {
+  umask 077
+  install -d -m 700 -o root -g wheel ${crypttmp}
+  chown root:wheel ${crypttmp}
+  chmod 700 ${crypttmp}
+  umount ${crypttmp} >/dev/null 2>&1
+  mount -t tmpfs tmpfs ${crypttmp}
+  TMPFILE=`mktemp ${crypttmp}/crypt.XXXXXX`
+  crypt < ${datakey} >$TMPFILE
+  umask $RESTOREMASK
 }
 
 ######################################################################
@@ -478,8 +497,18 @@ fi
 ######################################################################
 if [ "$DATAINIT" ]; then
   if [ ! -e ${datakey} ]; then
-    echo "ERROR: You need to create ${datakey} with:"
-    echo "        echo a_password | crypt > ${datakey}"
+    stty -echo
+    printf "Data GELI Partition Key:"
+    read PASSWORD
+    stty echo
+    printf "\n"
+    echo -n "Crypt Password, "
+    echo $PASSWORD | crypt > ${datakey}
+    unset PASSWORD
+  fi
+  cryptdecode
+  if [ ! -e $TMPFILE ]; then
+    echo "ERROR: Can't cryptdecode."
     exit 1
   fi
   echo -n "Initializing data partitions ..."
@@ -488,8 +517,13 @@ if [ "$DATAINIT" ]; then
     gptidtarget=`glabel list $disk | grep Name | head -1 | \
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
-    if ! crypt < ${datakey} | geli init -B /boot/${safegptidtarget}.eli \
-      -e AES-XTS -J - -l 256 -s 4096 ${gptidtarget} >/dev/null 2>&1 ; then
+    if ! geli init -B /boot/${safegptidtarget}.eli \
+      -e AES-XTS -J $TMPFILE -l 256 -s 4096 ${gptidtarget} >/dev/null 2>&1 ; then
+      echo " error"
+      exit 1
+    fi
+    if ! geli attach \
+      -j $TMPFILE ${gptidtarget} >/dev/null 2>&1 ; then
       echo " error"
       exit 1
     fi
