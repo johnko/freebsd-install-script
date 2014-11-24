@@ -148,7 +148,7 @@ makepoolwith() {
 ##########
     install -d -m 700 ${bsdinstalltmp}
     install -d -m 700 ${bsdinstalletc}
-    umount ${bsdinstalltmp}
+    umount ${bsdinstalltmp} >/dev/null 2>&1
     mount -t tmpfs tmpfs ${bsdinstalltmp}
     keyfiletmp=${bsdinstalltmp}/encryption.key
     cachetmp=${bsdinstalltmp}/zpool.cache
