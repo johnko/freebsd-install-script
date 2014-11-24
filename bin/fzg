@@ -18,6 +18,8 @@ SCRIPTVERSION=141123-220154
 : ${ssize:=2g}
 : ${release:=10.1-RELEASE}
 : ${distsite:="http://ftp4.freebsd.org/pub/FreeBSD/releases"}
+: ${align4k:="-a 4k"}
+: ${keyfile:=/boot/encryption.key}
 
 ######################################################################
 # Usage
@@ -41,7 +43,7 @@ usage:  $0 -d disk [-d disk ...] [-e disk]
         -r       Select ZFS raid mode if multiple -d given.
         -s size  Swap partition size.
         -v       Version.
-        -z       ZFS pool size.
+        -z size  ZFS pool size.
 
         $0 -i -d vdev [-d vdev ...] [-p poolname]
         $0 -i -e vdev -d vdev [-p poolname]
@@ -78,6 +80,187 @@ EOF
 exiterror() {
   echo "ERROR: Exit code $1"
   exit $1
+}
+
+makepoolwith() {
+  ########## $1 is method
+  if [ "$1" = "zfsboot" ]; then
+    ########## No ZFSBOOT_GNOP_4K_FORCE_ALIGN because can't add mirror later
+    ZFSBOOT_DISKS="$disks" \
+    ZFSBOOT_VDEV_TYPE=$raidtype \
+    ZFSBOOT_POOL_NAME=$rpool \
+    ZFSBOOT_POOL_SIZE=$zsize \
+    ZFSBOOT_BEROOT_NAME=$bename \
+    ZFSBOOT_BOOTFS_NAME=$bfsname \
+    ZFSBOOT_GELI_ENCRYPTION=1 \
+    ZFSBOOT_BOOT_POOL_NAME=$bpool \
+    ZFSBOOT_BOOT_POOL_SIZE=$bsize \
+    ZFSBOOT_SWAP_SIZE=$ssize \
+    ZFSBOOT_SWAP_ENCRYPTION=1 \
+    ZFSBOOT_GELI_KEY_FILE=$keyfile \
+    nonInteractive=0 \
+    bsdinstall zfsboot || exiterror $?
+  elif [ "$1" = "zfsinstall" ]; then
+    ZFSBOOT_DATASETS="
+        # DATASET       OPTIONS (comma or space separated; or both)
+
+        # Boot Environment [BE] root and default boot dataset
+        /$bename               mountpoint=none
+        /$bename/$bfsname      mountpoint=/
+
+        # Compress /tmp, allow exec but not setuid
+        /tmp            mountpoint=/tmp,exec=on,setuid=off
+
+        # Don't mount /usr so that 'base' files go to the BEROOT
+        /usr            mountpoint=/usr,canmount=off
+
+        # Home directories separated so they are common to all BEs
+        /usr/home       # NB: /home is a symlink to /usr/home
+
+        # Ports tree
+        /usr/ports      setuid=off
+
+        # Source tree (compressed)
+        /usr/src
+
+        # Create /var and friends
+        /var            mountpoint=/var,canmount=off
+        /var/crash      exec=off,setuid=off
+        /var/log        exec=off,setuid=off
+        /var/mail       atime=on
+        /var/tmp        setuid=off
+" # END-QUOTE
+##########
+# Disk partitioning
+# modified from https://github.com/mmatuska/mfsbsd
+##########
+    for DEV in $disks ; do
+      ########## GPT create
+      echo -n "Creating GUID partitions on $DEV ..."
+      if ! gpart create -s GPT "/dev/$DEV" >/dev/null ; then
+        echo " error at create"
+        exit 1
+      fi
+      sleep 1
+      if ! echo "a 1" | fdisk -f - "$DEV" >/dev/null 2>&1 ; then
+        echo " error at fdisk"
+        exit 1
+      fi
+      ########## freebsd-boot bootcode
+      if ! gpart add -t freebsd-boot $align4k -s 512K "$DEV" >/dev/null ; then
+        echo " error at freebsd-boot"
+        exit 1
+      fi
+      ########## /boot zpool
+      if ! gpart add -t freebsd-zfs $align4k -s "${bsize}b" "${DEV}" \
+        >/dev/null ; then
+        echo " error at bpool"
+        exit 1
+      fi
+      gptidboot=`glabel list ${DEV}${bootpart} | grep Name | head -1 | \
+        awk '{print $NF}'`
+      dd if=/dev/zero of="/dev/label/$gptidboot" bs=512 count=560 \
+        >/dev/null 2>&1
+      zpool labelclear -f "/dev/label/$gptidboot" >/dev/null 2>&1
+      BPARTS="$BPARTS $gptidboot"
+      ########## swap
+      if [ -n "$ssize" ]; then
+        if ! gpart add -t freebsd-swap $align4k -s "${ssize}b" "${DEV}" \
+          >/dev/null ; then
+          echo " error at swap"
+          exit 1
+        fi
+        gptidswap=`glabel list ${DEV}${swappart} | grep Name | head -1 | \
+          awk '{print $NF}'`
+        dd if=/dev/zero of="/dev/label/$gptidswap" bs=512 count=560 \
+          >/dev/null 2>&1
+        zpool labelclear -f "/dev/label/$gptidswap" >/dev/null 2>&1
+      fi
+      ########## / pool
+      if [ -n "$zsize" ]; then
+        SZPART="-s ${zsize}b"
+      fi
+      if ! gpart add -t freebsd-zfs $align4k $SZPART "${DEV}" >/dev/null ; then
+        echo " error at zsize"
+        exit 1
+      fi
+      gptidtarget=`glabel list ${DEV}${targetpart} | grep Name | head -1 | \
+        awk '{print $NF}'`
+      safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
+      dd if=/dev/zero of="/dev/label/$gptidtarget" bs=512 count=560 \
+        >/dev/null 2>&1
+      zpool labelclear -f "/dev/label/$gptidtarget" >/dev/null 2>&1
+      geli init -b -B "/boot/${safegptidtarget}.eli" -P -K "$keyfile" \
+        -e AES-XTS -s 4096 "$gptidtarget"
+      geli attach -p -k "$keyfile" "$gptidtarget"
+      TPARTS="$TPARTS $gptidtarget.eli"
+      install -d -m 700 /tmp/bsdinstall_boot
+      sysrc -f /tmp/bsdinstall_boot/loader.conf.geli \
+        "geli_${safegptidtarget}_keyfile0_load=YES"
+      sysrc -f /tmp/bsdinstall_boot/loader.conf.geli \
+        "geli_${safegptidtarget}_keyfile0_type=${gptidtarget}:geli_keyfile0"
+      sysrc -f /tmp/bsdinstall_boot/loader.conf.geli \
+        "geli_${safegptidtarget}_keyfile0_name=${keyfile}"
+      echo " done"
+      ########## Bootcode
+      echo -n "Configuring ZFS bootcode on $DEV ..."
+      if ! gpart bootcode -b /boot/pmbr -p /boot/gptzfsboot -i 1 "$DEV" \
+        >/dev/null ; then
+        echo " error at bootcode" ; exit 1
+      fi
+      echo " done"
+    done
+    sleep 1
+    ########## main root pool
+    [ "$raidtype" != "stripe" ] && TRAID=$raidtype
+    echo -n "Creating ZFS pool $rpool on $TPARTS ..."
+    if ! zpool create -f -m none -O compress=lz4 -O atime=off -R ${mnt} \
+      $rpool $TRAID $TPARTS >/dev/null 2>&1 ; then
+      echo " error"
+      exit 1
+    fi
+    echo " done"
+    ########## datasets
+    echo -n "Creating ZFS datasets ..."
+    echo "$ZFSBOOT_DATASETS" | while read dataset options; do
+      case "$dataset" in "#"*|"") continue; esac
+      options="${options%%#*}"
+      oldoptions=
+      while [ "$oldoptions" != "$options" ]; do
+        oldoptions="$options"
+        newoptions=`echo $options | sed 's/  / /g'`
+        options="$newoptions"
+      done
+      newoptions=`echo $options | sed 's/[ ,]/ -o /g'`
+      options="$newoptions"
+      if ! zfs create ${options:+-o $options} "${rpool}${dataset}" \
+        >/dev/null 2>&1 ; then
+        echo " error"
+        exit 1
+      fi
+      echo -n " $dataset"
+    done
+    echo " done"
+    echo -n "Setting bootfs for $rpool to ${rpool}/${bename}/${bfsname} ..."
+    if ! zpool set bootfs="${rpool}/${bename}/${bfsname}" "$rpool" \
+      >/dev/null 2>&1 ; then
+      echo " error"
+      exit 1
+    fi
+    echo " done"
+    ########## boot
+    echo -n "Creating bootable ZFS pool $bpool on $BPARTS ..."
+    count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
+    [ "$count" -gt "2" ] && BRAID=mirror
+    if ! zpool create -f -R ${mnt} \
+      $bpool $BRAID $BPARTS >/dev/null 2>&1 ; then
+      echo " error"
+      exit 1
+    fi
+    echo " done"
+    install -d -m 755 ${mnt}/${bpool}/boot
+    ln -sf ${bpool}/boot ${mnt}/boot
+  fi
 }
 
 ######################################################################
@@ -125,6 +308,11 @@ else
 : ${mnt:=/mnt}
 fi
 
+bootpart=p2
+swappart=p3
+targetpart=p3
+[ -n "$ssize" ] && targetpart=p4
+
 ######################################################################
 # Disk parsing for testing raid type
 # modified from https://github.com/mmatuska/mfsbsd
@@ -133,22 +321,43 @@ fi
 if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
   count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
   if [ "$count" -lt "3" -a "$raidtype" = "raidz" ]; then
-    echo "Error: raidz needs at least three devices (-d switch)" ; exit 1
+    echo "ERROR: raidz needs at least three devices (-d switch)" ; exit 1
   elif [ "$count" -lt "4" -a "$raidtype" = "raidz2" ]; then
-    echo "Error: raidz2 needs at least four devices (-d switch)" ; exit 1
+    echo "ERROR: raidz2 needs at least four devices (-d switch)" ; exit 1
   elif [ "$count" -lt "5" -a "$raidtype" = "raidz3" ]; then
-    echo "Error: raidz3 needs at least five devices (-d switch)" ; exit 1
+    echo "ERROR: raidz3 needs at least five devices (-d switch)" ; exit 1
   elif [ "$count" = "1" -a "$raidtype" = "mirror" ]; then
-    echo "Error: mirror needs at least two devices (-d switch)" ; exit 1
+    echo "ERROR: mirror needs at least two devices (-d switch)" ; exit 1
   elif [ "$count" = "2" -a "$raidtype" != "mirror" ]; then
-    echo "Notice: two drives selected, automatically choosing mirror mode"
+    echo "NOTICE: two drives selected, automatically choosing mirror mode"
     raidtype="mirror"
-  elif [ "$count" -gt "2" -a "$raidtype" != "mirror" -a "$raidtype" != "raidz" \
-    -a "$raidtype" != "raidz2" -a "$raidtype" != "raidz3" ]; then
+  elif [ "$count" -gt "2" -a "$raidtype" != "mirror" -a \
+    "$raidtype" != "raidz" -a "$raidtype" != "raidz2" -a \
+    "$raidtype" != "raidz3" ]; then
     echo \
-    "Error: please choose raid mode with the -r switch (mirror or raidz{1,2,3})"
+    "ERROR: please choose raid mode with -r (mirror or raidz{1,2,3})"
     exit 1
   fi
+fi
+
+######################################################################
+# Disk detect
+# modified from https://github.com/mmatuska/mfsbsd
+######################################################################
+
+if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
+  echo "NOTICE: Skipping device check."
+else
+  for DEV in $disks ; do
+    if [ ! -c "/dev/$DEV" ]; then
+      echo "ERROR: /dev/$DEV is not a block device"
+      exit 1
+    fi
+    if gpart show "$DEV" >/dev/null 2>&1 ; then
+      echo "ERROR: /dev/$DEV already contains a partition table."
+      exit 1
+    fi
+  done
 fi
 
 ######################################################################
@@ -157,7 +366,7 @@ fi
 
 if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
   if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
-    echo >/dev/null
+    echo "NOTICE: Skipping force export check."
   else
     if [ "$FORCEEXPORT" ]; then
       ########## have to export bpool before rpool
@@ -257,8 +466,9 @@ fi
 # Patch zfsboot for passwordless (-P,-p) geli
 ######################################################################
 
-chmod 755 /usr/libexec/bsdinstall/zfsboot
-b64decode -o /dev/stdout <<EOF | xz -d | patch -N -l /usr/libexec/bsdinstall/zfsboot
+zfsbootpath=/usr/libexec/bsdinstall/zfsboot
+chmod 755 $zfsbootpath
+b64decode -o /dev/stdout <<EOF | xz -d | patch -N -l $zfsbootpath
 begin-base64 644 -
 /Td6WFoAAATm1rRGAgAhARYAAAB0L+Wj4CmNCqZdABboBA9GY7Mq8PP6LSSXtp4IGg6Ew2c23rG8
 03bsd2zzk74xb0rKslDMvztJeW6I9C6OXMCWtL4WBfgZngwi6yqeQSw9t96+rIhNTbMydfF5sD3E
@@ -311,7 +521,7 @@ mz4QAZVAZXO7xa6qKVvwv5EvMa1t1a8jh5EoHnUWvuo2zNJjEMxWHTcpm8CwsCrNvwGzzSJ+xjqf
 137ohvtprYdaGBFj7DSyxfkxUnAfAAAAsuf1sxFe770AAcIVjlMAAHEiCVSxxGf7AgAAAAAEWVo=
 ====
 EOF
-chmod 555 /usr/libexec/bsdinstall/zfsboot
+chmod 555 $zfsbootpath
 
 ######################################################################
 # load geli and remove past bsdinstall temporary files
@@ -332,28 +542,13 @@ if [ "$ADDTOPOOL" = "1" ]; then
   rpooltmp=tmprpool
   rpool=$rpooltmp
 fi
-########## No ZFSBOOT_GNOP_4K_FORCE_ALIGN because can't add mirror later
-ZFSBOOT_DISKS="$disks" \
-ZFSBOOT_VDEV_TYPE=$raidtype \
-ZFSBOOT_POOL_NAME=$rpool \
-ZFSBOOT_POOL_SIZE=$zsize \
-ZFSBOOT_BEROOT_NAME=$bename \
-ZFSBOOT_BOOTFS_NAME=$bfsname \
-ZFSBOOT_GELI_ENCRYPTION=1 \
-ZFSBOOT_BOOT_POOL_NAME=$bpool \
-ZFSBOOT_BOOT_POOL_SIZE=$bsize \
-ZFSBOOT_SWAP_SIZE=$ssize \
-ZFSBOOT_SWAP_ENCRYPTION=1 \
-nonInteractive=0 \
-bsdinstall zfsboot || exiterror $?
+makepoolwith zfsinstall
 
 ######################################################################
 # Do ADDTOPOOL stuff
 ######################################################################
 
 if [ "$ADDTOPOOL" = "1" ]; then
-bootpart=p2 swappart=p3 targetpart=p3
-[ -n "$ssize" ] && targetpart=p4
 ########## get existing disk
 bpoolrealdisk=`zpool status $bpoolreal | grep -v state | \
 grep ONLINE | tail -1 | awk '{print $1}'`
@@ -427,7 +622,8 @@ if [ "$ADDTOPOOL" = "1" ]; then
   exit
 fi
 install -d -m 755 ${mnt}/etc
-install    -m 644 /tmp/bsdinstall_etc/fstab ${mnt}/boot/fstab.append
+test -e /tmp/bsdinstall_etc/fstab && \
+  install -m 644 /tmp/bsdinstall_etc/fstab ${mnt}/boot/fstab.append
 
 ######################################################################
 # Check if local distribution exists, if so copy to mnt
@@ -723,7 +919,7 @@ mdinit_start()
     /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.gz
   fi
   if [ ! -f /usr/bin/which ]; then
-    echo "Error in mdinit while extracting /usr, entering shell:"
+    echo "ERROR: in mdinit while extracting /usr, entering shell:"
     /rescue/sh
   fi
   if zfs list -H -o name,canmount,mountpoint | \
