@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141125-064144
+SCRIPTVERSION=141126-050714
 
 ######################################################################
 # Variables you can edit / pass
@@ -887,23 +887,50 @@ fi
 
 ######################################################################
 # Create some extra datasets if mfsroot
+# modified from /usr/libexec/bsdinstall/zfsboot
 ######################################################################
 
 if [ "$MAKEMFSROOT" ]; then
-  zfs create -o canmount=off -o mountpoint=/etc $rpool/etc
-  zfs create $rpool/etc/pf
-  zfs create $rpool/etc/ssh
-  zfs create -o canmount=off -o mountpoint=/root $rpool/root
-  zfs create $rpool/root/.ssh
+  MFS_DATASETS="
+        /etc            mountpoint=/etc,canmount=off
+        /etc/pf         exec=off,setuid=off
+        /etc/ssh        exec=off,setuid=off
+
+        /root           mountpoint=/root,canmount=off
+        /root/.ssh      exec=off,setuid=off
+        /root/bin       setuid=off
+
+        /usr/local
+
+        /var/backups
+        /var/cache
+        /var/db
+        /var/lib
+        /var/run
+" # END-QUOTE
+  ########## create datasets
+  echo -n "Creating ZFS datasets for MFS setup ..."
+  echo "$MFS_DATASETS" | while read dataset options; do
+  case "$dataset" in "#"*|"") continue; esac
+    options="${options%%#*}"
+    oldoptions=
+    while [ "$oldoptions" != "$options" ]; do
+      oldoptions="$options"
+      newoptions=`echo $options | sed 's/  / /g'`
+      options="$newoptions"
+    done
+    newoptions=`echo $options | sed 's/[ ,]/ -o /g'`
+    options="$newoptions"
+    if ! zfs create ${options:+-o $options} "${rpool}${dataset}" \
+      >/dev/null 2>&1 ; then
+      echo " error"
+      exit 1
+    fi
+    echo -n " $dataset"
+  done
+  echo " done"
   chmod 700 ${mnt}/root/.ssh
-  zfs create $rpool/root/bin
   chmod 700 ${mnt}/root/bin
-  zfs create $rpool/usr/local
-  zfs create $rpool/var/backups
-  zfs create $rpool/var/cache
-  zfs create $rpool/var/db
-  zfs create $rpool/var/lib
-  zfs create $rpool/var/run
 fi
 
 ######################################################################
