@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141126-050714
+SCRIPTVERSION=141127-035339
 
 ######################################################################
 # Variables you can edit / pass
@@ -1244,7 +1244,9 @@ appendconf_start()
   fi
   ########## import before trying /boot/*
   if /bin/kenv -q zpool_import 2>/dev/null ; then
-    /sbin/zpool import \$( /bin/kenv -q zpool_import )
+    for i in \$( /bin/kenv -q zpool_import ) ; do
+      /sbin/zpool import -f "\$i"
+    done
   fi
   if [ -f /boot/resolv.conf.overwrite ]; then
     cat /boot/resolv.conf.overwrite > /etc/resolv.conf
