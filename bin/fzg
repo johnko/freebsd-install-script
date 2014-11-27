@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141127-120227
+SCRIPTVERSION=141127-120953
 
 ######################################################################
 # Variables you can edit / pass
@@ -35,14 +35,13 @@ RESTOREMASK=`umask`
 usage() {
   cat <<EOF
 usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
-        [-b boot_size] [-f] [-h] [-m] [-M /mnt] [-p poolname]
+        [-b boot_size] [-h] [-m] [-M /mnt] [-p poolname]
         [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
         [-z pool_size]
 
         -b size  Boot partition size.
         -d disk  Disk to install on (eg. da0).
         -e disk  Attach to this existing disk that is part of -p pool.
-        -f       Force export of existing pool.
         -h       Help.
         -m       Create mfsroot type of system.
         -M mount Mountpoint, if not using /mnt.
@@ -373,7 +372,7 @@ if [ $# -eq 0 ]; then
   usage; exit 1
 fi
 
-while getopts b:d:e:p:r:s:M:z:iulxmfvh o; do
+while getopts b:d:e:p:r:s:M:z:iulxmvh o; do
   case "$o" in
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
@@ -388,7 +387,6 @@ while getopts b:d:e:p:r:s:M:z:iulxmfvh o; do
     l) DATALOCK=1 ;;
     x) unset DATAAUTO ;;
     m) MAKEMFSROOT=1 ;;
-    f) FORCEEXPORT=1 ;;
     v) echo $SCRIPTVERSION ; exit 1 ;;
     h) usage ; exit 1 ;;
     [?]) usage ; exit 1 ;;
@@ -464,26 +462,6 @@ else
       exit 1
     fi
   done
-fi
-
-######################################################################
-# If force, delete pools and detach partition 3 and 4
-######################################################################
-
-if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
-  if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
-    echo "NOTICE: Skipping force export check."
-  else
-    if [ "$FORCEEXPORT" ]; then
-      ########## have to export bpool before rpool
-      zpool status $bpool >/dev/null 2>&1 && zpool export -f $bpool
-      zpool status $rpool >/dev/null 2>&1 && zpool export -f $rpool
-      for D in $disks ; do
-        test -e /dev/${D}p3.eli && geli detach ${D}p3
-        test -e /dev/${D}p4.eli && geli detach ${D}p4
-      done
-    fi
-  fi
 fi
 
 ######################################################################
