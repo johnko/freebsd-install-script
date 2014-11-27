@@ -87,7 +87,7 @@ other examples:
         ${0##*/} -d da0 -m -p usb
 
   Minimal mirror mfs server:
-        ${0##*/} -d ada0 -d ada1 -z 2g -f -m -p mini
+        ${0##*/} -d ada0 -d ada1 -z 2g -m -p mini
 
   Create data pool with these devices, no auto partition creation:
         ${0##*/} -i -d ada0p5 -d ada1p5 -p data -x

@@ -9,14 +9,13 @@ Mildly tested on FreeBSD 10.1-RELEASE
 
 ```
 fzg -d disk [-d disk ...] [-e disk]
-        [-b boot_size] [-f] [-h] [-m] [-M /mnt] [-p poolname]
+        [-b boot_size] [-h] [-m] [-M /mnt] [-p poolname]
         [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
         [-z pool_size]
 
         -b size  Boot partition size.
         -d disk  Disk to install on (eg. da0).
         -e disk  Attach to this existing disk that is part of -p pool.
-        -f       Force export of existing pool.
         -h       Help.
         -m       Create mfsroot type of system.
         -M mount Mountpoint, if not using /mnt.
@@ -24,35 +23,63 @@ fzg -d disk [-d disk ...] [-e disk]
         -r       Select ZFS raid mode if multiple -d given.
         -s size  Swap partition size.
         -v       Version.
-        -z       ZFS pool size.
+        -z size  ZFS pool size.
+
+fzg -i -d vdev [-d vdev ...] [-p poolname] [-x]
+fzg -i -e vdev -d vdev [-p poolname]
+fzg -u -d vdev [-d vdev ...] [-p poolname]
+fzg -l [-p poolname]
+
+        -i       Initialize data partition with geli and create pool.
+        Automatically create partition 5 unless -x is set.
+        -l       Export pool and lock data partition.
+        -u       Unlock data partition and mount pool.
+        -x       Explicit -d device, don't create partition 5 automatically.
+        -d vdev  Virtual device to grab gptid label from (eg. da0p5)
+
 ```
 
 # Examples:
 
-  Install on disk 0, pool name mini with size 2 GB:
+Install on disk 0, pool name mini with size 2 GB:
 ```
-        fzg -d ada0 -z 2g -p mini
+fzg -d ada0 -z 2g -p mini
 ```
 
-  Add disk 1 as mirror to existing pool mini that contains disk ada0:
+Add disk 1 as mirror to existing pool mini that contains disk ada0:
 ```
-        fzg -e ada0 -z 2g -p mini -d ada1
+fzg -e ada0 -d ada1 -z 2g -p mini
+```
+
+Add data partition automatically and create pool tank:
+```
+fzg -i -d ada0 -p tank
+```
+
+Create another data partition and attach to pool tank:
+```
+fzg -i -e ada0p5 -d ada1 -p tank
 ```
 
 # Other examples:
 
-  Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
+Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
 ```
-        fzg -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror
-```
-
-  Make a bootable ZFS USB, which loads as mfs:
-  Note we change the pool name so they don't conflict.
-```
-        fzg -d da0 -m -p usb
+fzg -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror
 ```
 
-  Minimal mirror mfs server:
+Make a bootable ZFS USB, which loads as mfs:
+Note we change the pool name so they don't conflict.
 ```
-        fzg -d ada0 -d ada1 -z 2g -f -m
+fzg -d da0 -m -p usb
+```
+
+Minimal mirror mfs server:
+```
+fzg -d ada0 -d ada1 -z 2g -m -p mini
+```
+
+Create data pool with these devices, no auto partition creation:
+```
+fzg -i -d ada0p5 -d ada1p5 -p data -x
 ```
