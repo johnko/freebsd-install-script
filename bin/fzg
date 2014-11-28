@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141128-181727
+SCRIPTVERSION=141128-192919
 
 ######################################################################
 # Variables you can edit
@@ -411,14 +411,16 @@ elif [ "$DATAUNLOCK" -a "$DATAINIT" ]; then
   exit 1
 fi
 
+########## if not set, set rpool and mnt
 if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
-  rpool=tank
-  mnt=/z
+: ${rpool:=tank}
+: ${mnt:=/z}
 else
-  rpool=pool
-  mnt=/mnt
+: ${rpool:=pool}
+: ${mnt:=/mnt}
 fi
 
+########## set, partitions
 bootpart=p2
 swappart=p3
 targetpart=p3
