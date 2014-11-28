@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141128-180311
+SCRIPTVERSION=141128-180521
 
 ######################################################################
 # Variables you can edit / pass
@@ -536,8 +536,7 @@ if [ "$DATAINIT" ]; then
     echo -n "Encrypting Password, "
     echo $PASSWORD | crypt > ${datakey}
     unset PASSWORD
-    [ -e ${mnt}/boot ] && cp -a ${datakey} \
-      ${mnt}${datakey}
+    [ -e ${mnt}/boot ] && cp -a ${datakey} ${mnt}${datakey}
   fi
   cryptdecode
   if [ ! -e $TMPFILE ]; then
@@ -1330,7 +1329,19 @@ fi
 
 if [ -e /root/.ssh/authorized_keys ]; then
   echo -n "Copying authorized_keys to ${mnt}/root/.ssh/authorized_keys ..."
-  cp -a /root/.ssh/authorized_keys ${mnt}/root/.ssh/authorized_keys
+  cp /root/.ssh/authorized_keys ${mnt}/root/.ssh/authorized_keys
+  chmod 600 ${mnt}/root/.ssh/authorized_keys
+  echo " done"
+fi
+
+######################################################################
+# If fzg exists, copy that
+######################################################################
+
+if [ -e /root/bin/fzg ]; then
+  echo -n "Copying fzg to ${mnt}/root/bin/fzg ..."
+  cp /root/bin/fzg ${mnt}/root/bin/fzg
+  chmod 700 ${mnt}/root/bin/fzg
   echo " done"
 fi
 
