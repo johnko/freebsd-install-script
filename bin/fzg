@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141128-192919
+SCRIPTVERSION=141128-194232
 
 ######################################################################
 # Variables you can edit
@@ -107,6 +107,7 @@ EOF
 exiterror() {
   [ "$1" != "0" ] && echo "ERROR: Exit code $1"
   umount ${crypttmp} >/dev/null 2>&1
+  umount ${bsdinstalltmp} >/dev/null 2>&1
   exit $1
 }
 
@@ -200,23 +201,23 @@ makepoolwith() {
       echo -n "Creating GUID partitions on $DEV ..."
       if ! gpart create -s GPT "/dev/$DEV" >/dev/null ; then
         echo " error at create"
-        exit 1
+        exiterror 1
       fi
       sync
       if ! echo "a 1" | fdisk -f - "$DEV" >/dev/null 2>&1 ; then
         echo " error at fdisk"
-        exit 1
+        exiterror 1
       fi
       ########## freebsd-boot for bootcode
       if ! gpart add -t freebsd-boot $align4k -s 512K "$DEV" >/dev/null ; then
         echo " error at freebsd-boot"
-        exit 1
+        exiterror 1
       fi
       ########## partition for /boot zpool
       if ! gpart add -t freebsd-zfs $align4k -s "${bsize}b" "${DEV}" \
         >/dev/null ; then
         echo " error at bpool"
-        exit 1
+        exiterror 1
       fi
       gptidboot=`glabel list ${DEV}${bootpart} | grep Name | head -1 | \
         awk '{print $NF}'`
@@ -229,7 +230,7 @@ makepoolwith() {
         if ! gpart add -t freebsd-swap $align4k -s "${ssize}b" "${DEV}" \
           >/dev/null ; then
           echo " error at swap"
-          exit 1
+          exiterror 1
         fi
         gptidswap=`glabel list ${DEV}${swappart} | grep Name | head -1 | \
           awk '{print $NF}'`
@@ -245,7 +246,7 @@ makepoolwith() {
       fi
       if ! gpart add -t freebsd-zfs $align4k $ZSIZE "${DEV}" >/dev/null ; then
         echo " error at zsize"
-        exit 1
+        exiterror 1
       fi
       gptidtarget=`glabel list ${DEV}${targetpart} | grep Name | head -1 | \
         awk '{print $NF}'`
@@ -268,7 +269,8 @@ makepoolwith() {
       echo -n "Configuring ZFS bootcode on $DEV ..."
       if ! gpart bootcode -b /boot/pmbr -p /boot/gptzfsboot -i 1 "$DEV" \
         >/dev/null ; then
-        echo " error at bootcode" ; exit 1
+        echo " error at bootcode"
+        exiterror 1
       fi
       echo " done"
     done
@@ -279,7 +281,7 @@ makepoolwith() {
       -O compress=lz4 -O atime=off -R ${mnt} \
       $rpool $TRAID $TPARTS >/dev/null 2>&1 ; then
       echo " error"
-      exit 1
+      exiterror 1
     fi
     echo " done"
     ########## create datasets
@@ -298,7 +300,7 @@ makepoolwith() {
       if ! zfs create ${options:+-o $options} "${rpool}${dataset}" \
         >/dev/null 2>&1 ; then
         echo " error"
-        exit 1
+        exiterror 1
       fi
       echo -n " $dataset"
     done
@@ -308,7 +310,7 @@ makepoolwith() {
     if ! zpool set bootfs="${rpool}/${bename}/${bfsname}" "$rpool" \
       >/dev/null 2>&1 ; then
       echo " error"
-      exit 1
+      exiterror 1
     fi
     echo " done"
     ########## create boot pool
@@ -318,7 +320,7 @@ makepoolwith() {
     if ! zpool create -f ${cacheoptions} -R ${mnt} \
       $bpool $BRAID $BPARTS >/dev/null 2>&1 ; then
       echo " error"
-      exit 1
+      exiterror 1
     fi
     echo " done"
     ########## link boot pool
@@ -337,33 +339,33 @@ makepoolwith() {
       zpool_cache_name="${cachereal}"
     if ! zpool export -f $bpool >/dev/null 2>&1 ; then
       echo " error exporting $bpool"
-      exit 1
+      exiterror 1
     fi
     if ! zpool export -f $rpool >/dev/null 2>&1 ; then
       echo " error exporting $rpool"
-      exit 1
+      exiterror 1
     fi
     if ! zpool import -f ${cacheoptions} -R ${mnt} $rpool \
       >/dev/null 2>&1 ; then
       echo " error importing $rpool"
-      exit 1
+      exiterror 1
     fi
     if ! zpool import -f ${cacheoptions} -R ${mnt} $bpool \
       >/dev/null 2>&1 ; then
       echo " error importing $bpool"
-      exit 1
+      exiterror 1
     fi
     install -d 755 ${mnt}/boot/zfs
     if ! cp ${cachetmp} "${mnt}${cachereal}" >/dev/null 2>&1 ; then
       echo " error copying zpool.cache"
-      exit 1
+      exiterror 1
     fi
     echo " done"
     ########## keyfile
     echo -n "Copying keyfile ..."
     if ! cp ${keyfiletmp} "${mnt}${keyfile}" >/dev/null 2>&1 ; then
       echo " error copying keyfile"
-      exit 1
+      exiterror 1
     fi
     echo " done"
   fi
@@ -375,7 +377,7 @@ makepoolwith() {
 ######################################################################
 
 if [ $# -eq 0 ]; then
-  usage; exit 1
+  usage ; exiterror 1
 fi
 
 while getopts b:d:e:p:r:s:M:z:iulxmnvh o; do
@@ -394,21 +396,21 @@ while getopts b:d:e:p:r:s:M:z:iulxmnvh o; do
     x) unset DATAAUTO ;;
     m) MAKEMFSROOT=1 ;;
     n) PROMPTCHANGEPASSWD=n ;;
-    v) echo $SCRIPTVERSION ; exit 1 ;;
-    h) usage ; exit 1 ;;
-    [?]) usage ; exit 1 ;;
+    v) echo $SCRIPTVERSION ; exiterror 1 ;;
+    h) usage ; exiterror 1 ;;
+    [?]) usage ; exiterror 1 ;;
   esac
 done
 
 if [ "$DATAINIT" -a "$DATALOCK" ]; then
   echo "Only pass -i or -l, not both."
-  exit 1
+  exiterror 1
 elif [ "$DATALOCK" -a "$DATAUNLOCK" ]; then
   echo "Only pass -l or -u, not both."
-  exit 1
+  exiterror 1
 elif [ "$DATAUNLOCK" -a "$DATAINIT" ]; then
   echo "Only pass -u or -i, not both."
-  exit 1
+  exiterror 1
 fi
 
 ########## if not set, set rpool and mnt
@@ -434,13 +436,13 @@ targetpart=p3
 if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ] && [ -z "$DATAUNLOCK" ]; then
   count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
   if [ "$count" -lt "3" -a "$raidtype" = "raidz" ]; then
-    echo "ERROR: raidz needs at least three devices (-d switch)" ; exit 1
+    echo "ERROR: raidz needs at least three devices (-d switch)" ; exiterror 1
   elif [ "$count" -lt "4" -a "$raidtype" = "raidz2" ]; then
-    echo "ERROR: raidz2 needs at least four devices (-d switch)" ; exit 1
+    echo "ERROR: raidz2 needs at least four devices (-d switch)" ; exiterror 1
   elif [ "$count" -lt "5" -a "$raidtype" = "raidz3" ]; then
-    echo "ERROR: raidz3 needs at least five devices (-d switch)" ; exit 1
+    echo "ERROR: raidz3 needs at least five devices (-d switch)" ; exiterror 1
   elif [ "$count" = "1" -a "$raidtype" = "mirror" ]; then
-    echo "ERROR: mirror needs at least two devices (-d switch)" ; exit 1
+    echo "ERROR: mirror needs at least two devices (-d switch)" ; exiterror 1
   elif [ "$count" = "2" -a "$raidtype" != "mirror" ]; then
     echo "NOTICE: two drives selected, automatically choosing mirror mode"
     raidtype="mirror"
@@ -449,7 +451,7 @@ if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ] && [ -z "$DATAUNLOCK" ]; then
     "$raidtype" != "raidz3" ]; then
     echo \
     "ERROR: please choose raid mode with -r (mirror or raidz{1,2,3})"
-    exit 1
+    exiterror 1
   fi
 fi
 
@@ -464,11 +466,11 @@ else
   for DEV in $disks ; do
     if [ ! -c "/dev/$DEV" ]; then
       echo "ERROR: /dev/$DEV is not a block device"
-      exit 1
+      exiterror 1
     fi
     if gpart show "$DEV" >/dev/null 2>&1 ; then
       echo "ERROR: /dev/$DEV already contains a partition table."
-      exit 1
+      exiterror 1
     fi
   done
 fi
@@ -480,21 +482,21 @@ fi
 if [ -z "$DATALOCK" ] && [ -z "$DATAUNLOCK" ] && [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
   if zpool status $rpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $rpool already exists."
-    exit 1
+    exiterror 1
   fi
   if zpool status $bpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $bpool already exists."
-    exit 1
+    exiterror 1
   fi
 elif [ "$ADDTOPOOL" = "1" -o -n "$DATALOCK" ]; then
   if ! zpool status $rpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $rpool doesn't exists."
-    exit 1
+    exiterror 1
   fi
   if [ -z "$DATALOCK" -a -z "$DATAINIT" ]; then
     if ! zpool status $bpool >/dev/null 2>&1 ; then
       echo "ERROR: A pool named $bpool doesn't exists."
-      exit 1
+      exiterror 1
     fi
   fi
 fi
@@ -532,7 +534,7 @@ if [ "$DATAINIT" ]; then
           fi
         done
       done
-      [ "$PARTCREATED" != "1" ] && exit 1
+      [ "$PARTCREATED" != "1" ] && exiterror 1
     done
     disks="$GPARTS"
   fi
@@ -603,7 +605,7 @@ elif [ "$DATALOCK" ]; then
     tr '\n' ' '`
   if ! zpool export -f ${rpool} >/dev/null 2>&1 ; then
     echo " error"
-    exit 1
+    exiterror 1
   fi
   echo " done"
   sync
@@ -910,7 +912,7 @@ if [ "$MAKEMFSROOT" ]; then
     if ! zfs create ${options:+-o $options} "${rpool}${dataset}" \
       >/dev/null 2>&1 ; then
       echo " error"
-      exit 1
+      exiterror 1
     fi
     echo -n " $dataset"
   done
