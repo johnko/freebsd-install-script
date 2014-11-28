@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141128-175235
+SCRIPTVERSION=141128-180311
 
 ######################################################################
 # Variables you can edit / pass
@@ -1325,31 +1325,50 @@ echo "# mdinit_shell=\"YES\"" \
 fi
 
 ######################################################################
-# Remind user that they should change password of new system
+# If .ssh/authorized_keys exists, copy that
+######################################################################
+
+if [ -e /root/.ssh/authorized_keys ]; then
+  echo -n "Copying authorized_keys to ${mnt}/root/.ssh/authorized_keys ..."
+  cp -a /root/.ssh/authorized_keys ${mnt}/root/.ssh/authorized_keys
+  echo " done"
+fi
+
+######################################################################
+# Prompt to change root password of new install
+######################################################################
+
+CHPASSWD=y
+while [ "$CHPASSWD" = "y" -o "$CHPASSWD" = "Y" ]; do
+  echo -n "Change root password of new installation? [y/N] "
+  read CHPASSWD
+  case $CHPASSWD in
+  y|Y)
+    if [ "$MAKEMFSROOT" ]; then
+      mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot`
+      mount /dev/${mdevice} $mfsmnt
+      mount -t devfs devfs $mfsmnt/dev
+      chroot $mfsmnt /etc/rc.d/mdinit start
+      chroot $mfsmnt passwd
+      umount $mfsmnt/dev
+      umount $mfsmnt/usr
+      umount /dev/${mdevice}
+      mdconfig -d -u ${mdevice#md}
+    else
+      chroot $mnt passwd
+    fi
+  ;;
+  esac
+done
+
+######################################################################
+# Remind not to export pool
 ######################################################################
 
 cat <<EOF
 Don't export the ZFS pools!
+
 You may want to set the hostname with:
         sysrc -f "${mnt}/boot/loader.conf.local" hostname="name"
 See file ${mnt}/boot/loader.conf.local for more options.
-You should probably change the root password of the new system with:
 EOF
-if [ "$MAKEMFSROOT" ]; then
-cat <<EOF
-
-mdevice=\`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot\`
-mount /dev/\${mdevice} $mfsmnt
-mount -t devfs devfs $mfsmnt/dev
-chroot $mfsmnt /etc/rc.d/mdinit start
-chroot $mfsmnt passwd
-umount $mfsmnt/dev
-umount $mfsmnt/usr
-umount /dev/\${mdevice}
-mdconfig -d -u \${mdevice#md}
-EOF
-else
-cat <<EOF
-        chroot $mnt passwd
-EOF
-fi
