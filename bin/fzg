@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141128-194232
+SCRIPTVERSION=141128-202533
 
 ######################################################################
 # Variables you can edit
@@ -1237,29 +1237,17 @@ appendconf_start()
       /sbin/zpool import -f "\$i"
     done
   fi
-  if [ -f /boot/resolv.conf.overwrite ]; then
-    cat /boot/resolv.conf.overwrite > /etc/resolv.conf
-  elif [ -f /boot/resolv.conf.append ]; then
-    cat /boot/resolv.conf.append >> /etc/resolv.conf
-  fi
-  if [ -f /boot/fstab.overwrite ]; then
-    cat /boot/fstab.overwrite > /etc/fstab
-  elif [ -f /boot/fstab.append ]; then
-    cat /boot/fstab.append >> /etc/fstab
-  fi
-  if [ -f /boot/periodic.conf.overwrite ]; then
-    cat /boot/periodic.conf.overwrite > /etc/periodic.conf
-  elif [ -f /boot/periodic.conf.append ]; then
-    cat /boot/periodic.conf.append >> /etc/periodic.conf
-  fi
-  if [ -f /boot/sysctl.conf.overwrite -o -f /boot/sysctl.conf.append ]; then
-    if [ -f /boot/sysctl.conf.overwrite ]; then
-      cat /boot/sysctl.conf.overwrite > /etc/sysctl.conf
-    elif [ -f /boot/sysctl.conf.append ]; then
-      cat /boot/sysctl.conf.append >> /etc/sysctl.conf
+  for f in fstab hosts periodic resolv sysctl ; do
+    suffix=.overwrite
+    if [ -e /boot/\${f}\${suffix} ]; then
+      cat /boot/\${f}\${suffix} >/etc/\${f}\${suffix}
     fi
-    service sysctl start
-  fi
+    suffix=.append
+    if [ -e /boot/\${f}\${suffix} ]; then
+      cat /boot/\${f}\${suffix} >>/etc/\${f}\${suffix}
+    fi
+  done
+  service sysctl start
 }
 load_rc_config \$name
 run_rc_command "\$1"
@@ -1355,6 +1343,21 @@ if [ -e /root/bin/fzg ]; then
   chmod 700 ${mnt}/root/bin/fzg
   echo " done"
 fi
+
+######################################################################
+# If files exists, copy that
+######################################################################
+
+for f in fstab hosts periodic resolv sysctl ; do
+  for suffix in .overwrite .append ; do
+    if [ -e /boot/${f}${suffix} ]; then
+      echo -n "Copying ${f}${suffix} to ${mnt}/boot/${f}${suffix} ..."
+      cp /boot/${f}${suffix} ${mnt}/boot/${f}${suffix}
+      chmod 600 ${mnt}/boot/${f}${suffix}
+      echo " done"
+    fi
+  done
+done
 
 ######################################################################
 # Prompt to change root password of new install
