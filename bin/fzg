@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141127-120953
+SCRIPTVERSION=141128-175235
 
 ######################################################################
 # Variables you can edit / pass
@@ -1100,6 +1100,7 @@ echo '########## To enable Link Aggregation: END' \
 # Set SSH options
 ######################################################################
 
+echo ChallengeResponseAuthentication no >> "${mnt}/etc/ssh/sshd_config"
 echo PermitRootLogin yes >> "${mnt}/etc/ssh/sshd_config"
 echo UseDNS no >> "${mnt}/etc/ssh/sshd_config"
 
