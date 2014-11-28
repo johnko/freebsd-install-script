@@ -3,29 +3,34 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141128-180521
+SCRIPTVERSION=141128-181727
 
 ######################################################################
-# Variables you can edit / pass
+# Variables you can edit
 ######################################################################
 
-: ${bpool:=bootpool}
-: ${raidtype:=stripe}
-: ${mfsmnt:=/mnt2}
-: ${bsize:=2g}
-: ${bename:=rfs}
-: ${bfsname:=default}
-: ${ssize:=2g}
-: ${release:=10.1-RELEASE}
-: ${distsite:="http://ftp4.freebsd.org/pub/FreeBSD/releases"}
-: ${keyfile:=/boot/encryption.key}
+bename=rfs
+bfsname=default
+bsize=2g
+distsite="http://ftp4.freebsd.org/pub/FreeBSD/releases"
+keyfile=/boot/encryption.key
+release=10.1-RELEASE
+ssize=2g
+
+######################################################################
+# Variables you don't touch
+######################################################################
 
 align4k="-a 4k"
+bpool=bootpool
 bsdinstalltmp=/tmp/bsdinstall_boot
 bsdinstalletc=/tmp/bsdinstall_etc
 crypttmp=/tmp/crypt
 datakey=/boot/data.key
 datasizes="3730 3620 2800 2690 1860 1740 940 830" # Preferred descending order
+mfsmnt=/mnt2
+PROMPTCHANGEPASSWD=y
+raidtype=stripe
 RESTOREMASK=`umask`
 
 ######################################################################
@@ -45,6 +50,7 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         -h       Help.
         -m       Create mfsroot type of system.
         -M mount Mountpoint, if not using /mnt.
+        -n       Don't prompt to change password.
         -p name  ZFS pool name, must be unique.
         -r       Select ZFS raid mode if multiple -d given.
         -s size  Swap partition size.
@@ -372,7 +378,7 @@ if [ $# -eq 0 ]; then
   usage; exit 1
 fi
 
-while getopts b:d:e:p:r:s:M:z:iulxmvh o; do
+while getopts b:d:e:p:r:s:M:z:iulxmnvh o; do
   case "$o" in
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
@@ -387,6 +393,7 @@ while getopts b:d:e:p:r:s:M:z:iulxmvh o; do
     l) DATALOCK=1 ;;
     x) unset DATAAUTO ;;
     m) MAKEMFSROOT=1 ;;
+    n) PROMPTCHANGEPASSWD=n ;;
     v) echo $SCRIPTVERSION ; exit 1 ;;
     h) usage ; exit 1 ;;
     [?]) usage ; exit 1 ;;
@@ -405,11 +412,11 @@ elif [ "$DATAUNLOCK" -a "$DATAINIT" ]; then
 fi
 
 if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
-: ${rpool:=tank}
-: ${mnt:=/z}
+  rpool=tank
+  mnt=/z
 else
-: ${rpool:=pool}
-: ${mnt:=/mnt}
+  rpool=pool
+  mnt=/mnt
 fi
 
 bootpart=p2
@@ -1349,11 +1356,10 @@ fi
 # Prompt to change root password of new install
 ######################################################################
 
-CHPASSWD=y
-while [ "$CHPASSWD" = "y" -o "$CHPASSWD" = "Y" ]; do
+while [ "$PROMPTCHANGEPASSWD" = "y" -o "$PROMPTCHANGEPASSWD" = "Y" ]; do
   echo -n "Change root password of new installation? [y/N] "
-  read CHPASSWD
-  case $CHPASSWD in
+  read PROMPTCHANGEPASSWD
+  case $PROMPTCHANGEPASSWD in
   y|Y)
     if [ "$MAKEMFSROOT" ]; then
       mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot`
