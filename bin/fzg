@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141129-035011
+SCRIPTVERSION=141129-052756
 
 ######################################################################
 # Variables you can edit
@@ -1435,10 +1435,12 @@ fi
 # If fzg exists, copy that
 ######################################################################
 
-if [ -e /root/bin/fzg ]; then
-  echo -n "Copying fzg to ${mnt}/root/bin/fzg ..."
-  cp /root/bin/fzg ${mnt}/root/bin/fzg
-  chmod 700 ${mnt}/root/bin/fzg
+if ls /root/bin | grep . >/dev/null 2>&1 ; then
+  echo -n "Copying bin/* to ${mnt}/root/bin/ ..."
+  chmod 700 /root/bin
+  install -d -m 700 ${mnt}/root/bin
+  tar -c -f - -C /root bin | tar -C ${mnt}/root -x -f -
+  chmod 700 ${mnt}/root/bin/*
   echo " done"
 fi
 
