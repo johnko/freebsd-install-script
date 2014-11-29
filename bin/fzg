@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141128-202533
+SCRIPTVERSION=141129-031207
 
 ######################################################################
 # Variables you can edit
@@ -29,9 +29,16 @@ crypttmp=/tmp/crypt
 datakey=/boot/data.key
 datasizes="3730 3620 2800 2690 1860 1740 940 830" # Preferred descending order
 mfsmnt=/mnt2
+ntpdate_hosts="pool.ntp.org"
 PROMPTCHANGEPASSWD=y
 raidtype=stripe
 RESTOREMASK=`umask`
+
+######################################################################
+######################################################################
+# Start of functions
+######################################################################
+######################################################################
 
 ######################################################################
 # Usage
@@ -45,6 +52,8 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         [-z pool_size]
 
         -b size  Boot partition size.
+        -c       Configure sshd_config, loader.conf and rc.conf.
+        -C       Same as -c plus loader.conf.local and rc.conf.local.
         -d disk  Disk to install on (eg. da0).
         -e disk  Attach to this existing disk that is part of -p pool.
         -h       Help.
@@ -126,6 +135,150 @@ cryptdecode() {
   echo -n "Decrypting Password, "
   crypt < ${datakey} >$TMPFILE
   umask $RESTOREMASK
+}
+
+######################################################################
+# Post-install configuration
+######################################################################
+
+freebsdconfigglobal() {
+  ########## Set some loader.conf options global to vps hosts too
+  sysrc -f "${mnt}/boot/loader.conf" autoboot_delay="1" >/dev/null
+  ########## hw.usb.no_shutdown_wait allows USB not to stall poweroff
+  sysrc -f "${mnt}/boot/loader.conf" "hw.usb.no_shutdown_wait=1" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf" "kern.cam.boot_delay=10000" >/dev/null
+  ########## I prefer no disk ID
+  sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.disk_ident.enable=0" \
+    >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gpt.enable=0" >/dev/null
+  ########## But I allow UUID
+  sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gptid.enable=1" \
+    >/dev/null
+  ########## Kernel max
+  sysrc -f "${mnt}/boot/loader.conf" "kern.maxfiles=65530" >/dev/null
+  ########## loader_logo should stop logo from showing, appears to be BROKEN
+  sysrc -f "${mnt}/boot/loader.conf" loader_logo="none" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf" nullfs_load="YES" >/dev/null
+  ########## tmpfs_load for mfsroot /usr
+  sysrc -f "${mnt}/boot/loader.conf" tmpfs_load="YES" >/dev/null
+
+  ########## Set some rc.conf options
+  sysrc -f "${mnt}/etc/rc.conf" auditd_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" entropy_file="/var/db/entropy-file" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" ftpproxy_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" ntpdate_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" openntpd_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" pf_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" pf_rules="/etc/pf/pf.conf" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" pflog_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" pflog_logfile="/var/log/pflog" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" sendmail_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" sendmail_submit_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" sendmail_outbound_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" sendmail_msp_queue_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" sshd_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" sshd_rsa1_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" sshd_dsa_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" syslogd_flags="-s -b127.0.0.1" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" zfs_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" virtio_load="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" virtio_pci_load="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" virtio_blk_load="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" if_vtnet_load="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" virtio_balloon_load="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES" >/dev/null
+  ########## Set SSH options
+  grep '^ChallengeResponseAuthentication no' "${mnt}/etc/ssh/sshd_config" || \
+    echo ChallengeResponseAuthentication no >>"${mnt}/etc/ssh/sshd_config"
+  grep '^PermitRootLogin yes' "${mnt}/etc/ssh/sshd_config" || \
+    echo PermitRootLogin yes >>"${mnt}/etc/ssh/sshd_config"
+  grep '^UseDNS no' "${mnt}/etc/ssh/sshd_config" || \
+    echo UseDNS no >>"${mnt}/etc/ssh/sshd_config"
+
+  ########## Set ntpdate_hosts in local
+  sysrc -f "${mnt}/etc/rc.conf.local" ntpdate_hosts="$ntpdate_hosts" \
+    >/dev/null
+}
+
+freebsdconfigglobalmfsroot() {
+  ########## optional set ntpdate_hosts
+  sysrc -f "${mnt}/boot/loader.conf.local" ntpdate_hosts="$ntpdate_hosts" \
+    >/dev/null
+}
+
+freebsdconfiglocal() {
+  ########## .local specific to this machine
+  sysrc -f "${mnt}/boot/loader.conf.local" aesni_load="YES" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" ahci_load="YES" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" geom_eli_load="YES" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" geom_label_load="YES" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" geom_mirror_load="YES" >/dev/null
+  ########## hw.bge.allow_asf for my HP server to stop network disconnect
+  sysrc -f "${mnt}/boot/loader.conf.local" "hw.bge.allow_asf=0" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" if_lagg_load="YES" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" "kern.maxswzone=512M" >/dev/null
+  ########## vfs.zfs.arc_max limit arc usage on low RAM systems
+  sysrc -f "${mnt}/boot/loader.conf.local" "vfs.zfs.arc_max=256M" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" zfs_load="YES" >/dev/null
+  ########## network interfaces
+  ifconfig -l | tr ' ' '\n' | while read line ; do
+    if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
+      grep "ifconfig_${line}" ${mnt}/boot/loader.conf.local \
+        >/dev/null 2>&1 || \
+        echo "# ifconfig_${line}=\"up\"" >>${mnt}/boot/loader.conf.local
+      grep "ifconfig_${line}" ${mnt}/etc/rc.conf.local \
+        >/dev/null 2>&1 || \
+        echo "# ifconfig_${line}=\"up\"" >>${mnt}/etc/rc.conf.local
+    fi
+  done
+  ########## Set lagg as optional comments
+  echo '########## To enable Link Aggregation: BEGIN' \
+    >>${mnt}/boot/loader.conf.local.lagg
+  nics=`ifconfig -l | tr ' ' '\n' | \
+  awk '$1 !~ /lo[0-9]/ && \
+  $1 !~ /pflog[0-9]/ && \
+  $1 !~ /lagg[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
+  echo "# cloned_interfaces=\"lagg0\"" >>${mnt}/boot/loader.conf.local.lagg
+  echo "# ifconfig_lagg0=\"DHCP laggproto loadbalance $nics\"" \
+    >>${mnt}/boot/loader.conf.local.lagg
+  echo "# ifconfig_lagg0=\"inet 192.168.0.2/24 laggproto loadbalance $nics\"" \
+    >>${mnt}/boot/loader.conf.local.lagg
+  echo '########## To enable Link Aggregation: END' \
+    >>${mnt}/boot/loader.conf.local.lagg
+  if ! grep 'To enable Link Aggregation' ${mnt}/boot/loader.conf.local \
+    >/dev/null 2>&1 ; then
+    cat ${mnt}/boot/loader.conf.local.lagg >>${mnt}/boot/loader.conf.local
+  fi
+  if ! grep 'To enable Link Aggregation' ${mnt}/etc/rc.conf.local \
+    >/dev/null 2>&1 ; then
+    cat ${mnt}/boot/loader.conf.local.lagg >>${mnt}/etc/rc.conf.local
+  fi
+}
+
+freebsdconfiglocalmfsroot() {
+  ########## mfs_ settings in loader.conf
+  sysrc -f "${mnt}/boot/loader.conf.local" mfs_load="YES" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" mfs_type="mfs_root" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" mfs_name="/mfsroot" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" "vfs.root.mountfrom=ufs:/dev/md0" \
+    >/dev/null
+  ########## optional set netwait_
+  echo "# netwait_enable=\"YES\"" \
+    >>${mnt}/boot/loader.conf.local
+  echo "# netwait_ip=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
+    >>${mnt}/boot/loader.conf.local
+  ########## set defaultrouter
+  echo "# defaultrouter=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
+    >>${mnt}/boot/loader.conf.local
+  ########## optional set packages to list we can pkg install -f -y ____
+  echo "# packages=\"\"" \
+    >>${mnt}/boot/loader.conf.local
+  ########## optional set zpools to import
+  echo "# zpool_import=\"\"" \
+    >>${mnt}/boot/loader.conf.local
+  ########## optional set mdinit_shell
+  echo "# mdinit_shell=\"YES\"" \
+    >>${mnt}/boot/loader.conf.local
 }
 
 ######################################################################
@@ -372,6 +525,12 @@ makepoolwith() {
 }
 
 ######################################################################
+######################################################################
+# End of functions
+######################################################################
+######################################################################
+
+######################################################################
 # Options parsing
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
@@ -380,7 +539,7 @@ if [ $# -eq 0 ]; then
   usage ; exiterror 1
 fi
 
-while getopts b:d:e:p:r:s:M:z:iulxmnvh o; do
+while getopts b:d:e:p:r:s:M:z:cCiulxmnvh o; do
   case "$o" in
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
@@ -390,6 +549,8 @@ while getopts b:d:e:p:r:s:M:z:iulxmnvh o; do
     s) ssize="$OPTARG" ;;
     M) mnt="$OPTARG" ;;
     z) zsize="$OPTARG" ;;
+    c) freebsdconfigglobal ; exit ;;
+    C) freebsdconfigglobal ; freebsdconfiglocal ; exit ;;
     i) DATAINIT=1 ; DATAAUTO=1 ;;
     u) DATAUNLOCK=1 ;;
     l) DATALOCK=1 ;;
@@ -545,7 +706,7 @@ if [ "$DATAINIT" ]; then
     stty echo
     printf "\n"
     echo -n "Encrypting Password, "
-    echo $PASSWORD | crypt > ${datakey}
+    echo $PASSWORD | crypt >${datakey}
     unset PASSWORD
     [ -e ${mnt}/boot ] && cp -a ${datakey} ${mnt}${datakey}
   fi
@@ -827,13 +988,13 @@ if [ "$ADDTOPOOL" = "1" -o "$MAKEMFSROOT" ]; then
     grep -v aesni_load | \
     grep -v geom_eli_load | \
     grep -v zfs_load | \
-    grep -v kern.geom.label.gptid.enable >> ${mnt}/boot/loader.conf.local
+    grep -v kern.geom.label.gptid.enable >>${mnt}/boot/loader.conf.local
 else
   cat ${bsdinstalltmp}/loader.conf.* | \
     grep -v aesni_load | \
     grep -v geom_eli_load | \
     grep -v zfs_load | \
-    grep -v kern.geom.label.gptid.enable >> ${mnt}/boot/loader.conf.local
+    grep -v kern.geom.label.gptid.enable >>${mnt}/boot/loader.conf.local
   chmod 644 ${mnt}/boot/loader.conf.local
 fi
 umount ${bsdinstalltmp} >/dev/null 2>&1
@@ -951,10 +1112,10 @@ if [ -d /boot/packages ]; then
   tar -c -f - -C /boot/ packages | tar -C ${mnt}/boot/ -x -f - || exiterror $?
 else
   if [ -f /usr/local/etc/pkg.conf ]; then
-    cat /usr/local/etc/pkg.conf > /usr/local/etc/pkg.conf.bkp
+    cat /usr/local/etc/pkg.conf >/usr/local/etc/pkg.conf.bkp
   fi
   install -d -m 755 /usr/local/etc
-  echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >> /usr/local/etc/pkg.conf
+  echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >>/usr/local/etc/pkg.conf
 p fetch -y \
 cmdwatch \
 gnupg libksba libgpg-error gettext indexinfo libgcrypt libassuan pth \
@@ -1002,7 +1163,7 @@ pkg
 #   xkbcomp libxkbfile iso-codes xfce4-appfinder mousepad gtksourceview2 \
 #   xfce4-notifyd orage
   if [ -f /usr/local/etc/pkg.conf.bkp ]; then
-    cat /usr/local/etc/pkg.conf.bkp > /usr/local/etc/pkg.conf
+    cat /usr/local/etc/pkg.conf.bkp >/usr/local/etc/pkg.conf
     rm /usr/local/etc/pkg.conf.bkp
   else
     rm /usr/local/etc/pkg.conf
@@ -1010,67 +1171,11 @@ pkg
 fi
 
 ######################################################################
-# Set some loader.conf options
+# Set config
 ######################################################################
 
-sysrc -f "${mnt}/boot/loader.conf" aesni_load="YES" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" ahci_load="YES" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" autoboot_delay="1" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" geom_eli_load="YES" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" geom_label_load="YES" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" geom_mirror_load="YES" >/dev/null
-########## hw.bge.allow_asf for my HP server to stop network disconnect
-sysrc -f "${mnt}/boot/loader.conf" "hw.bge.allow_asf=0" >/dev/null
-########## hw.usb.no_shutdown_wait allows USB not to stall poweroff
-sysrc -f "${mnt}/boot/loader.conf" "hw.usb.no_shutdown_wait=1" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" if_lagg_load="YES" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" "kern.cam.boot_delay=10000" >/dev/null
-########## I prefer no disk ID
-sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.disk_ident.enable=0" \
->/dev/null
-sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gpt.enable=0" >/dev/null
-########## But I allow UUID
-sysrc -f "${mnt}/boot/loader.conf" "kern.geom.label.gptid.enable=1" >/dev/null
-########## Kernel max
-sysrc -f "${mnt}/boot/loader.conf" "kern.maxfiles=65530" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" "kern.maxswzone=512M" >/dev/null
-########## loader_logo should stop logo from showing, appears to be BROKEN
-sysrc -f "${mnt}/boot/loader.conf" loader_logo="none" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" nullfs_load="YES" >/dev/null
-########## tmpfs_load for mfsroot /usr
-sysrc -f "${mnt}/boot/loader.conf" tmpfs_load="YES" >/dev/null
-########## vfs.zfs.arc_max limit arc usage on low RAM systems
-sysrc -f "${mnt}/boot/loader.conf" "vfs.zfs.arc_max=256M" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf" zfs_load="YES" >/dev/null
-
-######################################################################
-# Set some rc.conf options
-######################################################################
-
-sysrc -f "${mnt}/etc/rc.conf" auditd_enable="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" entropy_file="/var/db/entropy-file" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" ftpproxy_enable="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" ntpdate_enable="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" openntpd_enable="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" pf_enable="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" pf_rules="/etc/pf/pf.conf" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" pflog_enable="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" pflog_logfile="/var/log/pflog" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" sendmail_enable="NO" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" sendmail_submit_enable="NO" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" sendmail_outbound_enable="NO" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" sendmail_msp_queue_enable="NO" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" sshd_enable="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" sshd_rsa1_enable="NO" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" sshd_dsa_enable="NO" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" syslogd_flags="-s -b127.0.0.1" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" zfs_enable="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" virtio_load="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" virtio_pci_load="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" virtio_blk_load="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" if_vtnet_load="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" virtio_balloon_load="YES" >/dev/null
-sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES" >/dev/null
+freebsdconfigglobal
+freebsdconfiglocal
 
 ######################################################################
 # Set ifconfig DHCP
@@ -1078,41 +1183,9 @@ sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES" >/dev/null
 
 ifconfig -l | tr ' ' '\n' | while read line ; do
   if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
-    echo "# ifconfig_${line}=\"up\"" >> ${mnt}/boot/loader.conf.local
-  fi
-done
-
-ifconfig -l | tr ' ' '\n' | while read line ; do
-  if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
     sysrc -f "${mnt}/boot/loader.conf.local" ifconfig_${line}="DHCP"
   fi
 done
-
-######################################################################
-# Set lagg as optional comments
-######################################################################
-
-echo '########## To enable Link Aggregation: BEGIN' \
-  >>${mnt}/boot/loader.conf.local
-nics=`ifconfig -l | tr ' ' '\n' | \
-awk '$1 !~ /lo[0-9]/ && \
-$1 !~ /pflog[0-9]/ && \
-$1 !~ /lagg[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
-echo "# cloned_interfaces=\"lagg0\"" >> ${mnt}/boot/loader.conf.local
-echo "# ifconfig_lagg0=\"DHCP laggproto loadbalance $nics\"" \
->> ${mnt}/boot/loader.conf.local
-echo "# ifconfig_lagg0=\"inet 192.168.0.2/24 laggproto loadbalance $nics\"" \
->> ${mnt}/boot/loader.conf.local
-echo '########## To enable Link Aggregation: END' \
-  >>${mnt}/boot/loader.conf.local
-
-######################################################################
-# Set SSH options
-######################################################################
-
-echo ChallengeResponseAuthentication no >> "${mnt}/etc/ssh/sshd_config"
-echo PermitRootLogin yes >> "${mnt}/etc/ssh/sshd_config"
-echo UseDNS no >> "${mnt}/etc/ssh/sshd_config"
 
 ######################################################################
 # Change password of new system to blank
@@ -1208,28 +1281,28 @@ stop_cmd=":"
 appendconf_start()
 {
   if /bin/kenv -v hostname 2>/dev/null ; then
-    /bin/kenv -v hostname >> /etc/rc.conf.d/hostname
+    /bin/kenv -v hostname >>/etc/rc.conf.d/hostname
   fi
   if /bin/kenv | grep netwait_ >/dev/null 2>&1 ; then
-    /bin/kenv | grep netwait_ >> /etc/rc.conf.d/netwait
+    /bin/kenv | grep netwait_ >>/etc/rc.conf.d/netwait
   fi
   if /bin/kenv | grep ifconfig_ >/dev/null 2>&1 ; then
-    /bin/kenv | grep ifconfig_ >> /etc/rc.conf.d/network
+    /bin/kenv | grep ifconfig_ >>/etc/rc.conf.d/network
   fi
   if /bin/kenv | grep cloned_interfaces >/dev/null 2>&1 ; then
-    /bin/kenv | grep cloned_interfaces >> /etc/rc.conf.d/network
+    /bin/kenv | grep cloned_interfaces >>/etc/rc.conf.d/network
   fi
   if /bin/kenv | grep ntpdate_ >/dev/null 2>&1 ; then
-    /bin/kenv | grep ntpdate_ >> /etc/rc.conf.d/ntpdate
+    /bin/kenv | grep ntpdate_ >>/etc/rc.conf.d/ntpdate
   fi
   if /bin/kenv | grep defaultrouter >/dev/null 2>&1 ; then
-    /bin/kenv | grep defaultrouter >> /etc/rc.conf.d/routing
+    /bin/kenv | grep defaultrouter >>/etc/rc.conf.d/routing
   fi
   if /bin/kenv | grep static_routes >/dev/null 2>&1 ; then
-    /bin/kenv | grep static_routes >> /etc/rc.conf.d/routing
+    /bin/kenv | grep static_routes >>/etc/rc.conf.d/routing
   fi
   if /bin/kenv | grep route_ >/dev/null 2>&1 ; then
-    /bin/kenv | grep route_ >> /etc/rc.conf.d/routing
+    /bin/kenv | grep route_ >>/etc/rc.conf.d/routing
   fi
   ########## import before trying /boot/*
   if /bin/kenv -q zpool_import 2>/dev/null ; then
@@ -1294,32 +1367,8 @@ fi
 echo "Unmounting /dev/${mdevice}"
 umount /dev/${mdevice} || exiterror $?
 mdconfig -d -u ${mdevice#md} || exiterror $?
-########## mfs_ settings in loader.conf
-sysrc -f "${mnt}/boot/loader.conf.local" mfs_load="YES" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf.local" mfs_type="mfs_root" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf.local" mfs_name="/mfsroot" >/dev/null
-sysrc -f "${mnt}/boot/loader.conf.local" "vfs.root.mountfrom=ufs:/dev/md0" \
-  >/dev/null
-########## optional set ntpdate_hosts
-sysrc -f "${mnt}/boot/loader.conf.local" ntpdate_hosts="pool.ntp.org" \
-  >/dev/null
-########## optional set netwait_
-echo "# netwait_enable=\"YES\"" \
-  >> ${mnt}/boot/loader.conf.local
-echo "# netwait_ip=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
-  >> ${mnt}/boot/loader.conf.local
-########## set defaultrouter
-echo "# defaultrouter=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
-  >> ${mnt}/boot/loader.conf.local
-########## optional set packages to list we can pkg install -f -y ____
-echo "# packages=\"\"" \
-  >> ${mnt}/boot/loader.conf.local
-########## optional set zpools to import
-echo "# zpool_import=\"\"" \
-  >> ${mnt}/boot/loader.conf.local
-########## optional set mdinit_shell
-echo "# mdinit_shell=\"YES\"" \
-  >> ${mnt}/boot/loader.conf.local
+freebsdconfigglobalmfsroot
+freebsdconfiglocalmfsroot
 fi
 
 ######################################################################
