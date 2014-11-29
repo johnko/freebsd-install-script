@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141129-074634
+SCRIPTVERSION=141129-081112
 
 ######################################################################
 # Variables you can edit
@@ -1364,11 +1364,11 @@ appendconf_start()
   for f in fstab hosts periodic resolv sysctl ; do
     suffix=.overwrite
     if [ -e /boot/\${f}\${suffix} ]; then
-      cat /boot/\${f}\${suffix} >/etc/\${f}\${suffix}
+      cat /boot/\${f}\${suffix} >/etc/\${f}
     fi
     suffix=.append
     if [ -e /boot/\${f}\${suffix} ]; then
-      cat /boot/\${f}\${suffix} >>/etc/\${f}\${suffix}
+      cat /boot/\${f}\${suffix} >>/etc/\${f}
     fi
   done
   service sysctl start
