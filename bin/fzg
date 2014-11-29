@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141129-081112
+SCRIPTVERSION=141129-205937
 
 ######################################################################
 # Variables you can edit
@@ -228,6 +228,8 @@ freebsdconfigglobal() {
     echo PermitRootLogin yes >>"${mnt}/etc/ssh/sshd_config"
   grep '^UseDNS no' "${mnt}/etc/ssh/sshd_config" || \
     echo UseDNS no >>"${mnt}/etc/ssh/sshd_config"
+  grep '^ClientAliveInterval 5' "${mnt}/etc/ssh/sshd_config" || \
+    echo ClientAliveInterval 5 >>"${mnt}/etc/ssh/sshd_config"
 
   ########## Set ntpdate_hosts in local
   sysrc -f "${mnt}/etc/rc.conf.local" ntpdate_hosts="$ntpdate_hosts" \
