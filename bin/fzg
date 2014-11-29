@@ -3,7 +3,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141129-031207
+SCRIPTVERSION=141129-035011
 
 ######################################################################
 # Variables you can edit
@@ -221,22 +221,30 @@ freebsdconfiglocal() {
   sysrc -f "${mnt}/boot/loader.conf.local" "vfs.zfs.arc_max=256M" >/dev/null
   sysrc -f "${mnt}/boot/loader.conf.local" zfs_load="YES" >/dev/null
   ########## network interfaces
-  ifconfig -l | tr ' ' '\n' | while read line ; do
-    if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
+  ifconfig -l | tr ' ' '\n' | \
+  awk '$1 !~ /lo[0-9]/ && \
+  $1 !~ /enc[0-9]/ && \
+  $1 !~ /ipfw[0-9]/ && \
+  $1 !~ /pflog[0-9]/ && \
+  $1 !~ /plip[0-9]/ && \
+  $1 !~ /lagg[0-9]/ {print $1}' | \
+  while read line ; do
       grep "ifconfig_${line}" ${mnt}/boot/loader.conf.local \
         >/dev/null 2>&1 || \
         echo "# ifconfig_${line}=\"up\"" >>${mnt}/boot/loader.conf.local
       grep "ifconfig_${line}" ${mnt}/etc/rc.conf.local \
         >/dev/null 2>&1 || \
         echo "# ifconfig_${line}=\"up\"" >>${mnt}/etc/rc.conf.local
-    fi
   done
   ########## Set lagg as optional comments
   echo '########## To enable Link Aggregation: BEGIN' \
     >>${mnt}/boot/loader.conf.local.lagg
   nics=`ifconfig -l | tr ' ' '\n' | \
   awk '$1 !~ /lo[0-9]/ && \
+  $1 !~ /enc[0-9]/ && \
+  $1 !~ /ipfw[0-9]/ && \
   $1 !~ /pflog[0-9]/ && \
+  $1 !~ /plip[0-9]/ && \
   $1 !~ /lagg[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
   echo "# cloned_interfaces=\"lagg0\"" >>${mnt}/boot/loader.conf.local.lagg
   echo "# ifconfig_lagg0=\"DHCP laggproto loadbalance $nics\"" \
@@ -640,7 +648,8 @@ fi
 # Quit if pools exist, but if ADDTOPOOL, quit if not exist
 ######################################################################
 
-if [ -z "$DATALOCK" ] && [ -z "$DATAUNLOCK" ] && [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
+if [ -z "$DATALOCK" ] && [ -z "$DATAUNLOCK" ] && \
+  [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
   if zpool status $rpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $rpool already exists."
     exiterror 1
@@ -722,7 +731,8 @@ if [ "$DATAINIT" ]; then
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
     if ! geli init -B /boot/${safegptidtarget}.eli \
-      -e AES-XTS -J $TMPFILE -l 256 -s 4096 ${gptidtarget} >/dev/null 2>&1 ; then
+      -e AES-XTS -J $TMPFILE -l 256 -s 4096 ${gptidtarget} \
+      >/dev/null 2>&1 ; then
       echo " error"
       exiterror 1
     fi
@@ -1181,10 +1191,15 @@ freebsdconfiglocal
 # Set ifconfig DHCP
 ######################################################################
 
-ifconfig -l | tr ' ' '\n' | while read line ; do
-  if [ "$line" != "lo0" -a "$line" != "pflog0" ]; then
-    sysrc -f "${mnt}/boot/loader.conf.local" ifconfig_${line}="DHCP"
-  fi
+ifconfig -l | tr ' ' '\n' | \
+awk '$1 !~ /lo[0-9]/ && \
+$1 !~ /enc[0-9]/ && \
+$1 !~ /ipfw[0-9]/ && \
+$1 !~ /pflog[0-9]/ && \
+$1 !~ /plip[0-9]/ && \
+$1 !~ /lagg[0-9]/ {print $1}' | \
+while read line ; do
+  sysrc -f "${mnt}/boot/loader.conf.local" ifconfig_${line}="DHCP"
 done
 
 ######################################################################
