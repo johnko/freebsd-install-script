@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141130-065153
+SCRIPTVERSION=141130-080307
 
 ######################################################################
 # Variables you can edit
@@ -1455,11 +1455,10 @@ fi
 for f in fstab hosts periodic resolv sysctl ; do
   for suffix in .overwrite .append ; do
     if [ -e /boot/${f}${suffix} ] && [ ! -e ${mnt}/boot/${f}${suffix} ] ; then
-        echo -n "Copying ${f}${suffix} to ${mnt}/boot/${f}${suffix} ..."
-        cp /boot/${f}${suffix} ${mnt}/boot/${f}${suffix}
-        chmod 600 ${mnt}/boot/${f}${suffix}
-        echo " done"
-      fi
+      echo -n "Copying ${f}${suffix} to ${mnt}/boot/${f}${suffix} ..."
+      cp /boot/${f}${suffix} ${mnt}/boot/${f}${suffix}
+      chmod 600 ${mnt}/boot/${f}${suffix}
+      echo " done"
     fi
   done
 done
