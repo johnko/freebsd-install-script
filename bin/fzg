@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141130-080307
+SCRIPTVERSION=141201-013710
 
 ######################################################################
 # Variables you can edit
@@ -987,7 +987,7 @@ zpool destroy -f $bpooltmp
 zpool destroy -f $rpooltmp
 ########## attach bpool
 echo "Trying: zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk"
-zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk
+zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk || exiterror 1
 ########## attach rpool
 geli detach $rpooltmpdisk
 safefilename=` echo $rpooltmpdisk | sed 's#/#_#'`
@@ -996,19 +996,19 @@ if [ -f /${bpoolreal}${keyfile} ]; then
   geli init -b \
     -B "/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
     -K "/${bpoolreal}${keyfile}" \
-    -l 256 -s 4096 ${rpooltmpdisk%.eli}
+    -l 256 -s 4096 ${rpooltmpdisk%.eli} || exiterror 1
   echo "Trying: geli attach"
   geli attach -p -k "/${bpoolreal}${keyfile}" \
-    ${rpooltmpdisk%.eli}
+    ${rpooltmpdisk%.eli} || exiterror 1
 elif [ -f ${mnt}/${bpoolreal}${keyfile} ]; then
   echo "Trying: geli init"
   geli init -b \
     -B "${mnt}/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
     -K "${mnt}/${bpoolreal}${keyfile}" \
-    -l 256 -s 4096 ${rpooltmpdisk%.eli}
+    -l 256 -s 4096 ${rpooltmpdisk%.eli} || exiterror 1
   echo "Trying: geli attach"
   geli attach -p -k "${mnt}/${bpoolreal}${keyfile}" \
-    ${rpooltmpdisk%.eli}
+    ${rpooltmpdisk%.eli} || exiterror 1
 fi
 echo "Trying: zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk"
 zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk || exiterror $?
@@ -1063,7 +1063,8 @@ distdir=${mnt}/boot/../${release}
 else
 echo -n "Copying $distdir to ${mnt}/boot/../${release}"
 install -d -m 755 ${mnt}/boot/../${release}
-tar -c -f - -C /boot/.. ${release} | tar -C ${mnt}/boot/.. -x -f -
+tar -c -f - -C /boot/.. ${release} | tar -C ${mnt}/boot/.. -x -f - || \
+  exiterror 1
 echo " done"
 fi
 install -d -m 755 $distdir
@@ -1174,7 +1175,7 @@ rsync \
 tmux libevent2 \
 ucarp \
 wget indexinfo libidn gettext \
-pkg
+pkg || exiterror 1
 # git expat p5-Authen-SASL p5-GSSAPI perl5 p5-Digest-HMAC \
 #   p5-Net-SMTP-SSL p5-IO-Socket-SSL p5-Mozilla-CA p5-Net-SSLeay \
 #   p5-Socket p5-IO-Socket-IP python27 libffi indexinfo gettext p5-Error \
@@ -1443,7 +1444,7 @@ if ls /root/bin | grep . >/dev/null 2>&1 ; then
   echo -n "Copying bin/* to ${mnt}/root/bin/ ..."
   chmod 700 /root/bin
   install -d -m 700 ${mnt}/root/bin
-  tar -c -f - -C /root bin | tar -C ${mnt}/root -x -f -
+  tar -c -f - -C /root bin | tar -C ${mnt}/root -x -f - || exiterror 1
   chmod 700 ${mnt}/root/bin/*
   echo " done"
 fi
