@@ -1421,8 +1421,8 @@ else
 fi
 ########## if .csh*
 for i in /root/.csh* ; do
-  echo -n "Copying ${i} to ${$mfsmnt}/root/ ..."
-  install -m 644 ${i} ${$mfsmnt}/root/
+  echo -n "Copying ${i} to ${mfsmnt}/root/ ..."
+  install -m 644 ${i} ${mfsmnt}/root/
   echo " done"
 done
 ########## Unmount
