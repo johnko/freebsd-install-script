@@ -1366,7 +1366,7 @@ appendconf_start()
       /sbin/zpool import -f "\$i"
     done
   fi
-  for f in fstab hosts periodic resolv sysctl ; do
+  for f in fstab hosts periodic.conf resolv.conf sysctl.conf ; do
     suffix=.overwrite
     if [ -e /boot/\${f}\${suffix} ]; then
       cat /boot/\${f}\${suffix} >/etc/\${f}
@@ -1461,7 +1461,7 @@ fi
 # If files exists, copy that
 ######################################################################
 
-for f in fstab hosts periodic resolv sysctl ; do
+for f in fstab hosts periodic.conf resolv.conf sysctl.conf ; do
   for suffix in .overwrite .append ; do
     if [ -e /boot/${f}${suffix} ] && [ ! -e ${mnt}/boot/${f}${suffix} ] ; then
       echo -n "Copying ${f}${suffix} to ${mnt}/boot/${f}${suffix} ..."
