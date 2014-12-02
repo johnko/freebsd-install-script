@@ -1400,10 +1400,10 @@ packages_start()
     ########## force pkg to re-add to create user/groups
     p install -f -y \$P >/var/log/packages.net.log 2>&1
     echo "done"
-  done
+  done &
   if ls /boot/packages/*.t?z >/dev/null 2>&1 ; then
     ########## force pkg to re-add to create user/groups
-    p add -f \$( ls /boot/packages/*.t?z ) >/var/log/packages.local.log 2>&1
+    p add -f \$( ls /boot/packages/*.t?z ) >/var/log/packages.local.log 2>&1 &
   fi
 }
 load_rc_config \$name
