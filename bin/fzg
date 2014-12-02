@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141202-061145
+SCRIPTVERSION=141202-073500
 
 ######################################################################
 # Variables you can edit
@@ -1168,6 +1168,10 @@ else
 p fetch -y \
 cmdwatch \
 ezjail \
+git expat p5-Authen-SASL p5-GSSAPI perl5 p5-Digest-HMAC \
+  p5-Net-SMTP-SSL p5-IO-Socket-SSL p5-Mozilla-CA p5-Net-SSLeay \
+  p5-Socket p5-IO-Socket-IP python27 libffi indexinfo gettext p5-Error \
+  curl ca_root_nss cvsps p5-MIME-Base64 \
 gnupg1 gettext indexinfo \
   curl ca_root_nss \
 iftop \
@@ -1178,10 +1182,6 @@ tmux libevent2 \
 ucarp \
 wget indexinfo libidn gettext \
 pkg || exiterror 1
-# git expat p5-Authen-SASL p5-GSSAPI perl5 p5-Digest-HMAC \
-#   p5-Net-SMTP-SSL p5-IO-Socket-SSL p5-Mozilla-CA p5-Net-SSLeay \
-#   p5-Socket p5-IO-Socket-IP python27 libffi indexinfo gettext p5-Error \
-#   curl ca_root_nss cvsps p5-MIME-Base64 \
 # subversion serf apr expat gdbm indexinfo gettext db5 sqlite3 \
 ########## yes '' | p install xfce | grep ': ' | grep -v 'Proceed' | awk -F: '{print $1}' | awk '{print $1}' | tr '\n' ' ' | fold -sw 70 | awk '{print "#   "$0"\\"}'
 #   xfce xfce4-terminal libxfce4menu xfce4-conf libxfce4util perl5 pcre \
