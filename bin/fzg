@@ -1393,18 +1393,23 @@ cat >$mfsmnt/etc/rc.d/packages <<EOF
 name="packages"
 start_cmd="packages_start"
 stop_cmd=":"
-packages_start()
+do_p_install()
 {
   for P in \$( /bin/kenv -q packages ) ; do
     echo -n "Installing \$P..."
     ########## force pkg to re-add to create user/groups
     p install -f -y \$P >/var/log/packages.net.log 2>&1
     echo "done"
-  done &
+  done
   if ls /boot/packages/*.t?z >/dev/null 2>&1 ; then
     ########## force pkg to re-add to create user/groups
-    p add -f \$( ls /boot/packages/*.t?z ) >/var/log/packages.local.log 2>&1 &
+    p add -f \$( ls /boot/packages/*.t?z ) >/var/log/packages.local.log 2>&1
+    service openntpd restart
   fi
+}
+packages_start()
+{
+  do_p_install &
 }
 load_rc_config \$name
 run_rc_command "\$1"
