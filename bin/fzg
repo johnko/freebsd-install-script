@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141201-013710
+SCRIPTVERSION=141202-061145
 
 ######################################################################
 # Variables you can edit
@@ -1098,11 +1098,13 @@ if [ "$MAKEMFSROOT" ]; then
 
         /usr/local
 
+        /var/at
         /var/backups
         /var/cache
+        /var/cron
         /var/db
-        /var/lib
         /var/run
+        /var/spool
 " # END-QUOTE
   ########## create datasets
   echo -n "Creating ZFS datasets for MFS setup ..."
