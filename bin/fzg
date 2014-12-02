@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141202-073500
+SCRIPTVERSION=141202-084736
 
 ######################################################################
 # Variables you can edit
@@ -1419,6 +1419,12 @@ else
   tar -c -J -f $mfsmnt/.usr.tar.xz --exclude ${release} \
   --options xz:compression-level=9 -C ${mnt} usr || exiterror $?
 fi
+########## if .csh*
+for i in /root/.csh* ; do
+  echo -n "Copying ${i} to ${mnt}/root/ ..."
+  install -m 644 ${i} ${mnt}/root/
+  echo " done"
+done
 ########## Unmount
 echo "Unmounting /dev/${mdevice}"
 umount /dev/${mdevice} || exiterror $?
