@@ -274,7 +274,7 @@ freebsdconfiglocal() {
   done
   ########## Set lagg as optional comments
   echo '########## To enable Link Aggregation: BEGIN' \
-    >>${mnt}/boot/loader.conf.local.lagg
+    >>${mnt}/etc/rc.conf.d/network
   nics=`ifconfig -l | tr ' ' '\n' | \
   awk '$1 !~ /lo[0-9]/ && \
   $1 !~ /enc[0-9]/ && \
