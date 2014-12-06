@@ -1156,7 +1156,10 @@ else
   fi
   install -d -m 755 /usr/local/etc
   echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >>/usr/local/etc/pkg.conf
-p fetch -y \
+  if [ -e $HOME/.pkglist ]; then
+    PKGLIST="`cat $HOME/.pkglist | grep -v '^#' | tr ' ' '\n' | grep -v '^\$'`"
+  else
+    PKGLIST="
 cmdwatch \
 ezjail \
 git expat p5-Authen-SASL p5-GSSAPI perl5 p5-Digest-HMAC \
@@ -1172,38 +1175,10 @@ rsync \
 tmux libevent2 \
 ucarp \
 wget indexinfo libidn gettext \
-pkg || exiterror 1
-# subversion serf apr expat gdbm indexinfo gettext db5 sqlite3 \
-########## yes '' | p install xfce | grep ': ' | grep -v 'Proceed' | awk -F: '{print $1}' | awk '{print $1}' | tr '\n' ' ' | fold -sw 70 | awk '{print "#   "$0"\\"}'
-#   xfce xfce4-terminal libxfce4menu xfce4-conf libxfce4util perl5 pcre \
-#   glib python27 libffi indexinfo gettext libiconv libX11 xproto libxcb \
-#   libXdmcp libXau libxml2 libpthread-stubs kbproto pango libXrender \
-#   renderproto xorg-fonts-truetype font-misc-meltho mkfontscale \
-#   libfontenc freetype2 mkfontdir fontconfig expat font-misc-ethiopic \
-#   font-bh-ttf encodings font-util dejavu libXft harfbuzz graphite2 \
-#   cairo xcb-util-renderutil xcb-util pixman libXext xextproto png icu \
-#   gtk2 libXrandr randrproto libXinerama xineramaproto libXi libXfixes \
-#   fixesproto inputproto libXdamage damageproto libXcursor libXcomposite \
-#   compositeproto cups-client shared-mime-info hicolor-icon-theme python \
-#   python2 gtk-update-icon-cache gdk-pixbuf2 libXt libSM libICE tiff \
-#   jpeg jbigkit jasper atk dbus-glib dbus gnome_subr \
-#   startup-notification vte gnome-pty-helper xfce4-wm libwnck libXres \
-#   gobject-introspection xfce4-session iceauth upower polkit gnomehier \
-#   consolekit xfce4-panel libexo p5-URI desktop-file-utils garcon \
-#   xfce4-desktop Thunar libexif libnotify gvfs libcdio-paranoia libcdio \
-#   libcddb hal policykit dmidecode pciids libvolume_id gnome-mount \
-#   policykit-gnome libxslt libgcrypt libgpg-error gnome-doc-utils rarian \
-#   docbook-xsl xmlcatmgr docbook sdocbook-xml docbook-xml xmlcharent \
-#   docbook-sgml iso8879 bash getopt py27-libxml2 py27-setuptools27 \
-#   libIDL gconf2 dconf ORBit2 libgnome-keyring fusefs-libs \
-#   samba36-libsmbclient tevent talloc pkgconf tdb avahi-app libdaemon \
-#   gdbm libgphoto2 libgd libltdl libsoup-gnome glib-networking p11-kit \
-#   libtasn1 ca_root_nss gnutls trousers-tddl nettle gmp libidn libproxy \
-#   gsettings-desktop-schemas cantarell-fonts libsoup sqlite3 \
-#   xfce4-tumbler poppler-glib poppler-data poppler openjpeg15 lcms2 exif \
-#   popt libgsf icons-tango-extras icons-tango gtk-xfce-engine \
-#   xfce4-settings libxklavier xkbcomp libxkbfile iso-codes \
-#   xfce4-appfinder mousepad gtksourceview2 xfce4-notifyd orage \
+pkg
+" # end of PKGLIST
+  fi
+  p fetch -y $PKGLIST || exiterror 1
   if [ -f /usr/local/etc/pkg.conf.bkp ]; then
     cat /usr/local/etc/pkg.conf.bkp >/usr/local/etc/pkg.conf
     rm /usr/local/etc/pkg.conf.bkp
