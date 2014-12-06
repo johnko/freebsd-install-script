@@ -195,32 +195,35 @@ freebsdconfigglobal() {
   sysrc -f "${mnt}/boot/loader.conf" nullfs_load="YES" >/dev/null
   ########## tmpfs_load for mfsroot /usr
   sysrc -f "${mnt}/boot/loader.conf" tmpfs_load="YES" >/dev/null
+  ########## virtual if using emulators/virtio-kmod
+  #sysrc -f "${mnt}/boot/loader.conf" if_vtnet_load="YES" >/dev/null
+  #sysrc -f "${mnt}/boot/loader.conf" virtio_load="YES" >/dev/null
+  #sysrc -f "${mnt}/boot/loader.conf" virtio_pci_load="YES" >/dev/null
+  #sysrc -f "${mnt}/boot/loader.conf" virtio_blk_load="YES" >/dev/null
+  #sysrc -f "${mnt}/boot/loader.conf" virtio_balloon_load="YES" >/dev/null
 
   ########## Set some rc.conf options
-  sysrc -f "${mnt}/etc/rc.conf" auditd_enable="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" entropy_file="/var/db/entropy-file" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" ftpproxy_enable="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" ntpdate_enable="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" openntpd_enable="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" pf_enable="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" pf_rules="/etc/pf/pf.conf" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" pflog_enable="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" pflog_logfile="/var/log/pflog" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" sendmail_enable="NO" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" sendmail_submit_enable="NO" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" sendmail_outbound_enable="NO" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" sendmail_msp_queue_enable="NO" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" sshd_enable="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" sshd_rsa1_enable="NO" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" sshd_dsa_enable="NO" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" syslogd_flags="-s -b127.0.0.1" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" zfs_enable="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" virtio_load="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" virtio_pci_load="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" virtio_blk_load="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" if_vtnet_load="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" virtio_balloon_load="YES" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf" linux_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/abi" linux_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/auditd" auditd_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/ftp-proxy" ftpproxy_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/ntpdate" ntpdate_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/ntpdate" ntpdate_hosts="$ntpdate_hosts" \
+    >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/openntpd" openntpd_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/pf" pf_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/pf" pf_rules="/etc/pf/pf.conf" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/pflog" pflog_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/pflog" pflog_logfile="/var/log/pflog" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/random" entropy_file="/var/db/entropy-file" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_submit_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_outbound_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_msp_queue_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_rsa1_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_dsa_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/syslogd" syslogd_flags="-s -b127.0.0.1" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/zfs" zfs_enable="YES" >/dev/null
   ########## Set SSH options
   grep '^ChallengeResponseAuthentication no' "${mnt}/etc/ssh/sshd_config" || \
     echo ChallengeResponseAuthentication no >>"${mnt}/etc/ssh/sshd_config"
@@ -230,22 +233,16 @@ freebsdconfigglobal() {
     echo UseDNS no >>"${mnt}/etc/ssh/sshd_config"
   grep '^ClientAliveInterval 5' "${mnt}/etc/ssh/sshd_config" || \
     echo ClientAliveInterval 5 >>"${mnt}/etc/ssh/sshd_config"
-
-  ########## Set ntpdate_hosts in local
-  sysrc -f "${mnt}/etc/rc.conf.d/ntpdate" ntpdate_hosts="$ntpdate_hosts" \
-    >/dev/null
 }
 
 freebsdconfigglobalmfsroot() {
-  ########## Set ntpdate_hosts in local
-  sysrc -f "${mnt}/etc/rc.conf.d/ntpdate" ntpdate_hosts="$ntpdate_hosts" \
-    >/dev/null
 }
 
 freebsdconfiglocal() {
   ########## .local specific to this machine
   sysrc -f "${mnt}/boot/loader.conf.local" aesni_load="YES" >/dev/null
   sysrc -f "${mnt}/boot/loader.conf.local" ahci_load="YES" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" aio_load="YES" >/dev/null
   sysrc -f "${mnt}/boot/loader.conf.local" geom_eli_load="YES" >/dev/null
   sysrc -f "${mnt}/boot/loader.conf.local" geom_label_load="YES" >/dev/null
   sysrc -f "${mnt}/boot/loader.conf.local" geom_mirror_load="YES" >/dev/null
