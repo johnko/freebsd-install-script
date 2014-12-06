@@ -1169,7 +1169,7 @@ git expat p5-Authen-SASL p5-GSSAPI perl5 p5-Digest-HMAC
 gnupg1 gettext indexinfo
   curl ca_root_nss
 iftop
-nginx
+nginx pcre
 openntpd
 openssl
 pkg
