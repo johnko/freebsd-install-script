@@ -86,7 +86,7 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         [-z pool_size]
 
         -b size  Boot partition size.
-        -c       Configure sshd_config, loader.conf and rc.conf.
+        -c       Configure sshd_config, loader.conf and rc.conf, rc.conf.d.
         -C       Same as -c plus loader.conf.local and rc.conf.local.
         -d disk  Disk to install on (eg. da0).
         -e disk  Attach to this existing disk that is part of -p pool.
@@ -232,13 +232,13 @@ freebsdconfigglobal() {
     echo ClientAliveInterval 5 >>"${mnt}/etc/ssh/sshd_config"
 
   ########## Set ntpdate_hosts in local
-  sysrc -f "${mnt}/etc/rc.conf.local" ntpdate_hosts="$ntpdate_hosts" \
+  sysrc -f "${mnt}/etc/rc.conf.d/ntpdate" ntpdate_hosts="$ntpdate_hosts" \
     >/dev/null
 }
 
 freebsdconfigglobalmfsroot() {
-  ########## optional set ntpdate_hosts
-  sysrc -f "${mnt}/boot/loader.conf.local" ntpdate_hosts="$ntpdate_hosts" \
+  ########## Set ntpdate_hosts in local
+  sysrc -f "${mnt}/etc/rc.conf.d/ntpdate" ntpdate_hosts="$ntpdate_hosts" \
     >/dev/null
 }
 
@@ -265,12 +265,12 @@ freebsdconfiglocal() {
   $1 !~ /plip[0-9]/ && \
   $1 !~ /lagg[0-9]/ {print $1}' | \
   while read line ; do
-      grep "ifconfig_${line}" ${mnt}/boot/loader.conf.local \
+      grep "ifconfig_${line}" ${mnt}/etc/rc.conf.d/network \
         >/dev/null 2>&1 || \
-        echo "# ifconfig_${line}=\"up\"" >>${mnt}/boot/loader.conf.local
-      grep "ifconfig_${line}" ${mnt}/etc/rc.conf.local \
+        echo "# ifconfig_${line}=\"up\"" >>${mnt}/etc/rc.conf.d/network
+      grep "ifconfig_${line}" ${mnt}/etc/rc.conf.d/network \
         >/dev/null 2>&1 || \
-        echo "# ifconfig_${line}=\"up\"" >>${mnt}/etc/rc.conf.local
+        echo "# ifconfig_${line}=\"up\"" >>${mnt}/etc/rc.conf.d/network
   done
   ########## Set lagg as optional comments
   echo '########## To enable Link Aggregation: BEGIN' \
@@ -282,21 +282,13 @@ freebsdconfiglocal() {
   $1 !~ /pflog[0-9]/ && \
   $1 !~ /plip[0-9]/ && \
   $1 !~ /lagg[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
-  echo "# cloned_interfaces=\"lagg0\"" >>${mnt}/boot/loader.conf.local.lagg
+  echo "# cloned_interfaces=\"lagg0\"" >>${mnt}/etc/rc.conf.d/network
   echo "# ifconfig_lagg0=\"DHCP laggproto loadbalance $nics\"" \
-    >>${mnt}/boot/loader.conf.local.lagg
+    >>${mnt}/etc/rc.conf.d/network
   echo "# ifconfig_lagg0=\"inet 192.168.0.2/24 laggproto loadbalance $nics\"" \
-    >>${mnt}/boot/loader.conf.local.lagg
+    >>${mnt}/etc/rc.conf.d/network
   echo '########## To enable Link Aggregation: END' \
-    >>${mnt}/boot/loader.conf.local.lagg
-  if ! grep 'To enable Link Aggregation' ${mnt}/boot/loader.conf.local \
-    >/dev/null 2>&1 ; then
-    cat ${mnt}/boot/loader.conf.local.lagg >>${mnt}/boot/loader.conf.local
-  fi
-  if ! grep 'To enable Link Aggregation' ${mnt}/etc/rc.conf.local \
-    >/dev/null 2>&1 ; then
-    cat ${mnt}/boot/loader.conf.local.lagg >>${mnt}/etc/rc.conf.local
-  fi
+    >>${mnt}/etc/rc.conf.d/network
 }
 
 freebsdconfiglocalmfsroot() {
@@ -308,12 +300,12 @@ freebsdconfiglocalmfsroot() {
     >/dev/null
   ########## optional set netwait_
   echo "# netwait_enable=\"YES\"" \
-    >>${mnt}/boot/loader.conf.local
+    >>${mnt}/etc/rc.conf.d/netwait
   echo "# netwait_ip=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
-    >>${mnt}/boot/loader.conf.local
+    >>${mnt}/etc/rc.conf.d/netwait
   ########## set defaultrouter
   echo "# defaultrouter=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
-    >>${mnt}/boot/loader.conf.local
+    >>${mnt}/etc/rc.conf.d/routing
   ########## optional set packages to list we can pkg install -f -y ____
   echo "# packages=\"\"" \
     >>${mnt}/boot/loader.conf.local
@@ -1090,6 +1082,7 @@ if [ "$MAKEMFSROOT" ]; then
   MFS_DATASETS="
         /etc            mountpoint=/etc,canmount=off
         /etc/pf         exec=off,setuid=off
+        /etc/rc.conf.d  exec=off,setuid=off
         /etc/ssh        exec=off,setuid=off
 
         /root           mountpoint=/root,canmount=off
@@ -1240,7 +1233,7 @@ $1 !~ /pflog[0-9]/ && \
 $1 !~ /plip[0-9]/ && \
 $1 !~ /lagg[0-9]/ {print $1}' | \
 while read line ; do
-  sysrc -f "${mnt}/boot/loader.conf.local" ifconfig_${line}="DHCP"
+  sysrc -f "${mnt}/etc/rc.conf.d/network" ifconfig_${line}="DHCP"
 done
 
 ######################################################################
@@ -1322,44 +1315,20 @@ load_rc_config \$name
 run_rc_command "\$1"
 EOF
 chmod 555 $mfsmnt/etc/rc.d/mdinit
-########## appendconf because we are in mfs and harder to persist
-cat >$mfsmnt/etc/rc.d/appendconf <<EOF
+########## zpoolimport because we are in mfs and harder to persist
+cat >$mfsmnt/etc/rc.d/zpoolimport <<EOF
 #!/bin/sh
 # \$Id\$
-# PROVIDE: appendconf
+# PROVIDE: zpoolimport
 # BEFORE: hostname netif
 # REQUIRE: mdinit FILESYSTEMS
 # KEYWORD: FreeBSD
 . /etc/rc.subr
-name="appendconf"
-start_cmd="appendconf_start"
+name="zpoolimport"
+start_cmd="zpoolimport_start"
 stop_cmd=":"
-appendconf_start()
+zpoolimport_start()
 {
-  if /bin/kenv -v hostname 2>/dev/null ; then
-    /bin/kenv -v hostname >>/etc/rc.conf.d/hostname
-  fi
-  if /bin/kenv | grep netwait_ >/dev/null 2>&1 ; then
-    /bin/kenv | grep netwait_ >>/etc/rc.conf.d/netwait
-  fi
-  if /bin/kenv | grep ifconfig_ >/dev/null 2>&1 ; then
-    /bin/kenv | grep ifconfig_ >>/etc/rc.conf.d/network
-  fi
-  if /bin/kenv | grep cloned_interfaces >/dev/null 2>&1 ; then
-    /bin/kenv | grep cloned_interfaces >>/etc/rc.conf.d/network
-  fi
-  if /bin/kenv | grep ntpdate_ >/dev/null 2>&1 ; then
-    /bin/kenv | grep ntpdate_ >>/etc/rc.conf.d/ntpdate
-  fi
-  if /bin/kenv | grep defaultrouter >/dev/null 2>&1 ; then
-    /bin/kenv | grep defaultrouter >>/etc/rc.conf.d/routing
-  fi
-  if /bin/kenv | grep static_routes >/dev/null 2>&1 ; then
-    /bin/kenv | grep static_routes >>/etc/rc.conf.d/routing
-  fi
-  if /bin/kenv | grep route_ >/dev/null 2>&1 ; then
-    /bin/kenv | grep route_ >>/etc/rc.conf.d/routing
-  fi
   ########## import before trying /boot/*
   if /bin/kenv -q zpool_import 2>/dev/null ; then
     for i in \$( /bin/kenv -q zpool_import ) ; do
@@ -1381,7 +1350,7 @@ appendconf_start()
 load_rc_config \$name
 run_rc_command "\$1"
 EOF
-chmod 555 $mfsmnt/etc/rc.d/appendconf
+chmod 555 $mfsmnt/etc/rc.d/zpoolimport
 ########## packages because we are in mfs and harder to persist
 cat >$mfsmnt/etc/rc.d/packages <<EOF
 #!/bin/sh
@@ -1511,6 +1480,6 @@ cat <<EOF
 Don't export the ZFS pools!
 
 You may want to set the hostname with:
-        sysrc -f "${mnt}/boot/loader.conf.local" hostname="name"
+        sysrc -f "${mnt}/etc/rc.conf.d/hostname" hostname="name"
 See file ${mnt}/boot/loader.conf.local for more options.
 EOF
