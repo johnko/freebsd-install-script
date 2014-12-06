@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141202-084736
+SCRIPTVERSION=141206-003100
 
 ######################################################################
 # Variables you can edit
@@ -60,7 +60,7 @@ bpool=bootpool
 bsdinstalltmp=/tmp/bsdinstall_boot
 bsdinstalletc=/tmp/bsdinstall_etc
 crypttmp=/tmp/crypt
-datakey=/boot/data.key
+datacryptkey=/boot/data.crypt.key
 datasizes="3730 3620 2800 2690 1860 1740 940 830" # Preferred descending order
 mfsmnt=/mnt2
 ntpdate_hosts="pool.ntp.org"
@@ -167,7 +167,7 @@ cryptdecode() {
   mount -t tmpfs tmpfs ${crypttmp}
   TMPFILE=`mktemp ${crypttmp}/crypt.XXXXXX`
   echo -n "Decrypting Password, "
-  crypt < ${datakey} >$TMPFILE
+  crypt < ${datacryptkey} >$TMPFILE
   umask $RESTOREMASK
 }
 
@@ -452,7 +452,7 @@ makepoolwith() {
         >/dev/null 2>&1
       zpool labelclear -f "/dev/label/$gptidtarget" >/dev/null 2>&1
       geli init -b -B "${bsdinstalltmp}/${safegptidtarget}.eli" \
-        -P -K "$keyfiletmp" -e AES-XTS -s 4096 "$gptidtarget"
+        -P -K "$keyfiletmp" -e AES-XTS -l 256 -s 4096 "$gptidtarget"
       geli attach -p -k "$keyfiletmp" "$gptidtarget"
       TPARTS="$TPARTS $gptidtarget.eli"
       sysrc -f ${bsdinstalltmp}/loader.conf.geli \
@@ -744,16 +744,16 @@ if [ "$DATAINIT" ]; then
     done
     disks="$GPARTS"
   fi
-  if [ ! -e ${datakey} ]; then
+  if [ ! -e ${datacryptkey} ]; then
     stty -echo
     printf "Data GELI Partition Key:"
     read PASSWORD
     stty echo
     printf "\n"
     echo -n "Encrypting Password, "
-    echo $PASSWORD | crypt >${datakey}
+    echo $PASSWORD | crypt >${datacryptkey}
     unset PASSWORD
-    [ -e ${mnt}/boot ] && cp -a ${datakey} ${mnt}${datakey}
+    [ -e ${mnt}/boot ] && cp -a ${datacryptkey} ${mnt}${datacryptkey}
   fi
   cryptdecode
   if [ ! -e $TMPFILE ]; then
@@ -766,15 +766,15 @@ if [ "$DATAINIT" ]; then
     gptidtarget=`glabel list $disk | grep Name | head -1 | \
       awk '{print $NF}'`
     safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
-    if ! geli init -B /boot/${safegptidtarget}.eli \
-      -e AES-XTS -J $TMPFILE -l 256 -s 4096 ${gptidtarget} \
+    if ! geli init -b -B /boot/${safegptidtarget}.eli \
+      -e AES-XTS -P -K $TMPFILE -l 256 -s 4096 ${gptidtarget} \
       >/dev/null 2>&1 ; then
       echo " error"
       exiterror 1
     fi
     [ -e ${mnt}/boot ] && cp -a /boot/${safegptidtarget}.eli \
       ${mnt}/boot/${safegptidtarget}.eli
-    if ! geli attach -j $TMPFILE ${gptidtarget} >/dev/null 2>&1 ; then
+    if ! geli attach -p -k $TMPFILE ${gptidtarget} >/dev/null 2>&1 ; then
       echo " error"
       exiterror 1
     fi
