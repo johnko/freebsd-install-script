@@ -196,11 +196,11 @@ freebsdconfigglobal() {
   ########## tmpfs_load for mfsroot /usr
   sysrc -f "${mnt}/boot/loader.conf" tmpfs_load="YES" >/dev/null
   ########## virtual if using emulators/virtio-kmod
-  #sysrc -f "${mnt}/boot/loader.conf" if_vtnet_load="YES" >/dev/null
-  #sysrc -f "${mnt}/boot/loader.conf" virtio_load="YES" >/dev/null
-  #sysrc -f "${mnt}/boot/loader.conf" virtio_pci_load="YES" >/dev/null
-  #sysrc -f "${mnt}/boot/loader.conf" virtio_blk_load="YES" >/dev/null
-  #sysrc -f "${mnt}/boot/loader.conf" virtio_balloon_load="YES" >/dev/null
+  echo "# if_vtnet_load=\"YES\"" >>"${mnt}/boot/loader.conf"
+  echo "# virtio_load=\"YES\"" >>"${mnt}/boot/loader.conf"
+  echo "# virtio_pci_load=\"YES\"" >>"${mnt}/boot/loader.conf"
+  echo "# virtio_blk_load=\"YES\"" >>"${mnt}/boot/loader.conf"
+  echo "# virtio_balloon_load=\"YES\"" >>"${mnt}/boot/loader.conf"
 
   ########## Set some rc.conf options
   sysrc -f "${mnt}/etc/rc.conf.d/abi" linux_enable="YES" >/dev/null
@@ -216,10 +216,10 @@ freebsdconfigglobal() {
   sysrc -f "${mnt}/etc/rc.conf.d/pflog" pflog_enable="YES" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/pflog" pflog_logfile="/var/log/pflog" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/random" entropy_file="/var/db/entropy-file" >/dev/null
-  #sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_enable="NO" >/dev/null
-  #sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_submit_enable="NO" >/dev/null
-  #sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_outbound_enable="NO" >/dev/null
-  #sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_msp_queue_enable="NO" >/dev/null
+  echo "# sendmail_enable=\"NO\"" >>"${mnt}/etc/rc.conf.d/sendmail"
+  echo "# sendmail_submit_enable=\"NO\"" >>"${mnt}/etc/rc.conf.d/sendmail"
+  echo "# sendmail_outbound_enable=\"NO\"" >>"${mnt}/etc/rc.conf.d/sendmail"
+  echo "# sendmail_msp_queue_enable=\"NO\"" >>"${mnt}/etc/rc.conf.d/sendmail"
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_enable="YES" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_rsa1_enable="NO" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_dsa_enable="NO" >/dev/null
