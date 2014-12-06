@@ -205,6 +205,7 @@ freebsdconfigglobal() {
   ########## Set some rc.conf options
   sysrc -f "${mnt}/etc/rc.conf.d/abi" linux_enable="YES" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/auditd" auditd_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/ezjail" ezjail_enable="YES" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/ftp-proxy" ftpproxy_enable="YES" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/ntpdate" ntpdate_enable="YES" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/ntpdate" ntpdate_hosts="$ntpdate_hosts" \
@@ -215,10 +216,10 @@ freebsdconfigglobal() {
   sysrc -f "${mnt}/etc/rc.conf.d/pflog" pflog_enable="YES" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/pflog" pflog_logfile="/var/log/pflog" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/random" entropy_file="/var/db/entropy-file" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_enable="NO" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_submit_enable="NO" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_outbound_enable="NO" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_msp_queue_enable="NO" >/dev/null
+  #sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_enable="NO" >/dev/null
+  #sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_submit_enable="NO" >/dev/null
+  #sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_outbound_enable="NO" >/dev/null
+  #sysrc -f "${mnt}/etc/rc.conf.d/sendmail" sendmail_msp_queue_enable="NO" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_enable="YES" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_rsa1_enable="NO" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_dsa_enable="NO" >/dev/null
