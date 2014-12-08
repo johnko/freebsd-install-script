@@ -1079,6 +1079,7 @@ fi
 if [ "$MAKEMFSROOT" ]; then
   MFS_DATASETS="
         /etc            mountpoint=/etc,canmount=off
+        /etc/mail       exec=off,setuid=off
         /etc/pf         exec=off,setuid=off
         /etc/rc.conf.d  exec=off,setuid=off
         /etc/ssh        exec=off,setuid=off
@@ -1089,13 +1090,13 @@ if [ "$MAKEMFSROOT" ]; then
 
         /usr/local
 
-        /var/at
-        /var/backups
-        /var/cache
-        /var/cron
-        /var/db
+        /var/at         exec=off,setuid=off
+        /var/backups    exec=off,setuid=off
+        /var/cache      exec=off,setuid=off
+        /var/cron       exec=off,setuid=off
+        /var/db         exec=off,setuid=off
         /var/run
-        /var/spool
+        /var/spool      exec=off,setuid=off
 " # END-QUOTE
   ########## create datasets
   echo -n "Creating ZFS datasets for MFS setup ..."
