@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141209-161910
+SCRIPTVERSION=141213-051905
 
 ######################################################################
 # Variables you can edit
@@ -63,6 +63,7 @@ crypttmp=/tmp/crypt
 datacryptkey=/boot/data.crypt.key
 datasizes="3730 3620 2800 2690 1860 1740 940 830" # Preferred descending order
 mfsmnt=/mnt2
+mfsfile=mfsroot
 ntpdate_hosts="pool.ntp.org"
 PROMPTCHANGEPASSWD=y
 raidtype=stripe
@@ -293,7 +294,7 @@ freebsdconfiglocalmfsroot() {
   ########## mfs_ settings in loader.conf
   sysrc -f "${mnt}/boot/loader.conf.local" mfs_load="YES" >/dev/null
   sysrc -f "${mnt}/boot/loader.conf.local" mfs_type="mfs_root" >/dev/null
-  sysrc -f "${mnt}/boot/loader.conf.local" mfs_name="/mfsroot" >/dev/null
+  sysrc -f "${mnt}/boot/loader.conf.local" mfs_name="/$mfsfile" >/dev/null
   sysrc -f "${mnt}/boot/loader.conf.local" "vfs.root.mountfrom=ufs:/dev/md0" \
     >/dev/null
   ########## optional set netwait_
@@ -1221,9 +1222,9 @@ yes '' | chroot $mnt passwd
 ######################################################################
 
 if [ "$MAKEMFSROOT" ]; then
-echo "Creating mfsroot container at ${mnt}/${bpool}/mfsroot with dd"
-dd if=/dev/zero of=${mnt}/${bpool}/mfsroot bs=512 count=245760 || exiterror $?
-mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot`
+echo "Creating mfsroot container at ${mnt}/${bpool}/$mfsfile with dd"
+dd if=/dev/zero of=${mnt}/${bpool}/$mfsfile bs=512 count=245760 || exiterror $?
+mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/$mfsfile`
 install -d -m 755 $mfsmnt
 echo "Making new fs on /dev/${mdevice}"
 newfs /dev/${mdevice} || exiterror $?
@@ -1431,7 +1432,7 @@ while [ "$PROMPTCHANGEPASSWD" = "y" -o "$PROMPTCHANGEPASSWD" = "Y" ]; do
   case $PROMPTCHANGEPASSWD in
   y|Y)
     if [ "$MAKEMFSROOT" ]; then
-      mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/mfsroot`
+      mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/$mfsfile`
       mount /dev/${mdevice} $mfsmnt
       mount -t devfs devfs $mfsmnt/dev
       chroot $mfsmnt /etc/rc.d/mdinit start
