@@ -101,6 +101,10 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         -v       Version.
         -z size  ZFS pool size.
 
+        ${0##*/} -M [-p poolname]
+
+        -f       Update / make a new mfsroot.
+
         ${0##*/} -i -d vdev [-d vdev ...] [-p poolname] [-x]
         ${0##*/} -i -e vdev -d vdev [-p poolname]
         ${0##*/} -u -d vdev [-d vdev ...] [-p poolname]
@@ -225,7 +229,7 @@ freebsdconfigglobal() {
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_rsa1_enable="NO" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_dsa_enable="NO" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/syslogd" syslogd_flags="-s -b127.0.0.1" >/dev/null
-  sysrc -f "${mnt}/etc/rc.conf.d/zfs" zfs_enable="YES" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.local" zfs_enable="YES" >/dev/null
   ########## Set SSH options
   grep '^ChallengeResponseAuthentication no' "${mnt}/etc/ssh/sshd_config" || \
     echo ChallengeResponseAuthentication no >>"${mnt}/etc/ssh/sshd_config"
@@ -291,6 +295,8 @@ freebsdconfiglocal() {
 }
 
 freebsdconfiglocalmfsroot() {
+  ########## need this or zfs won't load
+  sysrc -f "${mnt}/etc/rc.conf.local" zfs_enable="YES" >/dev/null
   ########## mfs_ settings in loader.conf
   sysrc -f "${mnt}/boot/loader.conf.local" mfs_load="YES" >/dev/null
   sysrc -f "${mnt}/boot/loader.conf.local" mfs_type="mfs_root" >/dev/null
@@ -574,7 +580,7 @@ if [ $# -eq 0 ]; then
   usage ; exiterror 1
 fi
 
-while getopts b:d:e:p:r:s:M:z:cCiulxmnvh o; do
+while getopts b:d:e:p:r:s:M:z:cCiulxmfnvh o; do
   case "$o" in
     b) bsize="$OPTARG" ;;
     d) disks="$disks ${OPTARG##/dev/}" ;;
@@ -591,6 +597,7 @@ while getopts b:d:e:p:r:s:M:z:cCiulxmnvh o; do
     l) DATALOCK=1 ;;
     x) unset DATAAUTO ;;
     m) MAKEMFSROOT=1 ;;
+    f) NEWMFSROOT=1 ;;
     n) PROMPTCHANGEPASSWD=n ;;
     v) echo $SCRIPTVERSION ; exiterror 1 ;;
     h) usage ; exiterror 1 ;;
@@ -607,6 +614,15 @@ elif [ "$DATALOCK" -a "$DATAUNLOCK" ]; then
 elif [ "$DATAUNLOCK" -a "$DATAINIT" ]; then
   echo "Only pass -u or -i, not both."
   exiterror 1
+elif [ "$DATAINIT" -a "$NEWMFSROOT" ]; then
+  echo "Only pass -i or -M, not both."
+  exiterror 1
+elif [ "$DATALOCK" -a "$NEWMFSROOT" ]; then
+  echo "Only pass -l or -M, not both."
+  exiterror 1
+elif [ "$DATAUNLOCK" -a "$NEWMFSROOT" ]; then
+  echo "Only pass -u or -M, not both."
+  exiterror 1
 fi
 
 ########## if not set, set rpool and mnt
@@ -616,6 +632,15 @@ if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
 else
 : ${rpool:=pool}
 : ${mnt:=/mnt}
+fi
+
+########## backup mfsroot
+mfspath=${mnt}/${bpool}/$mfsfile
+if [ "$NEWMFSROOT" = "1" ]; then
+  mfspath=/boot/../${mfsfile}
+  if [ -e ${mfspath} ]; then
+    cp -a ${mfspath} ${mfspath}_old
+  fi
 fi
 
 ########## set, partitions
@@ -629,7 +654,8 @@ targetpart=p3
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ] && [ -z "$DATAUNLOCK" ]; then
+if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ] && [ -z "$DATAUNLOCK" ] && \
+  [ -z "$NEWMFSROOT" ]; then
   count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
   if [ "$count" -lt "3" -a "$raidtype" = "raidz" ]; then
     echo "ERROR: raidz needs at least three devices (-d switch)" ; exiterror 1
@@ -656,7 +682,7 @@ fi
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
+if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" -o "$NEWMFSROOT" ]; then
   echo "NOTICE: Skipping device check."
 else
   for DEV in $disks ; do
@@ -676,7 +702,8 @@ fi
 ######################################################################
 
 if [ -z "$DATALOCK" ] && [ -z "$DATAUNLOCK" ] && \
-  [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ]; then
+  [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ] && \
+  [ -z "$NEWMFSROOT" ]; then
   if zpool status $rpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $rpool already exists."
     exiterror 1
@@ -947,101 +974,105 @@ rm -r /tmp/bsdinstall*
 # Perform creation of zfsboot using zfsboot or zfsinstall
 ######################################################################
 
-if [ "$ADDTOPOOL" = "1" ]; then
-  bpoolreal=$bpool
-  bpooltmp=tmpbpool
-  bpool=$bpooltmp
-  rpoolreal=$rpool
-  rpooltmp=tmprpool
-  rpool=$rpooltmp
-fi
-########## makepoolwith zfsboot or zfsinstall
-makepoolwith zfsinstall
+if [ -z "$NEWMFSROOT" ]; then
 
-######################################################################
-# Do ADDTOPOOL stuff
-######################################################################
-
-if [ "$ADDTOPOOL" = "1" ]; then
-########## get existing disk
-bpoolrealdisk=`zpool status $bpoolreal | grep -v state | \
-grep ONLINE | tail -1 | awk '{print $1}'`
-rpoolrealdisk=`zpool status $rpoolreal | grep -v state | \
-grep ONLINE | tail -1 | awk '{print $1}'`
-########## get new disk
-bpooltmpdisk=`zpool status $bpooltmp | grep -v state | \
-grep ONLINE | tail -1 | awk '{print $1}'`
-rpooltmpdisk=`zpool status $rpooltmp | grep -v state | \
-grep ONLINE | tail -1 | awk '{print $1}'`
-########## destroy pool
-zpool destroy -f $bpooltmp
-zpool destroy -f $rpooltmp
-########## attach bpool
-echo "Trying: zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk"
-zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk || exiterror 1
-########## attach rpool
-geli detach $rpooltmpdisk
-safefilename=` echo $rpooltmpdisk | sed 's#/#_#'`
-if [ -f /${bpoolreal}${keyfile} ]; then
-  echo "Trying: geli init"
-  geli init -b \
-    -B "/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
-    -K "/${bpoolreal}${keyfile}" \
-    -l 256 -s 4096 ${rpooltmpdisk%.eli} || exiterror 1
-  echo "Trying: geli attach"
-  geli attach -p -k "/${bpoolreal}${keyfile}" \
-    ${rpooltmpdisk%.eli} || exiterror 1
-elif [ -f ${mnt}/${bpoolreal}${keyfile} ]; then
-  echo "Trying: geli init"
-  geli init -b \
-    -B "${mnt}/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
-    -K "${mnt}/${bpoolreal}${keyfile}" \
-    -l 256 -s 4096 ${rpooltmpdisk%.eli} || exiterror 1
-  echo "Trying: geli attach"
-  geli attach -p -k "${mnt}/${bpoolreal}${keyfile}" \
-    ${rpooltmpdisk%.eli} || exiterror 1
-fi
-echo "Trying: zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk"
-zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk || exiterror $?
-cat <<EOF
-Please wait for resilver to complete!
-You can see the status of the process with:
-       zpool status
-EOF
-fi
-
-######################################################################
-# Copy the generated /boot/loader.conf and /etc/fstab
-######################################################################
-
-if [ "$ADDTOPOOL" = "1" ]; then
-  if [ ! -e ${mnt}/${bpoolreal}${keyfile} ]; then
-    mnt=
+  if [ "$ADDTOPOOL" = "1" ]; then
+    bpoolreal=$bpool
+    bpooltmp=tmpbpool
+    bpool=$bpooltmp
+    rpoolreal=$rpool
+    rpooltmp=tmprpool
+    rpool=$rpooltmp
   fi
-fi
-if [ "$ADDTOPOOL" = "1" -o "$MAKEMFSROOT" ]; then
-  cat ${bsdinstalltmp}/loader.conf.* | \
-    grep -v vfs.root.mountfrom | \
-    grep -v aesni_load | \
-    grep -v geom_eli_load | \
-    grep -v zfs_load | \
-    grep -v kern.geom.label.gptid.enable >>${mnt}/boot/loader.conf.local
-else
-  cat ${bsdinstalltmp}/loader.conf.* | \
-    grep -v aesni_load | \
-    grep -v geom_eli_load | \
-    grep -v zfs_load | \
-    grep -v kern.geom.label.gptid.enable >>${mnt}/boot/loader.conf.local
-  chmod 644 ${mnt}/boot/loader.conf.local
-fi
-umount ${bsdinstalltmp} >/dev/null 2>&1
-if [ -e ${bsdinstalletc}/fstab ]; then
-  cat ${bsdinstalletc}/fstab >>${mnt}/boot/fstab.append
-  chmod 644 ${mnt}/boot/fstab.append
-fi
-if [ "$ADDTOPOOL" = "1" ]; then
-  exit
-fi
+  ########## makepoolwith zfsboot or zfsinstall
+  makepoolwith zfsinstall
+
+  ######################################################################
+  # Do ADDTOPOOL stuff
+  ######################################################################
+
+  if [ "$ADDTOPOOL" = "1" ]; then
+  ########## get existing disk
+  bpoolrealdisk=`zpool status $bpoolreal | grep -v state | \
+  grep ONLINE | tail -1 | awk '{print $1}'`
+  rpoolrealdisk=`zpool status $rpoolreal | grep -v state | \
+  grep ONLINE | tail -1 | awk '{print $1}'`
+  ########## get new disk
+  bpooltmpdisk=`zpool status $bpooltmp | grep -v state | \
+  grep ONLINE | tail -1 | awk '{print $1}'`
+  rpooltmpdisk=`zpool status $rpooltmp | grep -v state | \
+  grep ONLINE | tail -1 | awk '{print $1}'`
+  ########## destroy pool
+  zpool destroy -f $bpooltmp
+  zpool destroy -f $rpooltmp
+  ########## attach bpool
+  echo "Trying: zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk"
+  zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk || exiterror 1
+  ########## attach rpool
+  geli detach $rpooltmpdisk
+  safefilename=` echo $rpooltmpdisk | sed 's#/#_#'`
+  if [ -f /${bpoolreal}${keyfile} ]; then
+    echo "Trying: geli init"
+    geli init -b \
+      -B "/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
+      -K "/${bpoolreal}${keyfile}" \
+      -l 256 -s 4096 ${rpooltmpdisk%.eli} || exiterror 1
+    echo "Trying: geli attach"
+    geli attach -p -k "/${bpoolreal}${keyfile}" \
+      ${rpooltmpdisk%.eli} || exiterror 1
+  elif [ -f ${mnt}/${bpoolreal}${keyfile} ]; then
+    echo "Trying: geli init"
+    geli init -b \
+      -B "${mnt}/${bpoolreal}/boot/${safefilename}" -e AES-XTS -P \
+      -K "${mnt}/${bpoolreal}${keyfile}" \
+      -l 256 -s 4096 ${rpooltmpdisk%.eli} || exiterror 1
+    echo "Trying: geli attach"
+    geli attach -p -k "${mnt}/${bpoolreal}${keyfile}" \
+      ${rpooltmpdisk%.eli} || exiterror 1
+  fi
+  echo "Trying: zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk"
+  zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk || exiterror $?
+  cat <<EOF
+  Please wait for resilver to complete!
+  You can see the status of the process with:
+         zpool status
+EOF
+  fi
+
+  ######################################################################
+  # Copy the generated /boot/loader.conf and /etc/fstab
+  ######################################################################
+
+  if [ "$ADDTOPOOL" = "1" ]; then
+    if [ ! -e ${mnt}/${bpoolreal}${keyfile} ]; then
+      mnt=
+    fi
+  fi
+  if [ "$ADDTOPOOL" = "1" -o "$MAKEMFSROOT" ]; then
+    cat ${bsdinstalltmp}/loader.conf.* | \
+      grep -v vfs.root.mountfrom | \
+      grep -v aesni_load | \
+      grep -v geom_eli_load | \
+      grep -v zfs_load | \
+      grep -v kern.geom.label.gptid.enable >>${mnt}/boot/loader.conf.local
+  else
+    cat ${bsdinstalltmp}/loader.conf.* | \
+      grep -v aesni_load | \
+      grep -v geom_eli_load | \
+      grep -v zfs_load | \
+      grep -v kern.geom.label.gptid.enable >>${mnt}/boot/loader.conf.local
+    chmod 644 ${mnt}/boot/loader.conf.local
+  fi
+  umount ${bsdinstalltmp} >/dev/null 2>&1
+  if [ -e ${bsdinstalletc}/fstab ]; then
+    cat ${bsdinstalletc}/fstab >>${mnt}/boot/fstab.append
+    chmod 644 ${mnt}/boot/fstab.append
+  fi
+  if [ "$ADDTOPOOL" = "1" ]; then
+    exit
+  fi
+
+fi # end of if [ -z "$NEWMFSROOT" ]; then
 
 ######################################################################
 # Check if local distribution exists, if so copy to mnt
@@ -1049,15 +1080,17 @@ fi
 
 ########## this notation /boot/.. is in case /boot is a symlink (eg. mfsroot)
 distdir=/boot/../${release}
-if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
-  distdir=${mnt}/boot/../${release}
-else
-  echo -n "Copying $distdir to ${mnt}/boot/../${release}"
-  install -d -m 755 ${mnt}/boot/../${release}
-  tar -c -f - -C /boot/.. ${release} | tar -C ${mnt}/boot/.. -x -f - || \
-    exiterror 1
-  echo " done"
-fi
+if [ -z "$NEWMFSROOT" ]; then
+  if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
+    distdir=${mnt}/boot/../${release}
+  else
+    echo -n "Copying $distdir to ${mnt}/boot/../${release}"
+    install -d -m 755 ${mnt}/boot/../${release}
+    tar -c -f - -C /boot/.. ${release} | tar -C ${mnt}/boot/.. -x -f - || \
+      exiterror 1
+    echo " done"
+  fi
+fi # end of if [ -z "$NEWMFSROOT" ]; then
 install -d -m 755 $distdir
 
 ######################################################################
@@ -1073,12 +1106,19 @@ if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
 fi
 
 ######################################################################
+# Create upgrade if $NEWMFSROOT
+######################################################################
+
+if [ "$NEWMFSROOT" = "1" ]; then
+  zfs create -o mountpoint=${mnt} ${rpool}/upgrade
+fi
+
+######################################################################
 # Create some extra datasets if mfsroot
 # modified from /usr/libexec/bsdinstall/zfsboot
 ######################################################################
 
-if [ "$MAKEMFSROOT" ]; then
-  MFS_DATASETS="
+MFS_DATASETS="
         /etc            mountpoint=/etc,canmount=off
         /etc/mail       exec=off,setuid=off
         /etc/pf         exec=off,setuid=off
@@ -1099,10 +1139,12 @@ if [ "$MAKEMFSROOT" ]; then
         /var/run
         /var/spool      exec=off,setuid=off
 " # END-QUOTE
+
+if [ "$MAKEMFSROOT" ] && [ -z "$NEWMFSROOT" ]; then
   ########## create datasets
   echo -n "Creating ZFS datasets for MFS setup ..."
   echo "$MFS_DATASETS" | while read dataset options; do
-  case "$dataset" in "#"*|"") continue; esac
+    case "$dataset" in "#"*|"") continue; esac
     options="${options%%#*}"
     oldoptions=
     while [ "$oldoptions" != "$options" ]; do
@@ -1120,9 +1162,46 @@ if [ "$MAKEMFSROOT" ]; then
     echo -n " $dataset"
   done
   echo " done"
-  chmod 700 ${mnt}/root/.ssh
-  chmod 700 ${mnt}/root/bin
+elif [ "$NEWMFSROOT" = "1" ]; then
+  ORIGINAL_SET="
+        /${bpool}
+        /tmp
+        /usr
+        /var/crash
+        /var/log
+        /var/mail
+        /var/tmp
+"
+  ########## create datasets
+  echo -n "Creating TMPFS for MFS setup ..."
+  echo "$ORIGINAL_SET" | while read dataset options; do
+    case "$dataset" in "#"*|"") continue; esac
+    install -d -m 755 "${mnt}${dataset}"
+    if ! mount -t tmpfs tmpfs "${mnt}${dataset}" \
+      >/dev/null 2>&1 ; then
+      echo " error"
+      exiterror 1
+    fi
+    echo -n " $dataset"
+  done
+  install -d -m 755 ${mnt}/${bpool}/boot
+  ln -sf ${bpool}/boot ${mnt}/boot
+  echo "$MFS_DATASETS" | while read dataset options; do
+    case "$dataset" in "#"*|"") continue; esac
+    if ! echo "$options" | grep "canmount=off" >/dev/null 2>&1 ; then
+      install -d -m 755 "${mnt}${dataset}"
+      if ! mount -t tmpfs tmpfs "${mnt}${dataset}" \
+        >/dev/null 2>&1 ; then
+        echo " error"
+        exiterror 1
+      fi
+      echo -n " $dataset"
+    fi
+  done
+  echo " done"
 fi
+chmod 700 ${mnt}/root/.ssh
+chmod 700 ${mnt}/root/bin
 
 ######################################################################
 # Extract ditribution
@@ -1133,6 +1212,24 @@ BSDINSTALL_DISTDIR=$distdir \
 BSDINSTALL_CHROOT=$mnt \
 nonInteractive=0 \
 bsdinstall distextract || exiterror $?
+
+######################################################################
+# Allow for update using freebsd-update
+######################################################################
+
+if [ "$NEWMFSROOT" = "1" ]; then
+  echo "nameserver 8.8.8.8" >${mnt}/etc/resolv.conf
+  cat <<EOF
+Please connect another session and run:
+        chroot /mnt
+        freebsd-update fetch
+        freebsd-update install
+        exit
+EOF
+  echo -n "Then here, press ENTER to continue "
+  read CONTINUENOW
+  rm ${mnt}/etc/resolv.conf
+fi # end of if [ -z "$NEWMFSROOT" ]; then
 
 ######################################################################
 # Copy pkg-static
@@ -1148,20 +1245,22 @@ fi
 # Fetch some packages we can cache in /boot/packages
 ######################################################################
 
-install -d -m 755 ${mnt}/boot/packages
-if [ -d /boot/packages ]; then
-  echo "Copying /boot/packages to ${mnt}/boot/packages"
-  tar -c -f - -C /boot/ packages | tar -C ${mnt}/boot/ -x -f - || exiterror $?
-else
-  if [ -f /usr/local/etc/pkg.conf ]; then
-    cat /usr/local/etc/pkg.conf >/usr/local/etc/pkg.conf.bkp
-  fi
-  install -d -m 755 /usr/local/etc
-  echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >>/usr/local/etc/pkg.conf
-  if [ -e $HOME/.pkglist ]; then
-    PKGLIST="`cat $HOME/.pkglist | grep -v '^#' | tr ' ' '\n' | grep -v '^\$'`"
+if [ -z "$NEWMFSROOT" ]; then
+
+  install -d -m 755 ${mnt}/boot/packages
+  if [ -d /boot/packages ]; then
+    echo "Copying /boot/packages to ${mnt}/boot/packages"
+    tar -c -f - -C /boot/ packages | tar -C ${mnt}/boot/ -x -f - || exiterror $?
   else
-    PKGLIST="
+    if [ -f /usr/local/etc/pkg.conf ]; then
+      cat /usr/local/etc/pkg.conf >/usr/local/etc/pkg.conf.bkp
+    fi
+    install -d -m 755 /usr/local/etc
+    echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >>/usr/local/etc/pkg.conf
+    if [ -e $HOME/.pkglist ]; then
+      PKGLIST="`cat $HOME/.pkglist | grep -v '^#' | tr ' ' '\n' | grep -v '^\$'`"
+    else
+      PKGLIST="
 cmdwatch
 ezjail
 git expat p5-Authen-SASL p5-GSSAPI perl5 p5-Digest-HMAC
@@ -1179,15 +1278,17 @@ tmux libevent2
 ucarp
 wget indexinfo libidn gettext-runtime
 " # end of PKGLIST
+    fi
+    p fetch -y $PKGLIST || exiterror 1
+    if [ -f /usr/local/etc/pkg.conf.bkp ]; then
+      cat /usr/local/etc/pkg.conf.bkp >/usr/local/etc/pkg.conf
+      rm /usr/local/etc/pkg.conf.bkp
+    else
+      rm /usr/local/etc/pkg.conf
+    fi
   fi
-  p fetch -y $PKGLIST || exiterror 1
-  if [ -f /usr/local/etc/pkg.conf.bkp ]; then
-    cat /usr/local/etc/pkg.conf.bkp >/usr/local/etc/pkg.conf
-    rm /usr/local/etc/pkg.conf.bkp
-  else
-    rm /usr/local/etc/pkg.conf
-  fi
-fi
+
+fi # end of if [ -z "$NEWMFSROOT" ]; then
 
 ######################################################################
 # Set config
@@ -1221,10 +1322,10 @@ yes '' | chroot $mnt passwd
 # Actually make the MFSROOT
 ######################################################################
 
-if [ "$MAKEMFSROOT" ]; then
-  echo "Creating mfsroot container at ${mnt}/${bpool}/$mfsfile with dd"
-  dd if=/dev/zero of=${mnt}/${bpool}/$mfsfile bs=512 count=245760 || exiterror $?
-  mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/$mfsfile`
+if [ "$MAKEMFSROOT" -o "$NEWMFSROOT" ]; then
+  echo "Creating mfsroot container at ${mfspath} with dd"
+  dd if=/dev/zero of=${mfspath} bs=512 count=245760 || exiterror $?
+  mdevice=`mdconfig -a -t vnode -f ${mfspath}`
   install -d -m 755 $mfsmnt
   echo "Making new fs on /dev/${mdevice}"
   newfs /dev/${mdevice} || exiterror $?
@@ -1233,11 +1334,24 @@ if [ "$MAKEMFSROOT" ]; then
   ########## Copy everything except /usr
   echo "Copying ${mnt} to $mfsmnt"
   tar -c -f - \
-    --exclude $bpool \
-    --exclude /boot \
-    --exclude null \
-    --exclude ${release} \
-    --exclude usr \
+    --exclude ./$bpool \
+    --exclude ./${release} \
+    --exclude ./etc/mail \
+    --exclude ./etc/pf \
+    --exclude ./etc/rc.conf.d \
+    --exclude ./etc/ssh \
+    --exclude ./usr \
+    --exclude ./var/at \
+    --exclude ./var/backups \
+    --exclude ./var/cache \
+    --exclude ./var/crash \
+    --exclude ./var/cron \
+    --exclude ./var/db \
+    --exclude ./var/log \
+    --exclude ./var/mail \
+    --exclude ./var/run \
+    --exclude ./var/spool \
+    --exclude ./var/tmp \
     -C ${mnt} ./ | tar -C $mfsmnt -x -f - || exiterror $?
   ########## rc script for tmpfs /usr
   ########## modified from https://github.com/mmatuska/mfsbsd
@@ -1361,7 +1475,7 @@ run_rc_command "\$1"
 EOF
   chmod 555 $mfsmnt/etc/rc.d/packages
   ########## Package /usr
-  if [ -e /.usr.tar.xz ]; then
+  if [ -e /.usr.tar.xz ] && [ -z "$NEWMFSROOT" ]; then
     echo "Copying /.usr.tar.xz to $mfsmnt/.usr.tar.xz"
     cp -a /.usr.tar.xz $mfsmnt/.usr.tar.xz || exiterror $?
   else
@@ -1384,43 +1498,62 @@ EOF
 fi
 
 ######################################################################
+# Destroy upgrade if $NEWMFSROOT
+######################################################################
+
+if [ "$NEWMFSROOT" = "1" ]; then
+  for k in 1 2 ; do
+    for i in `mount | grep "tmpfs" | grep $mnt | awk '{print $3}'` ; do
+      umount $i
+    done
+  done
+  zfs destroy ${rpool}/upgrade
+fi
+
+######################################################################
 # If .ssh/authorized_keys exists, copy that
 ######################################################################
 
-if [ -e /root/.ssh/authorized_keys ]; then
-  echo -n "Copying authorized_keys to ${mnt}/root/.ssh/authorized_keys ..."
-  cp /root/.ssh/authorized_keys ${mnt}/root/.ssh/authorized_keys
-  chmod 600 ${mnt}/root/.ssh/authorized_keys
-  echo " done"
-fi
+if [ -z "$NEWMFSROOT" ]; then
+  if [ -e /root/.ssh/authorized_keys ]; then
+    echo -n "Copying authorized_keys to ${mnt}/root/.ssh/authorized_keys ..."
+    cp /root/.ssh/authorized_keys ${mnt}/root/.ssh/authorized_keys
+    chmod 600 ${mnt}/root/.ssh/authorized_keys
+    echo " done"
+  fi
+fi # end of if [ -z "$NEWMFSROOT" ]; then
 
 ######################################################################
 # If fzg exists, copy that
 ######################################################################
 
-if ls /root/bin | grep . >/dev/null 2>&1 ; then
-  echo -n "Copying bin/* to ${mnt}/root/bin/ ..."
-  chmod 700 /root/bin
-  install -d -m 700 ${mnt}/root/bin
-  tar -c -f - -C /root bin | tar -C ${mnt}/root -x -f - || exiterror 1
-  chmod 700 ${mnt}/root/bin/*
-  echo " done"
-fi
+if [ -z "$NEWMFSROOT" ]; then
+  if ls /root/bin | grep . >/dev/null 2>&1 ; then
+    echo -n "Copying bin/* to ${mnt}/root/bin/ ..."
+    chmod 700 /root/bin
+    install -d -m 700 ${mnt}/root/bin
+    tar -c -f - -C /root bin | tar -C ${mnt}/root -x -f - || exiterror 1
+    chmod 700 ${mnt}/root/bin/*
+    echo " done"
+  fi
+fi # end of if [ -z "$NEWMFSROOT" ]; then
 
 ######################################################################
 # If files exists, copy that
 ######################################################################
 
-for f in fstab hosts periodic.conf resolv.conf sysctl.conf ; do
-  for suffix in .overwrite .append ; do
-    if [ -e /boot/${f}${suffix} ] && [ ! -e ${mnt}/boot/${f}${suffix} ] ; then
-      echo -n "Copying ${f}${suffix} to ${mnt}/boot/${f}${suffix} ..."
-      cp /boot/${f}${suffix} ${mnt}/boot/${f}${suffix}
-      chmod 600 ${mnt}/boot/${f}${suffix}
-      echo " done"
-    fi
+if [ -z "$NEWMFSROOT" ]; then
+  for f in fstab hosts periodic.conf resolv.conf sysctl.conf ; do
+    for suffix in .overwrite .append ; do
+      if [ -e /boot/${f}${suffix} ] && [ ! -e ${mnt}/boot/${f}${suffix} ] ; then
+        echo -n "Copying ${f}${suffix} to ${mnt}/boot/${f}${suffix} ..."
+        cp /boot/${f}${suffix} ${mnt}/boot/${f}${suffix}
+        chmod 600 ${mnt}/boot/${f}${suffix}
+        echo " done"
+      fi
+    done
   done
-done
+fi # end of if [ -z "$NEWMFSROOT" ]; then
 
 ######################################################################
 # Prompt to change root password of new install
@@ -1432,7 +1565,7 @@ while [ "$PROMPTCHANGEPASSWD" = "y" -o "$PROMPTCHANGEPASSWD" = "Y" ]; do
   case $PROMPTCHANGEPASSWD in
   y|Y)
     if [ "$MAKEMFSROOT" ]; then
-      mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/$mfsfile`
+      mdevice=`mdconfig -a -t vnode -f ${mfspath}`
       mount /dev/${mdevice} $mfsmnt
       mount -t devfs devfs $mfsmnt/dev
       chroot $mfsmnt /etc/rc.d/mdinit start
@@ -1452,10 +1585,12 @@ done
 # Remind not to export pool
 ######################################################################
 
-cat <<EOF
+if [ -z "$NEWMFSROOT" ]; then
+  cat <<EOF
 Don't export the ZFS pools!
 
 You may want to set the hostname with:
         sysrc -f "${mnt}/etc/rc.conf.d/hostname" hostname="name"
 See file ${mnt}/boot/loader.conf.local for more options.
 EOF
+fi # end of if [ -z "$NEWMFSROOT" ]; then
