@@ -1050,13 +1050,13 @@ fi
 ########## this notation /boot/.. is in case /boot is a symlink (eg. mfsroot)
 distdir=/boot/../${release}
 if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
-distdir=${mnt}/boot/../${release}
+  distdir=${mnt}/boot/../${release}
 else
-echo -n "Copying $distdir to ${mnt}/boot/../${release}"
-install -d -m 755 ${mnt}/boot/../${release}
-tar -c -f - -C /boot/.. ${release} | tar -C ${mnt}/boot/.. -x -f - || \
-  exiterror 1
-echo " done"
+  echo -n "Copying $distdir to ${mnt}/boot/../${release}"
+  install -d -m 755 ${mnt}/boot/../${release}
+  tar -c -f - -C /boot/.. ${release} | tar -C ${mnt}/boot/.. -x -f - || \
+    exiterror 1
+  echo " done"
 fi
 install -d -m 755 $distdir
 
@@ -1065,11 +1065,11 @@ install -d -m 755 $distdir
 ######################################################################
 
 if [ ! -e $distdir/kernel.txz -o ! -e $distdir/base.txz ]; then
-DISTRIBUTIONS="kernel.txz base.txz lib32.txz" \
-BSDINSTALL_DISTDIR=$distdir \
-BSDINSTALL_DISTSITE="$distsite/`uname -m`/`uname -p`/${release}" \
-nonInteractive=0 \
-bsdinstall distfetch || exiterror $?
+  DISTRIBUTIONS="kernel.txz base.txz lib32.txz" \
+  BSDINSTALL_DISTDIR=$distdir \
+  BSDINSTALL_DISTSITE="$distsite/`uname -m`/`uname -p`/${release}" \
+  nonInteractive=0 \
+  bsdinstall distfetch || exiterror $?
 fi
 
 ######################################################################
@@ -1222,26 +1222,26 @@ yes '' | chroot $mnt passwd
 ######################################################################
 
 if [ "$MAKEMFSROOT" ]; then
-echo "Creating mfsroot container at ${mnt}/${bpool}/$mfsfile with dd"
-dd if=/dev/zero of=${mnt}/${bpool}/$mfsfile bs=512 count=245760 || exiterror $?
-mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/$mfsfile`
-install -d -m 755 $mfsmnt
-echo "Making new fs on /dev/${mdevice}"
-newfs /dev/${mdevice} || exiterror $?
-echo "Mouting /dev/${mdevice} to $mfsmnt"
-mount /dev/${mdevice} $mfsmnt || exiterror $?
-########## Copy everything except /usr
-echo "Copying ${mnt} to $mfsmnt"
-tar -c -f - \
---exclude $bpool \
---exclude /boot \
---exclude null \
---exclude ${release} \
---exclude usr \
--C ${mnt} ./ | tar -C $mfsmnt -x -f - || exiterror $?
-########## rc script for tmpfs /usr
-########## modified from https://github.com/mmatuska/mfsbsd
-cat >$mfsmnt/etc/rc.d/mdinit <<EOF
+  echo "Creating mfsroot container at ${mnt}/${bpool}/$mfsfile with dd"
+  dd if=/dev/zero of=${mnt}/${bpool}/$mfsfile bs=512 count=245760 || exiterror $?
+  mdevice=`mdconfig -a -t vnode -f ${mnt}/${bpool}/$mfsfile`
+  install -d -m 755 $mfsmnt
+  echo "Making new fs on /dev/${mdevice}"
+  newfs /dev/${mdevice} || exiterror $?
+  echo "Mouting /dev/${mdevice} to $mfsmnt"
+  mount /dev/${mdevice} $mfsmnt || exiterror $?
+  ########## Copy everything except /usr
+  echo "Copying ${mnt} to $mfsmnt"
+  tar -c -f - \
+    --exclude $bpool \
+    --exclude /boot \
+    --exclude null \
+    --exclude ${release} \
+    --exclude usr \
+    -C ${mnt} ./ | tar -C $mfsmnt -x -f - || exiterror $?
+  ########## rc script for tmpfs /usr
+  ########## modified from https://github.com/mmatuska/mfsbsd
+  cat >$mfsmnt/etc/rc.d/mdinit <<EOF
 #!/bin/sh
 # \$Id\$
 # PROVIDE: mdinit
@@ -1289,9 +1289,9 @@ mdinit_start()
 load_rc_config \$name
 run_rc_command "\$1"
 EOF
-chmod 555 $mfsmnt/etc/rc.d/mdinit
-########## zpoolimport because we are in mfs and harder to persist
-cat >$mfsmnt/etc/rc.d/zpoolimport <<EOF
+  chmod 555 $mfsmnt/etc/rc.d/mdinit
+  ########## zpoolimport because we are in mfs and harder to persist
+  cat >$mfsmnt/etc/rc.d/zpoolimport <<EOF
 #!/bin/sh
 # \$Id\$
 # PROVIDE: zpoolimport
@@ -1325,9 +1325,9 @@ zpoolimport_start()
 load_rc_config \$name
 run_rc_command "\$1"
 EOF
-chmod 555 $mfsmnt/etc/rc.d/zpoolimport
-########## packages because we are in mfs and harder to persist
-cat >$mfsmnt/etc/rc.d/packages <<EOF
+  chmod 555 $mfsmnt/etc/rc.d/zpoolimport
+  ########## packages because we are in mfs and harder to persist
+  cat >$mfsmnt/etc/rc.d/packages <<EOF
 #!/bin/sh
 # \$Id\$
 # PROVIDE: packages
@@ -1359,28 +1359,28 @@ packages_start()
 load_rc_config \$name
 run_rc_command "\$1"
 EOF
-chmod 555 $mfsmnt/etc/rc.d/packages
-########## Package /usr
-if [ -e /.usr.tar.xz ]; then
-  echo "Copying /.usr.tar.xz to $mfsmnt/.usr.tar.xz"
-  cp -a /.usr.tar.xz $mfsmnt/.usr.tar.xz || exiterror $?
-else
-  echo "Compressing ${mnt}/usr to $mfsmnt/.usr.tar.xz"
-  tar -c -J -f $mfsmnt/.usr.tar.xz --exclude ${release} \
-  --options xz:compression-level=9 -C ${mnt} usr || exiterror $?
-fi
-########## if .csh*
-for i in /root/.csh* ; do
-  echo -n "Copying ${i} to ${mfsmnt}/root/ ..."
-  install -m 644 ${i} ${mfsmnt}/root/
-  echo " done"
-done
-########## Unmount
-echo "Unmounting /dev/${mdevice}"
-umount /dev/${mdevice} || exiterror $?
-mdconfig -d -u ${mdevice#md} || exiterror $?
-freebsdconfigglobalmfsroot
-freebsdconfiglocalmfsroot
+  chmod 555 $mfsmnt/etc/rc.d/packages
+  ########## Package /usr
+  if [ -e /.usr.tar.xz ]; then
+    echo "Copying /.usr.tar.xz to $mfsmnt/.usr.tar.xz"
+    cp -a /.usr.tar.xz $mfsmnt/.usr.tar.xz || exiterror $?
+  else
+    echo "Compressing ${mnt}/usr to $mfsmnt/.usr.tar.xz"
+    tar -c -J -f $mfsmnt/.usr.tar.xz --exclude ${release} \
+      --options xz:compression-level=9 -C ${mnt} usr || exiterror $?
+  fi
+  ########## if .csh*
+  for i in /root/.csh* ; do
+    echo -n "Copying ${i} to ${mfsmnt}/root/ ..."
+    install -m 644 ${i} ${mfsmnt}/root/
+    echo " done"
+  done
+  ########## Unmount
+  echo "Unmounting /dev/${mdevice}"
+  umount /dev/${mdevice} || exiterror $?
+  mdconfig -d -u ${mdevice#md} || exiterror $?
+  freebsdconfigglobalmfsroot
+  freebsdconfiglocalmfsroot
 fi
 
 ######################################################################
