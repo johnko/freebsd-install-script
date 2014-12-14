@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141214-172854
+SCRIPTVERSION=141214-180107
 
 ######################################################################
 # Variables you can edit
@@ -661,8 +661,7 @@ targetpart=p3
 # modified from https://github.com/mmatuska/mfsbsd
 ######################################################################
 
-if [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ] && [ -z "$DATAUNLOCK" ] && \
-  [ -z "$NEWMFSROOT" ]; then
+if [ -z "$ADDTOPOOL" ] && [ -z "$DATAUNLOCK" ] && [ -z "$NEWMFSROOT" ]; then
   count=$( echo "$disks" | wc -w | awk '{ print $1 }' )
   if [ "$count" -lt "3" -a "$raidtype" = "raidz" ]; then
     echo "ERROR: raidz needs at least three devices (-d switch)" ; exiterror 1
@@ -708,23 +707,24 @@ fi
 # Quit if pools exist, but if ADDTOPOOL, quit if not exist
 ######################################################################
 
-if [ -z "$DATALOCK" ] && [ -z "$DATAUNLOCK" ] && \
-  [ -z "$ADDTOPOOL" -o "$ADDTOPOOL" = "0" ] && \
-  [ -z "$NEWMFSROOT" ]; then
+if [ -z "$DATALOCK" -a -z "$DATAUNLOCK" -a -z "$ADDTOPOOL" -a \
+    -z "$NEWMFSROOT" ]; then
   if zpool status $rpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $rpool already exists."
     exiterror 1
   fi
-  if zpool status $bpool >/dev/null 2>&1 ; then
-    echo "ERROR: A pool named $bpool already exists."
-    exiterror 1
+  if [ -z "$DATAINIT" ]; then
+    if zpool status $bpool >/dev/null 2>&1 ; then
+      echo "ERROR: A pool named $bpool already exists."
+      exiterror 1
+    fi
   fi
-elif [ "$ADDTOPOOL" = "1" -o -n "$DATALOCK" ]; then
+elif [ "$ADDTOPOOL" -o "$DATALOCK" ]; then
   if ! zpool status $rpool >/dev/null 2>&1 ; then
     echo "ERROR: A pool named $rpool doesn't exists."
     exiterror 1
   fi
-  if [ -z "$DATALOCK" -a -z "$DATAINIT" ]; then
+  if [ -z "$DATALOCK" ]; then
     if ! zpool status $bpool >/dev/null 2>&1 ; then
       echo "ERROR: A pool named $bpool doesn't exists."
       exiterror 1
