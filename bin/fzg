@@ -1257,8 +1257,8 @@ if [ -z "$NEWMFSROOT" ]; then
     fi
     install -d -m 755 /usr/local/etc
     echo "PKG_CACHEDIR = \"${mnt}/boot/packages\";" >>/usr/local/etc/pkg.conf
-    if [ -e $HOME/.pkglist ]; then
-      PKGLIST="`cat $HOME/.pkglist | grep -v '^#' | tr ' ' '\n' | grep -v '^\$'`"
+    if [ -e $HOME/.cshpkglist ]; then
+      PKGLIST="`cat $HOME/.cshpkglist | grep -v '^#' | tr ' ' '\n' | grep -v '^\$'`"
     else
       PKGLIST="
 cmdwatch
@@ -1475,14 +1475,9 @@ run_rc_command "\$1"
 EOF
   chmod 555 $mfsmnt/etc/rc.d/packages
   ########## Package /usr
-  if [ -e /.usr.tar.xz ] && [ -z "$NEWMFSROOT" ]; then
-    echo "Copying /.usr.tar.xz to $mfsmnt/.usr.tar.xz"
-    cp -a /.usr.tar.xz $mfsmnt/.usr.tar.xz || exiterror $?
-  else
-    echo "Compressing ${mnt}/usr to $mfsmnt/.usr.tar.xz"
-    tar -c -J -f $mfsmnt/.usr.tar.xz --exclude ${release} \
-      --options xz:compression-level=9 -C ${mnt} usr || exiterror $?
-  fi
+  echo "Compressing ${mnt}/usr to $mfsmnt/.usr.tar.xz"
+  tar -c -J -f $mfsmnt/.usr.tar.xz --exclude ${release} \
+    --options xz:compression-level=9 -C ${mnt} usr || exiterror $?
   ########## if .csh*
   for i in /root/.csh* ; do
     echo -n "Copying ${i} to ${mfsmnt}/root/ ..."
