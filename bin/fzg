@@ -643,7 +643,7 @@ fi
 
 ########## backup mfsroot
 mfspath=${mnt}/${bpool}/$mfsfile
-if [ "$NEWMFSROOT" = "1" ]; then
+if [ "$NEWMFSROOT" ]; then
   mfspath=/boot/../${mfsfile}
   if [ -e ${mfspath} ]; then
     cp -a ${mfspath} ${mfspath}_old
@@ -1116,7 +1116,7 @@ fi
 # Create upgrade if $NEWMFSROOT
 ######################################################################
 
-if [ "$NEWMFSROOT" = "1" ]; then
+if [ "$NEWMFSROOT" ]; then
   zfs create -o mountpoint=${mnt} ${rpool}/upgrade
 fi
 
@@ -1147,7 +1147,7 @@ MFS_DATASETS="
         /var/spool      exec=off,setuid=off
 " # END-QUOTE
 
-if [ "$MAKEMFSROOT" ] && [ -z "$NEWMFSROOT" ]; then
+if [ "$MAKEMFSROOT" -a -z "$NEWMFSROOT" ]; then
   ########## create datasets
   echo -n "Creating ZFS datasets for MFS setup ..."
   echo "$MFS_DATASETS" | while read dataset options; do
@@ -1169,7 +1169,7 @@ if [ "$MAKEMFSROOT" ] && [ -z "$NEWMFSROOT" ]; then
     echo -n " $dataset"
   done
   echo " done"
-elif [ "$NEWMFSROOT" = "1" ]; then
+elif [ "$NEWMFSROOT" ]; then
   ORIGINAL_SET="
         /${bpool}
         /tmp
@@ -1224,7 +1224,7 @@ bsdinstall distextract || exiterror $?
 # Allow for update using freebsd-update
 ######################################################################
 
-if [ "$NEWMFSROOT" = "1" ]; then
+if [ "$NEWMFSROOT" ]; then
   echo "nameserver 8.8.8.8" >${mnt}/etc/resolv.conf
   chroot ${mnt} freebsd-update fetch
   chroot ${mnt} freebsd-update install
@@ -1506,7 +1506,7 @@ fi
 # Destroy upgrade if $NEWMFSROOT
 ######################################################################
 
-if [ "$NEWMFSROOT" = "1" ]; then
+if [ "$NEWMFSROOT" ]; then
   for k in 1 2 ; do
     for i in `mount | grep "tmpfs" | grep $mnt | awk '{print $3}'` ; do
       umount $i >/dev/null 2>&1
@@ -1569,7 +1569,7 @@ while [ "$PROMPTCHANGEPASSWD" = "y" -o "$PROMPTCHANGEPASSWD" = "Y" ]; do
   read PROMPTCHANGEPASSWD
   case $PROMPTCHANGEPASSWD in
   y|Y)
-    if [ "$MAKEMFSROOT" ]; then
+    if [ "$MAKEMFSROOT" -o "$NEWMFSROOT" ]; then
       mdevice=`mdconfig -a -t vnode -f ${mfspath}`
       mount /dev/${mdevice} $mfsmnt
       mount -t devfs devfs $mfsmnt/dev
