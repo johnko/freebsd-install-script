@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141214-043645
+SCRIPTVERSION=141214-052134
 
 ######################################################################
 # Variables you can edit
@@ -261,12 +261,16 @@ freebsdconfiglocal() {
   sysrc -f "${mnt}/boot/loader.conf.local" zfs_load="YES" >/dev/null
   ########## network interfaces
   ifconfig -l | tr ' ' '\n' | \
-  awk '$1 !~ /lo[0-9]/ && \
-  $1 !~ /enc[0-9]/ && \
-  $1 !~ /ipfw[0-9]/ && \
-  $1 !~ /pflog[0-9]/ && \
-  $1 !~ /plip[0-9]/ && \
-  $1 !~ /lagg[0-9]/ {print $1}' | \
+awk '$1 !~ /lo[0-9]/ && \
+$1 !~ /enc[0-9]/ && \
+$1 !~ /fwe[0-9]/ && \
+$1 !~ /fwip[0-9]/ && \
+$1 !~ /gif[0-9]/ && \
+$1 !~ /ipfw[0-9]/ && \
+$1 !~ /pflog[0-9]/ && \
+$1 !~ /plip[0-9]/ && \
+$1 !~ /stf[0-9]/ && \
+$1 !~ /lagg[0-9]/ {print $1}' | \
   while read line ; do
       grep "ifconfig_${line}" ${mnt}/etc/rc.conf.d/network \
         >/dev/null 2>&1 || \
@@ -279,12 +283,16 @@ freebsdconfiglocal() {
   echo '########## To enable Link Aggregation: BEGIN' \
     >>${mnt}/etc/rc.conf.d/network
   nics=`ifconfig -l | tr ' ' '\n' | \
-  awk '$1 !~ /lo[0-9]/ && \
-  $1 !~ /enc[0-9]/ && \
-  $1 !~ /ipfw[0-9]/ && \
-  $1 !~ /pflog[0-9]/ && \
-  $1 !~ /plip[0-9]/ && \
-  $1 !~ /lagg[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
+awk '$1 !~ /lo[0-9]/ && \
+$1 !~ /enc[0-9]/ && \
+$1 !~ /fwe[0-9]/ && \
+$1 !~ /fwip[0-9]/ && \
+$1 !~ /gif[0-9]/ && \
+$1 !~ /ipfw[0-9]/ && \
+$1 !~ /pflog[0-9]/ && \
+$1 !~ /plip[0-9]/ && \
+$1 !~ /stf[0-9]/ && \
+$1 !~ /lagg[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
   echo "# cloned_interfaces=\"lagg0\"" >>${mnt}/etc/rc.conf.d/network
   echo "# ifconfig_lagg0=\"DHCP laggproto loadbalance $nics\"" \
     >>${mnt}/etc/rc.conf.d/network
@@ -1303,9 +1311,13 @@ freebsdconfiglocal
 ifconfig -l | tr ' ' '\n' | \
 awk '$1 !~ /lo[0-9]/ && \
 $1 !~ /enc[0-9]/ && \
+$1 !~ /fwe[0-9]/ && \
+$1 !~ /fwip[0-9]/ && \
+$1 !~ /gif[0-9]/ && \
 $1 !~ /ipfw[0-9]/ && \
 $1 !~ /pflog[0-9]/ && \
 $1 !~ /plip[0-9]/ && \
+$1 !~ /stf[0-9]/ && \
 $1 !~ /lagg[0-9]/ {print $1}' | \
 while read line ; do
   sysrc -f "${mnt}/etc/rc.conf.d/network" ifconfig_${line}="DHCP"
