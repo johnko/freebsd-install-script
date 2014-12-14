@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141214-033217
+SCRIPTVERSION=141214-035427
 
 ######################################################################
 # Variables you can edit
@@ -893,10 +893,8 @@ fi
 # Bootstrap pkgng early so user doesn't have to wait
 ######################################################################
 
-if [ ! -f $HOME/bin/p ]; then
-  test -e /usr/local/sbin/pkg-static || pkg bootstrap
-  test -e /usr/local/sbin/pkg-static && \
-    install -m 700 /usr/local/sbin/pkg-static $HOME/bin/p
+if [ ! -f /usr/local/sbin/pkg-static ]; then
+  pkg bootstrap
 fi
 
 ######################################################################
@@ -1238,7 +1236,7 @@ fi # end of if [ -z "$NEWMFSROOT" ]; then
 ######################################################################
 
 if [ -f /usr/local/sbin/pkg-static ]; then
-  install -m 700 -o root -g wheel /usr/local/sbin/pkg-static ${mnt}${HOME}bin/p
+  install -m 700 -o root -g wheel /usr/local/sbin/pkg-static /sbin/pkg-static
 fi
 
 ######################################################################
