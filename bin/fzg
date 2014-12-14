@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141214-035427
+SCRIPTVERSION=141214-043645
 
 ######################################################################
 # Variables you can edit
@@ -1236,7 +1236,7 @@ fi # end of if [ -z "$NEWMFSROOT" ]; then
 ######################################################################
 
 if [ -f /usr/local/sbin/pkg-static ]; then
-  install -m 700 -o root -g wheel /usr/local/sbin/pkg-static /sbin/pkg-static
+  install -m 700 -o root -g wheel /usr/local/sbin/pkg-static ${mnt}/sbin/pkg-static
 fi
 
 ######################################################################
