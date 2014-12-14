@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141214-023905
+SCRIPTVERSION=141214-024819
 
 ######################################################################
 # Variables you can edit
@@ -1281,7 +1281,8 @@ ucarp
 wget indexinfo libidn gettext-runtime
 " # end of PKGLIST
     fi
-    p fetch -y $PKGLIST || exiterror 1
+    ########## Don't exiterror, because pkg-static segfault
+    p fetch -y $PKGLIST
     if [ -f /usr/local/etc/pkg.conf.bkp ]; then
       cat /usr/local/etc/pkg.conf.bkp >/usr/local/etc/pkg.conf
       rm /usr/local/etc/pkg.conf.bkp
