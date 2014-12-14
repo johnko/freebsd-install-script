@@ -890,11 +890,13 @@ if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
 fi
 
 ######################################################################
-# Bootstrap pkgng
+# Bootstrap pkgng early so user doesn't have to wait
 ######################################################################
 
-if [ ! -f /usr/sbin/p ]; then
+if [ ! -f $HOME/bin/p ]; then
   test -e /usr/local/sbin/pkg-static || pkg bootstrap
+  test -e /usr/local/sbin/pkg-static && \
+    install -m 700 /usr/local/sbin/pkg-static $HOME/bin/p
 fi
 
 ######################################################################
@@ -1235,10 +1237,10 @@ fi # end of if [ -z "$NEWMFSROOT" ]; then
 # Copy pkg-static
 ######################################################################
 
-if [ -f /usr/sbin/p ]; then
-  install -m 755 -o root -g wheel /usr/sbin/p $mnt/usr/sbin/p
+if [ -f $HOME/bin/p ]; then
+  install -m 755 -o root -g wheel $HOME/bin/p ${mnt}${HOME}bin/p
 elif [ -f /usr/local/sbin/pkg-static ]; then
-  install -m 755 -o root -g wheel /usr/local/sbin/pkg-static $mnt/usr/sbin/p
+  install -m 755 -o root -g wheel /usr/local/sbin/pkg-static ${mnt}${HOME}bin/p
 fi
 
 ######################################################################
