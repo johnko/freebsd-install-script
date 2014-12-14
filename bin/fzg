@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141214-054312
+SCRIPTVERSION=141214-055648
 
 ######################################################################
 # Variables you can edit
@@ -1509,7 +1509,7 @@ fi
 if [ "$NEWMFSROOT" = "1" ]; then
   for k in 1 2 ; do
     for i in `mount | grep "tmpfs" | grep $mnt | awk '{print $3}'` ; do
-      umount $i
+      umount $i >/dev/null 2>&1
     done
   done
   zfs destroy ${rpool}/upgrade
