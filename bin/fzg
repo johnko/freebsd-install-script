@@ -1037,7 +1037,7 @@ if [ -z "$NEWMFSROOT" ]; then
   cat <<EOF
   Please wait for resilver to complete!
   You can see the status of the process with:
-         zpool status
+        zpool status
 EOF
   fi
 
