@@ -1226,12 +1226,12 @@ bsdinstall distextract || exiterror $?
 
 if [ "$NEWMFSROOT" = "1" ]; then
   echo "nameserver 8.8.8.8" >${mnt}/etc/resolv.conf
+  chroot ${mnt} freebsd-update fetch
+  chroot ${mnt} freebsd-update install
   cat <<EOF
-Please connect another session and run:
-        chroot /mnt
-        freebsd-update fetch
-        freebsd-update install
-        exit
+Please connect another session and check that the system updated successfully:
+        chroot $mnt freebsd-update fetch
+        chroot $mnt freebsd-update install
 EOF
   echo -n "Then here, press ENTER to continue "
   read CONTINUENOW
