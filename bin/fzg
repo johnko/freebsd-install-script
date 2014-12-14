@@ -299,6 +299,14 @@ $1 !~ /lagg[0-9]/ {print "laggport "$1}' | tr '\n' ' '`
     >>${mnt}/etc/rc.conf.d/network
   echo '########## To enable Link Aggregation: END' \
     >>${mnt}/etc/rc.conf.d/network
+  ########## optional set netwait_
+  echo "# netwait_enable=\"YES\"" \
+    >>${mnt}/etc/rc.conf.d/netwait
+  echo "# netwait_ip=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
+    >>${mnt}/etc/rc.conf.d/netwait
+  ########## set defaultrouter
+  echo "# defaultrouter=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
+    >>${mnt}/etc/rc.conf.d/routing
 }
 
 freebsdconfiglocalmfsroot() {
@@ -310,14 +318,6 @@ freebsdconfiglocalmfsroot() {
   sysrc -f "${mnt}/boot/loader.conf.local" mfs_name="/$mfsfile" >/dev/null
   sysrc -f "${mnt}/boot/loader.conf.local" "vfs.root.mountfrom=ufs:/dev/md0" \
     >/dev/null
-  ########## optional set netwait_
-  echo "# netwait_enable=\"YES\"" \
-    >>${mnt}/etc/rc.conf.d/netwait
-  echo "# netwait_ip=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
-    >>${mnt}/etc/rc.conf.d/netwait
-  ########## set defaultrouter
-  echo "# defaultrouter=\"`netstat -nr | grep default | awk '{print $2}'`\"" \
-    >>${mnt}/etc/rc.conf.d/routing
   ########## optional set packages to list we can pkg install -f -y ____
   echo "# packages=\"\"" \
     >>${mnt}/boot/loader.conf.local
