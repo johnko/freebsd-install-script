@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141214-180832
+SCRIPTVERSION=141215-080123
 
 ######################################################################
 # Variables you can edit
@@ -101,9 +101,9 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         -v       Version.
         -z size  ZFS pool size.
 
-        ${0##*/} -M [-p poolname]
+        ${0##*/} -f [-p poolname]
 
-        -f       Update / make a new mfsroot.
+        -f       freebsd-update / make a new mfsroot.
 
         ${0##*/} -i -d vdev [-d vdev ...] [-p poolname] [-x]
         ${0##*/} -i -e vdev -d vdev [-p poolname]
