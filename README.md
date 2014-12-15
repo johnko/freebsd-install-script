@@ -60,7 +60,7 @@ After rebooting into the new system, it can be updated with:
 fzg -f -p mini
 ```
 
-Also in the new system, we can add data partition automatically and create pool tank:
+After rebooting again, we can add data partition automatically and create pool tank:
 ```
 fzg -i -d ada0 -p tank
 ```
