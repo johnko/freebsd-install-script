@@ -25,6 +25,10 @@ fzg -d disk [-d disk ...] [-e disk]
         -v       Version.
         -z size  ZFS pool size.
 
+fzg -f [-p poolname]
+
+        -f       freebsd-update / make a new mfsroot.
+
 fzg -i -d vdev [-d vdev ...] [-p poolname] [-x]
 fzg -i -e vdev -d vdev [-p poolname]
 fzg -u -d vdev [-d vdev ...] [-p poolname]
@@ -51,7 +55,12 @@ Add disk 1 as mirror to existing pool mini that contains disk ada0:
 fzg -e ada0 -d ada1 -z 2g -p mini
 ```
 
-Add data partition automatically and create pool tank:
+After rebooting into the new system, it can be updated with:
+```
+fzg -f -p mini
+```
+
+Also in the new system, we can add data partition automatically and create pool tank:
 ```
 fzg -i -d ada0 -p tank
 ```
