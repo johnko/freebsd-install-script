@@ -35,7 +35,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141216-061805
+SCRIPTVERSION=141216-175414
 
 ######################################################################
 # Variables you can edit
@@ -1230,15 +1230,23 @@ bsdinstall distextract || exiterror $?
 
 if [ "$NEWMFSROOT" ]; then
   echo "nameserver 8.8.8.8" >${mnt}/etc/resolv.conf
-  chroot ${mnt} freebsd-update fetch
-  chroot ${mnt} freebsd-update install
-  cat <<EOF
+  chroot ${mnt} freebsd-update fetch | cat >/tmp/fuf.log
+  if ! cat /tmp/fuf.log | \
+      grep 'No updates needed to update system' >/dev/null 2>&1 ; then
+    cat /tmp/fuf.log
+    chroot ${mnt} freebsd-update install | cat >/tmp/fui.log
+    if ! cat /tmp/fui.log | \
+        grep 'Installing....*done' >/dev/null 2>&1 ; then
+      cat /tmp/fui.log
+      cat <<EOF
 Please connect another session and check that the system updated successfully:
         chroot $mnt freebsd-update fetch
         chroot $mnt freebsd-update install
 EOF
-  echo -n "Then here, press ENTER to continue "
-  read CONTINUENOW
+      echo -n "Then here, press ENTER to continue "
+      read CONTINUENOW
+    fi
+  fi
   rm ${mnt}/etc/resolv.conf
 fi # end of if [ -z "$NEWMFSROOT" ]; then
 
