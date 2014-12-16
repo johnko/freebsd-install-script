@@ -35,7 +35,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141216-175414
+SCRIPTVERSION=141216-180901
 
 ######################################################################
 # Variables you can edit
@@ -1121,6 +1121,7 @@ fi
 ######################################################################
 
 if [ "$NEWMFSROOT" ]; then
+  zfs destroy ${rpool}/upgrade >/dev/null 2>&1
   zfs create -o mountpoint=${mnt} ${rpool}/upgrade
 fi
 
