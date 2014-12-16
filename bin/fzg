@@ -2,7 +2,6 @@
 ######################################################################
 # LICENSE pulled in with, cat LICENSE  | awk '{print "# "$0}'
 ######################################################################
-
 # Portions of code modified from the compilation of software known
 # as mfsBSD: Copyright (C) 2007-2013 Martin Matuska
 #
@@ -33,9 +32,8 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-
 ######################################################################
-# Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
+# Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
 SCRIPTVERSION=141216-061805
 
