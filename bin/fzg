@@ -37,7 +37,7 @@
 ######################################################################
 # Script version is YYmmdd-HHMM in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141215-080123
+SCRIPTVERSION=141216-061805
 
 ######################################################################
 # Variables you can edit
@@ -628,13 +628,13 @@ elif [ "$DATAUNLOCK" -a "$DATAINIT" ]; then
   echo "Only pass -u or -i, not both."
   exiterror 1
 elif [ "$DATAINIT" -a "$NEWMFSROOT" ]; then
-  echo "Only pass -i or -M, not both."
+  echo "Only pass -i or -f, not both."
   exiterror 1
 elif [ "$DATALOCK" -a "$NEWMFSROOT" ]; then
-  echo "Only pass -l or -M, not both."
+  echo "Only pass -l or -f, not both."
   exiterror 1
 elif [ "$DATAUNLOCK" -a "$NEWMFSROOT" ]; then
-  echo "Only pass -u or -M, not both."
+  echo "Only pass -u or -f, not both."
   exiterror 1
 fi
 
