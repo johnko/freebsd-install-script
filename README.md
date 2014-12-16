@@ -3,7 +3,26 @@ freebsd-install-script
 
 experimental script(s) for installing FreeBSD using bsdinstall
 
+Uses geom_eli, aka [geli](http://www.freebsd.org/cgi/man.cgi?geli%288%29) under ZFS.
+
 Mildly tested on FreeBSD 10.1-RELEASE
+
+# GPT Disk Partitions
+```
+ada0
+   +- ada0p1 (bootcode)
+   +- ada0p2
+   |       `- zfs "bootpool", contains /boot, 10.1-RELEASE dist files, and may contain mfsroot
+   +- ada0p3
+   |       `- geli onetime from fstab
+   |               `- swap
+   +- ada0p4
+   |       `- geli auto unlock with settings from /boot/loader.conf.local
+   |               `- zfs "pool"
+   `- ada0p5
+           `- geli manual unlock (fzg -u) or optionally add settings in /boot/loader.conf.local
+                   `- zfs "tank"
+```
 
 # Usage
 
@@ -35,7 +54,7 @@ fzg -u -d vdev [-d vdev ...] [-p poolname]
 fzg -l [-p poolname]
 
         -i       Initialize data partition with geli and create pool.
-        Automatically create partition 5 unless -x is set.
+                 Automatically create partition 5 unless -x is set.
         -l       Export pool and lock data partition.
         -u       Unlock data partition and mount pool.
         -x       Explicit -d device, don't create partition 5 automatically.
