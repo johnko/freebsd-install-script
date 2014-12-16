@@ -111,3 +111,9 @@ Create data pool with these devices, no auto partition creation:
 ```
 fzg -i -d ada0p5 -d ada1p5 -p data -x
 ```
+
+# FAQ
+
+## Why name it "fzg"?
+**F**reeBSD **Z**FS on **G**ELI Installer. I cut out the "i" because I wanted to be able to type 'fzg' with my left hand.
+```
