@@ -35,7 +35,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141216-180901
+SCRIPTVERSION=141221-074447
 
 ######################################################################
 # Variables you can edit
@@ -1229,7 +1229,7 @@ bsdinstall distextract || exiterror $?
 # Allow for update using freebsd-update
 ######################################################################
 
-if [ "$NEWMFSROOT" ]; then
+if [ "$NEWMFSROOT" -o -z "$NEWMFSROOT" ]; then
   echo "nameserver 8.8.8.8" >${mnt}/etc/resolv.conf
   echo "Running: chroot ${mnt} freebsd-update fetch"
   chroot ${mnt} freebsd-update fetch | cat >/tmp/fuf.log
@@ -1251,7 +1251,7 @@ EOF
     fi
   fi
   rm ${mnt}/etc/resolv.conf
-fi # end of if [ -z "$NEWMFSROOT" ]; then
+fi # end of if [ "$NEWMFSROOT" -o -z "$NEWMFSROOT" ]; then
 
 ######################################################################
 # Copy pkg-static
