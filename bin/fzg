@@ -123,7 +123,7 @@ examples:
   Add disk 1 as mirror to existing pool mini that contains disk ada0:
         ${0##*/} -e ada0 -d ada1 -z 2g -p mini
 
-  After rebooting into the new system, it can be updated with:
+  After rebooting into the new mfsroot system, it can be updated with:
         ${0##*/} -f -p mini
 
   After rebooting again, we can add data partition automatically and create pool tank:
