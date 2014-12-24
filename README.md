@@ -74,7 +74,7 @@ Add disk 1 as mirror to existing pool mini that contains disk ada0:
 fzg -e ada0 -d ada1 -z 2g -p mini
 ```
 
-After rebooting into the new system, it can be updated with:
+After rebooting into the mfsroot system, it can be updated with:
 ```
 fzg -f -p mini
 ```
