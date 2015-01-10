@@ -35,7 +35,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=141225-021920
+SCRIPTVERSION=150110-175312
 
 ######################################################################
 # Variables you can edit
@@ -331,6 +331,16 @@ freebsdconfiglocalmfsroot() {
   ########## optional set mdinit_shell
   echo "# mdinit_shell=\"YES\"" \
     >>${mnt}/boot/loader.conf.local
+  ########## set fzg_i_disks
+  sysrc -f "${mnt}/boot/loader.conf.local" fzg_i_disks="$disks" \
+    >/dev/null
+  ########## set fzg_u_disks
+  fzg_u_disks=""
+  for i in $disks; do
+    fzg_u_disks="$fzg_u_disks ${i}p5"
+  done
+  sysrc -f "${mnt}/boot/loader.conf.local" fzg_u_disks="$fzg_u_disks" \
+    >/dev/null
 }
 
 ######################################################################
@@ -643,6 +653,13 @@ if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
 else
 : ${rpool:=pool}
 : ${mnt:=/mnt}
+fi
+
+########## if not set, set disks
+if [ "$DATAINIT" ]; then
+: ${disks:=`kenv -q fzg_i_disks`}
+elif [ "$DATAUNLOCK" ]; then
+: ${disks:=`kenv -q fzg_u_disks`}
 fi
 
 ########## backup mfsroot
