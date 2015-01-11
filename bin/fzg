@@ -35,7 +35,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150110-175312
+SCRIPTVERSION=150111-000254
 
 ######################################################################
 # Variables you can edit
@@ -231,6 +231,8 @@ freebsdconfigglobal() {
   echo "# sendmail_msp_queue_enable=\"NO\"" >>"${mnt}/etc/rc.conf.d/sendmail"
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_enable="YES" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_rsa1_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_dsa_enable="NO" >/dev/null
+  sysrc -f "${mnt}/etc/rc.conf.d/sshd" sshd_ecdsa_enable="NO" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.d/syslogd" syslogd_flags="-s -b127.0.0.1" >/dev/null
   sysrc -f "${mnt}/etc/rc.conf.local" zfs_enable="YES" >/dev/null
   ########## Set SSH options
