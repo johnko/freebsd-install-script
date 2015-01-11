@@ -35,7 +35,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150111-000254
+SCRIPTVERSION=150111-023803
 
 ######################################################################
 # Variables you can edit
@@ -44,7 +44,7 @@ SCRIPTVERSION=150111-000254
 bename=rfs
 bfsname=default
 bsize=2g
-distsite="http://ftp4.freebsd.org/pub/FreeBSD/releases"
+distsite="http://ftp.freebsd.org/pub/FreeBSD/releases"
 keyfile=/boot/encryption.key
 release=10.1-RELEASE
 ssize=2g
@@ -365,6 +365,8 @@ freebsdconfiglocalmfsroot() {
   done
   sysrc -f "${mnt}/boot/loader.conf.local" fzg_u_disks="$fzg_u_disks" \
     >/dev/null
+  ########## set fzg_ilu_p
+  sysrc -f "${mnt}/boot/loader.conf.local" fzg_ilu_p="tank" >/dev/null
 }
 
 ######################################################################
@@ -672,7 +674,11 @@ fi
 
 ########## if not set, set rpool and mnt
 if [ "$DATAINIT" -o "$DATALOCK" -o "$DATAUNLOCK" ]; then
+  if [ -n "`kenv -q fzg_ilu_p`" ]; then
+: ${rpool:=`kenv -q fzg_ilu_p`}
+  else
 : ${rpool:=tank}
+  fi
 : ${mnt:=/z}
 else
 : ${rpool:=pool}
