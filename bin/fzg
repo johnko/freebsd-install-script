@@ -242,6 +242,28 @@ freebsdconfigglobal() {
     echo UseDNS no >>"${mnt}/etc/ssh/sshd_config"
   grep '^ClientAliveInterval 5' "${mnt}/etc/ssh/sshd_config" || \
     echo ClientAliveInterval 5 >>"${mnt}/etc/ssh/sshd_config"
+  ########## SSHD Hardening
+  grep '^KexAlgorithms' "${mnt}/etc/ssh/sshd_config" || \
+    echo KexAlgorithms `ssh -Q kex | grep -v diffie-hellman-group1-sha1 \
+    | grep -v ecdh-sha2-nistp | grep -v sha1 \
+    | sort | tr '\n' ',' | sed 's/,$//'` >>"${mnt}/etc/ssh/sshd_config"
+  grep '^Ciphers' "${mnt}/etc/ssh/sshd_config" || \
+    echo Ciphers `ssh -Q cipher | grep -v 3des | grep -v arcfour \
+    | grep -v cast | grep -v cbc | grep -v ctr \
+    | sort -r | tr '\n' ','``ssh -Q cipher | grep -v 3des | grep -v arcfour \
+    | grep -v cast | grep -v cbc | grep ctr \
+    | sort -r | tr '\n' ',' | sed 's/,$//'` >>"${mnt}/etc/ssh/sshd_config"
+  grep '^MACs' "${mnt}/etc/ssh/sshd_config" || \
+    echo MACs `ssh -Q mac | grep -v sha1 | grep -v md5 \
+    | grep -v '\-64' | grep etm | grep -v umac \
+    | sort -r | tr '\n' ','``ssh -Q mac | grep -v sha1 | grep -v md5 \
+    | grep -v '\-64' | grep etm | grep umac \
+    | sort -r | tr '\n' ',' | sed 's/,$//'` >>"${mnt}/etc/ssh/sshd_config"
+  grep '^HostKey' "${mnt}/etc/ssh/sshd_config" || \
+    cat >>"${mnt}/etc/ssh/sshd_config" <<EOF
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+EOF
 }
 
 freebsdconfigglobalmfsroot() {
