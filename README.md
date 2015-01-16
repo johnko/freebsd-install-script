@@ -62,26 +62,54 @@ fzg -l [-p poolname]
 
 ```
 
+# Typical usage:
+
+Install on mirror, make /bootpool/mfsroot
+```
+fzg -d ada0 -d ada1 -z 2g -m
+```
+
+Update /bootpool/mfsroot
+```
+fzg -f
+reboot
+```
+
+Create /tank
+```
+fzg -i
+```
+
+Unlock /tank
+```
+fzg -u
+```
+
+Unmount and lock /tank
+```
+fzg -l
+```
+
 # Examples:
 
 Install on disk 0, pool name mini with size 2 GB:
 ```
-fzg -d ada0 -z 2g -p mini
+fzg -d ada0 -z 2g
 ```
 
 Add disk 1 as mirror to existing pool mini that contains disk ada0:
 ```
-fzg -e ada0 -d ada1 -z 2g -p mini
+fzg -e ada0 -d ada1 -z 2g
 ```
 
 After rebooting again, we can add data partition automatically and create pool tank:
 ```
-fzg -i -d ada0 -p tank
+fzg -i
 ```
 
 Create another data partition and attach to pool tank:
 ```
-fzg -i -e ada0p5 -d ada1 -p tank
+fzg -i -e ada0p5 -d ada1
 ```
 
 # Other examples:
@@ -99,17 +127,17 @@ fzg -d da0 -m -p usb
 
 Minimal mirror mfs server:
 ```
-fzg -d ada0 -d ada1 -z 2g -m -p mini
+fzg -d ada0 -d ada1 -z 2g -m
 ```
 
 After rebooting into the mfsroot system, it can be updated with:
 ```
-fzg -f -p mini
+fzg -f
 ```
 
 Create data pool with these devices, no auto partition creation:
 ```
-fzg -i -d ada0p5 -d ada1p5 -p data -x
+fzg -i -d ada0p5 -d ada1p5 -x
 ```
 
 # FAQ
