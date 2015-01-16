@@ -35,7 +35,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150116-010022
+SCRIPTVERSION=150116-021954
 
 ######################################################################
 # Variables you can edit
@@ -168,6 +168,41 @@ other examples:
   Create data pool with these devices, no auto partition creation:
         ${0##*/} -i -d ada0p5 -d ada1p5 -p data -x
 EOF
+}
+
+######################################################################
+# append motd function
+######################################################################
+
+append_motd() {
+  if ! grep "stat-all" ${1}/etc/motd >/dev/null 2>&1 ; then
+    cat >>${1}/etc/motd <<EOF
+
+  Update programs and scripts:               fres
+  Cache program packages for reboot:         fres -b
+  System information:                        stat-all
+  Hard drive information:                    hddid
+  zpool status + geli translation:           zss
+EOF
+  if [ -e /boot/../mfsroot ]; then
+    cat >>${1}/etc/motd <<EOF
+  Update operating system:                   fzg -f [-n] [-p pool]
+                                             reboot
+EOF
+  else
+    cat >>${1}/etc/motd <<EOF
+  Update operating system:                   freebsd-update fetch
+                                             freebsd-update install
+                                             reboot
+EOF
+  fi
+    cat >>${1}/etc/motd <<EOF
+  PF firewall, block ssh spammers:           pf-sshinvaliduserip
+               blacklist sshban list:        pf-move-sshban-to-black
+               show tables:                  pf-table show all
+               show anchor:                  pf-anchor show all
+EOF
+  fi
 }
 
 ######################################################################
@@ -1413,6 +1448,11 @@ yes '' | chroot $mnt passwd
 ######################################################################
 
 chroot $mnt sh -c 'echo "urep:1001::::::/usr/home/urep:/bin/csh:" | adduser -w no -f -'
+
+######################################################################
+# append motd
+######################################################################
+append_motd $mnt
 
 ######################################################################
 # Actually make the MFSROOT
