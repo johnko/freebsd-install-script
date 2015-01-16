@@ -35,7 +35,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150111-024319
+SCRIPTVERSION=150116-010022
 
 ######################################################################
 # Variables you can edit
@@ -99,7 +99,7 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         -v       Version.
         -z size  ZFS pool size.
 
-        ${0##*/} -f [-p poolname]
+        ${0##*/} -f [-n] [-p poolname]
 
         -f       freebsd-update / make a new mfsroot.
 
@@ -114,6 +114,24 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         -u       Unlock data partition and mount pool.
         -x       Explicit -d device, don't create partition 5 automatically.
         -d vdev  Virtual device to grab gptid label from (eg. da0p5)
+
+typical usage:
+
+  Install on mirror, make /bootpool/mfsroot
+        ${0##*/} -d ada0 -d ada1 -z 2g -m
+
+  Update /bootpool/mfsroot, reboot to take effect
+        ${0##*/} -f
+        reboot
+
+  Create /tank
+        ${0##*/} -i
+
+  Unlock /tank
+        ${0##*/} -u
+
+  Unmount and lock /tank
+        ${0##*/} -l
 
 examples:
 
