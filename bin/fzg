@@ -186,7 +186,10 @@ append_motd() {
 EOF
   if [ -e /boot/../mfsroot ]; then
     cat >>${1}/etc/motd <<EOF
-  Update operating system:                   fzg -f [-n] [-p pool]
+  Update operating system mfsroot:           fzg -f [-n] [-p pool]
+                                             reboot
+  Update operating system leftovers:         freebsd-update fetch
+                                             freebst-update install
                                              reboot
 EOF
   else
