@@ -144,9 +144,6 @@ examples:
   After rebooting again, we can add data partition automatically and create pool tank:
         ${0##*/} -i -d ada0 -p tank
 
-  Add data partition automatically and create pool tank:
-        ${0##*/} -i -d ada0 -p tank
-
   Create another data partition and attach to pool tank:
         ${0##*/} -i -e ada0p5 -d ada1 -p tank
 
