@@ -35,7 +35,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150116-021954
+SCRIPTVERSION=150315-183350
 
 ######################################################################
 # Variables you can edit
@@ -1247,6 +1247,7 @@ MFS_DATASETS="
         /usr/local
 
         /var/at         exec=off,setuid=off
+        /var/audit
         /var/backups    exec=off,setuid=off
         /var/cache      exec=off,setuid=off
         /var/cron       exec=off,setuid=off
@@ -1317,6 +1318,15 @@ elif [ "$NEWMFSROOT" ]; then
 fi
 chmod 700 ${mnt}/root/.ssh
 chmod 700 ${mnt}/root/bin
+install -d -m 750 -o root       -g audit ${mnt}/var/audit
+install -d -m 770 -o auditdistd -g audit ${mnt}/var/audit/dist
+install -d -m 700 -o auditdistd -g wheel ${mnt}/var/audit/remote
+chmod 750 ${mnt}/var/audit
+chmod 770 ${mnt}/var/audit/dist
+chmod 700 ${mnt}/var/audit/remote
+chown root:audit       ${mnt}/var/audit
+chown auditdistd:audit ${mnt}/var/audit/dist
+chown auditdistd:wheel ${mnt}/var/audit/remote
 
 ######################################################################
 # Extract ditribution
