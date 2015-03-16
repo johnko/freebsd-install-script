@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150315-183350
+SCRIPTVERSION=150316-192530
 
 ######################################################################
 # Variables you can edit
@@ -228,7 +228,7 @@ cryptdecode() {
   mount -t tmpfs tmpfs ${crypttmp}
   TMPFILE=`mktemp ${crypttmp}/crypt.XXXXXX`
   echo -n "Decrypting Password, "
-  crypt < ${datacryptkey} >$TMPFILE
+  openssl enc -aes-256-cbc -in ${datacryptkey} -out ${TMPFILE} -d -salt
   umask $RESTOREMASK
 }
 
@@ -879,7 +879,7 @@ if [ "$DATAINIT" ]; then
     stty echo
     printf "\n"
     echo -n "Encrypting Password, "
-    echo $PASSWORD | crypt >${datacryptkey}
+    echo $PASSWORD | openssl enc -aes-256-cbc -out ${datacryptkey} -e -salt
     unset PASSWORD
     [ -e ${mnt}/boot ] && cp -a ${datacryptkey} ${mnt}${datacryptkey}
   fi
