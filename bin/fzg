@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150316-202212
+SCRIPTVERSION=150407-234907
 
 ######################################################################
 # Variables you can edit
@@ -487,7 +487,10 @@ makepoolwith() {
     cachereal=/boot/zfs/zpool.cache
     cacheoptions="-o cachefile=${cachetmp}"
     if [ ! -e ${keyfiletmp} ]; then
+      umask 077
       dd if=/dev/random of=${keyfiletmp} bs=4096 count=1
+      chmod go-rwx "${keyfiletmp}"
+      umask $RESTOREMASK
     fi
     for DEV in $disks ; do
       ########## GPT create
@@ -656,11 +659,14 @@ makepoolwith() {
     echo " done"
     ########## keyfile
     echo -n "Copying keyfile ..."
-    if ! cp ${keyfiletmp} "${mnt}${keyfile}" >/dev/null 2>&1 ; then
+    umask 077
+    if ! install -m 600 -o root -g wheel ${keyfiletmp} "${mnt}${keyfile}" >/dev/null 2>&1 ; then
       echo " error copying keyfile"
       exiterror 1
     fi
     echo " done"
+    chmod go-rwx "${mnt}${keyfile}"
+    umask $RESTOREMASK
   fi
 }
 
