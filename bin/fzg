@@ -885,9 +885,14 @@ if [ "$DATAINIT" ]; then
     stty echo
     printf "\n"
     echo -n "Encrypting Password, "
+    umask 077
     echo $PASSWORD | openssl enc -aes-256-cbc -out ${datacryptkey} -e -salt
     unset PASSWORD
-    [ -e ${mnt}/boot ] && cp -a ${datacryptkey} ${mnt}${datacryptkey}
+    if [ -e ${mnt}/boot ]; then
+      install -m 600 -o root -g wheel ${datacryptkey} ${mnt}${datacryptkey}
+      chmod go-rwx ${mnt}${datacryptkey}
+    fi
+    umask $RESTOREMASK
   fi
   cryptdecode
   if [ ! -e $TMPFILE ]; then
