@@ -1236,6 +1236,7 @@ done
 
 ### Change password of new system to blank
 yes '' | chroot $FZG_MNT passwd
+echo
 
 
 
