@@ -1421,10 +1421,10 @@ EOF
     runorerror "tar -c -J -f $FZG_MFS_MNT/.usr.tar.xz --exclude ${FZG_RELEASE} --options xz:compression-level=9 -C ${FZG_MNT} usr"
     ### if .csh*
     echo -n "Copying to ${FZG_MFS_MNT}/root/..."
-    for i in /root/.csh* ; do
+    for i in `ls /root/ | egrep '(.csh|.gitconfig|.tmux.conf)'` ; do
         echo -n " ${i}"
-        runorerror   "cp ${i} ${FZG_MFS_MNT}/root/"
-        runorerror "chmod 600 ${FZG_MFS_MNT}${i}"
+        runorerror "cp /root/${i} ${FZG_MFS_MNT}/root/"
+        runorerror     "chmod 600 ${FZG_MFS_MNT}/root/${i}"
     done
     echo " done"
     ### Unmount
