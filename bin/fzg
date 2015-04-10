@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150409-024250
+SCRIPTVERSION=150410-040413
 
 ### Variables you can edit
 
@@ -881,7 +881,8 @@ fi
 ### Patch zfsboot for passwordless (-P,-p) geli
 zfsbootpath=/usr/libexec/bsdinstall/zfsboot
 chmod 755 $zfsbootpath
-b64decode -o /dev/stdout <<EOF | xz -d | patch -N -l $zfsbootpath
+#b64decode -o /dev/stdout <<EOF | xz -d | patch -N -l $zfsbootpath
+cat >/dev/null <<EOF
 begin-base64 644 -
 /Td6WFoAAATm1rRGAgAhARYAAAB0L+Wj4CmNCqZdABboBA9GY7Mq8PP6LSSXtp4IGg6Ew2c23rG8
 03bsd2zzk74xb0rKslDMvztJeW6I9C6OXMCWtL4WBfgZngwi6yqeQSw9t96+rIhNTbMydfF5sD3E
