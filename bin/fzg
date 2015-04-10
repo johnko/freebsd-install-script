@@ -70,13 +70,14 @@ FZG_RESTORE_UMASK=`umask`
 usage() {
     cat <<EOF
 usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
-        [-b boot_size] [-h] [-m] [-M /mnt] [-p poolname]
+        [-b boot_size] [-D] [-h] [-m] [-M /mnt] [-p poolname]
         [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
         [-z pool_size]
 
         -b size     Boot partition size.
         -c          Configure sshd_config, loader.conf and rc.conf, rc.conf.d.
         -C          Same as -c plus loader.conf.local and rc.conf.local.
+        -D          Dedup on.
         -d disk     Disk to install on (eg. da0).
         -e disk     Attach to this existing disk that is part of -p pool.
         -h          Help.
@@ -93,8 +94,8 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
 
         -f          freebsd-update / make a new mfsroot.
 
-        ${0##*/} -i -d vdev [-d vdev ...] [-p poolname] [-x]
-        ${0##*/} -i -e vdev -d vdev [-p poolname]
+        ${0##*/} -i -d vdev [-d vdev ...] [-p poolname] [-x] [-D]
+        ${0##*/} -i -e vdev -d vdev [-p poolname] [-D]
         ${0##*/} -u -d vdev [-d vdev ...] [-p poolname]
         ${0##*/} -l [-p poolname]
 
@@ -103,17 +104,18 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         -l          Export pool and lock data partition.
         -u          Unlock data partition and mount pool.
         -x          Explicit -d device, don't create partition 5 automatically.
+        -D          Dedup on.
         -d vdev     Virtual device to grab gptid label from (eg. da0p5)
 
 typical usage:
 
     Install on mirror, make /bootpool/mfsroot
-        ${0##*/} -d ada0 -d ada1 -z 2g -m
+        ${0##*/} -d ada0 -d ada1 -z 2g -m -D
     Update /bootpool/mfsroot, reboot to take effect
         ${0##*/} -f
         reboot
     Create /tank
-        ${0##*/} -i
+        ${0##*/} -i -D
     Unlock /tank
         ${0##*/} -u
     Unmount and lock /tank
@@ -122,27 +124,27 @@ typical usage:
 examples:
 
     Install on disk 0, pool name mini with size 2 GB:
-        ${0##*/} -d ada0 -z 2g -p mini
+        ${0##*/} -d ada0 -z 2g -p mini -D
     Add disk 1 as mirror to existing pool mini that contains disk ada0:
         ${0##*/} -e ada0 -d ada1 -z 2g -p mini
     After rebooting again, add data partition automatically + create pool tank:
-        ${0##*/} -i -d ada0 -p tank
+        ${0##*/} -i -d ada0 -p tank -D
     Create another data partition and attach to pool tank:
         ${0##*/} -i -e ada0p5 -d ada1 -p tank
 
 other examples:
 
     Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
-        ${0##*/} -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror
+        ${0##*/} -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror -D
     Make a bootable ZFS USB, which loads as mfs:
     Note we change the pool name so they don't conflict.
-        ${0##*/} -d da0 -m -p usb
+        ${0##*/} -d da0 -m -p usb -D
     Minimal mirror mfs server:
-        ${0##*/} -d ada0 -d ada1 -z 2g -m -p mini
+        ${0##*/} -d ada0 -d ada1 -z 2g -m -p mini -D
     After rebooting into the new mfsroot system, it can be updated with:
         ${0##*/} -f -p mini
     Create data pool with these devices, no auto partition creation:
-        ${0##*/} -i -d ada0p5 -d ada1p5 -p data -x
+        ${0##*/} -i -d ada0p5 -d ada1p5 -p data -x -D
 EOF
 }
 
@@ -548,6 +550,7 @@ makepoolwith() {
         ### create main root pool
         [ "$ZFSBOOT_VDEV_TYPE" != "stripe" ] && TRAID=$ZFSBOOT_VDEV_TYPE
         runorerror "zpool create -f -m none ${cacheoptions} -O compress=lz4 -O atime=off -R ${FZG_MNT} $ZFSBOOT_POOL_NAME $TRAID $TPARTS"
+        [ "$FZG_DEDUP" = "1" ] && zfs set dedup=on $ZFSBOOT_POOL_NAME
         ### create datasets
         echo -n "Creating ZFS datasets ..."
         echo "$ZFSBOOT_DATASETS" \
@@ -572,6 +575,7 @@ makepoolwith() {
         count=$( echo "$ZFSBOOT_DISKS" | wc -w | awk '{ print $1 }' )
         [ "$count" -gt "1" ] && BRAID=mirror
         runorerror "zpool create -f ${cacheoptions} -R ${FZG_MNT} $ZFSBOOT_BOOT_POOL_NAME $BRAID $BPARTS"
+        [ "$FZG_DEDUP" = "1" ] && zfs set dedup=on $ZFSBOOT_BOOT_POOL_NAME
         ### link boot pool
         mkdirorerror ${FZG_MNT}/${ZFSBOOT_BOOT_POOL_NAME}/boot 700
         runorerror      "ln -sf ${ZFSBOOT_BOOT_POOL_NAME}/boot ${FZG_MNT}/boot"
@@ -608,7 +612,7 @@ makepoolwith() {
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
-while getopts b:d:e:p:r:s:M:z:cCiulxmfnvh o; do
+while getopts b:d:e:p:r:s:M:z:DcCiulxmfnvh o; do
     case "$o" in
         b) ZFSBOOT_BOOT_POOL_SIZE="$OPTARG" ;;
         d) ZFSBOOT_DISKS="$ZFSBOOT_DISKS ${OPTARG##/dev/}" ;;
@@ -618,6 +622,7 @@ while getopts b:d:e:p:r:s:M:z:cCiulxmfnvh o; do
         s) ZFSBOOT_SWAP_SIZE="$OPTARG" ;;
         M) FZG_MNT="$OPTARG" ;;
         z) ZFSBOOT_POOL_SIZE="$OPTARG" ;;
+        D) FZG_DEDUP=1 ;;
         c) freebsdconfigglobal ; exit ;;
         C) freebsdconfigglobal ; freebsdconfiglocal ; exit ;;
         i) FZG_DATA_INIT=1 ; FZG_DATA_AUTO_SIZE=1 ;;
@@ -824,6 +829,7 @@ if [ "$FZG_DATA_INIT" ]; then
     else
         [ "$ZFSBOOT_VDEV_TYPE" != "stripe" ] && TRAID=$ZFSBOOT_VDEV_TYPE
         runorerror "zpool create -O compress=lz4 -O atime=off ${ZFSBOOT_POOL_NAME} ${TRAID} ${vdevs}"
+        [ "$FZG_DEDUP" = "1" ] && zfs set dedup=on ${ZFSBOOT_POOL_NAME}
     fi
 elif [ "$FZG_DATA_LOCK" ]; then
     ### FZG_DATA_LOCK
