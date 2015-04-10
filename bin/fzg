@@ -175,7 +175,8 @@ EOF
 EOF
         fi
             cat >>${1}/etc/motd <<EOF
-    PF firewall, block ssh spammers:        pf-sshinvaliduserip
+    PF firewall, regenerate new pf.conf:    gdf
+                block ssh spammers:         pf-sshinvaliduserip
                 blacklist sshban list:      pf-move-sshban-to-black
                 show tables:                pf-table show all
                 show anchor:                pf-anchor show all
