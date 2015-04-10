@@ -1019,10 +1019,8 @@ if [ -z "$FZG_NEW_MFSROOT" ]; then
     if [ ! -e $BSDINSTALL_DISTDIR/kernel.txz -o ! -e $BSDINSTALL_DISTDIR/base.txz ]; then
         BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${FZG_RELEASE}
     else
-        echo -n "Copying $BSDINSTALL_DISTDIR to ${FZG_MNT}/boot/../${FZG_RELEASE}"
         mkdirorerror ${FZG_MNT}/boot/../${FZG_RELEASE} 755
         tar -c -f - -C /boot/.. ${FZG_RELEASE} | tar -C ${FZG_MNT}/boot/.. -x -f - || exiterror $? "tar -c -f - -C /boot/.. ${FZG_RELEASE} _ tar -C ${FZG_MNT}/boot/.. -x -f -"
-        echo " done"
     fi
 fi # end of if [ -z "$FZG_NEW_MFSROOT" ]; then
 mkdirorerror $BSDINSTALL_DISTDIR 755
@@ -1180,7 +1178,6 @@ if [ -z "$FZG_NEW_MFSROOT" ]; then
     ### Fetch some packages we can cache in /boot/packages
     mkdirorerror ${FZG_MNT}/boot/packages 700
     if [ -d /boot/packages ]; then
-        echo "Copying /boot/packages to ${FZG_MNT}/boot/packages"
         tar -c -f - -C /boot/ packages | tar -C ${FZG_MNT}/boot/ -x -f - || exiterror $? "tar -c -f - -C /boot/ packages _ tar -C ${FZG_MNT}/boot/ -x -f -"
     else
         if [ -f /usr/local/etc/pkg.conf ]; then
