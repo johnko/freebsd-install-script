@@ -30,7 +30,7 @@ ada0
 usage:  fzg -d disk [-d disk ...] [-e disk]
     [-b boot_size] [-D] [-h] [-m] [-M /mnt] [-p poolname]
     [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
-    [-z pool_size]
+    [-z pool_size] [-H hostname]
 
     -b size     Boot partition size.
     -c          Configure sshd_config, loader.conf and rc.conf, rc.conf.d.
@@ -38,6 +38,7 @@ usage:  fzg -d disk [-d disk ...] [-e disk]
     -D          Dedup on.
     -d disk     Disk to install on (eg. da0).
     -e disk     Attach to this existing disk that is part of -p pool.
+    -H hostname Hostname.
     -h          Help.
     -m          Create mfsroot type of system.
     -M mount    Mountpoint, if not using /mnt.

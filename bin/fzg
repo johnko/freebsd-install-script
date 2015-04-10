@@ -72,7 +72,7 @@ usage() {
 usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         [-b boot_size] [-D] [-h] [-m] [-M /mnt] [-p poolname]
         [-r stripe|mirror|raidz|raidz2|raidz3] [-s swap_size] [-v]
-        [-z pool_size]
+        [-z pool_size] [-H hostname]
 
         -b size     Boot partition size.
         -c          Configure sshd_config, loader.conf and rc.conf, rc.conf.d.
@@ -80,6 +80,7 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         -D          Dedup on.
         -d disk     Disk to install on (eg. da0).
         -e disk     Attach to this existing disk that is part of -p pool.
+        -H hostname Hostname.
         -h          Help.
         -m          Create mfsroot type of system.
         -M mount    Mountpoint, if not using /mnt.
@@ -612,7 +613,7 @@ makepoolwith() {
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
-while getopts b:d:e:p:r:s:M:z:DcCiulxmfnvh o; do
+while getopts b:d:e:H:p:r:s:M:z:DcCiulxmfnvh o; do
     case "$o" in
         b) ZFSBOOT_BOOT_POOL_SIZE="$OPTARG" ;;
         d) ZFSBOOT_DISKS="$ZFSBOOT_DISKS ${OPTARG##/dev/}" ;;
@@ -622,6 +623,7 @@ while getopts b:d:e:p:r:s:M:z:DcCiulxmfnvh o; do
         s) ZFSBOOT_SWAP_SIZE="$OPTARG" ;;
         M) FZG_MNT="$OPTARG" ;;
         z) ZFSBOOT_POOL_SIZE="$OPTARG" ;;
+        H) FZG_HOSTNAME="$OPTARG" ;;
         D) FZG_DEDUP=1 ;;
         c) freebsdconfigglobal ; exit ;;
         C) freebsdconfigglobal ; freebsdconfiglocal ; exit ;;
@@ -1505,10 +1507,17 @@ done
 if [ -z "$FZG_NEW_MFSROOT" ]; then
     ### Remind not to export pool
     cat <<EOF
+
 Don't export the ZFS pools!
 
-You may want to set the hostname with:
-    sysrc -f "${FZG_MNT}/etc/rc.conf.d/hostname" hostname="name"
 See file ${FZG_MNT}/boot/loader.conf.local for more options.
 EOF
+    if [ "x" != "x${FZG_HOSTNAME}" ]; then
+        sysrc -f ${FZG_MNT}/etc/rc.conf.d/hostname hostname=${FZG_HOSTNAME}
+    else
+        cat <<EOF
+You may want to set the hostname with:
+    sysrc -f ${FZG_MNT}/etc/rc.conf.d/hostname hostname=name
+EOF
+    fi
 fi ### end of if [ -z "$FZG_NEW_MFSROOT" ]; then
