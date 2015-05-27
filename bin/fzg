@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150527-201244
+SCRIPTVERSION=150527-201408
 
 ### Variables you can edit
 
@@ -1464,7 +1464,7 @@ if [ "$FZG_NEW_MFSROOT" ]; then
             umount $i >/dev/null 2>&1
         done
     done
-    zfs destroy ${ZFSBOOT_POOL_NAME}/upgrade
+    zfs destroy -r ${ZFSBOOT_POOL_NAME}/upgrade
 fi
 
 
