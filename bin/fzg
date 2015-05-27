@@ -32,9 +32,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 ######################################################################
-# Script version is yymmdd-HHMMSS in UTC, date +%y%m%d-%H%M%S
+# Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150519-145357
+SCRIPTVERSION=150527-030920
 
 ### Variables you can edit
 
@@ -297,21 +297,21 @@ EOF
 # sendmail_msp_queue_enable="NO"
 EOF
     ### Set SSH options
-    SSH_KEX=`ssh -Q kex | grep -v diffie-hellman-group1-sha1 | grep -v ecdh-sha2-nistp | grep -v sha1 | sort | tr '\n' ',' | sed 's/,$//'`
-    SSH_CIPHERS=`ssh -Q cipher | grep -v 3des | grep -v arcfour | grep -v cast | grep -v cbc | grep -v ctr | sort -r | tr '\n' ','``ssh -Q cipher \
-                               | grep -v 3des | grep -v arcfour | grep -v cast | grep -v cbc | grep    ctr | sort -r | tr '\n' ',' | sed 's/,$//'`
-    SSH_MACS=`ssh -Q mac | grep -v sha1 | grep -v md5 | grep -v '\-64' | grep etm | grep -v umac | sort -r | tr '\n' ','``ssh -Q mac \
-                         | grep -v sha1 | grep -v md5 | grep -v '\-64' | grep etm | grep     umac | sort -r | tr '\n' ',' | sed 's/,$//'`
     SSHD_OPTIONS="
+    # https://wiki.mozilla.org/Security/Guidelines/OpenSSH
     # LEFT                      RIGHT
 
     ChallengeResponseAuthentication no
     PermitRootLogin                 yes
     UseDNS                          no
     ClientAliveInterval             5
-    KexAlgorithms                   $SSH_KEX
-    Ciphers                         $SSH_CIPHERS
-    MACs                            $SSH_MACS
+    KexAlgorithms                   curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+    Ciphers                         chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+    MACs                            hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+    KeyRegenerationInterval         1800
+    AuthenticationMethods           publickey
+    LogLevel                        VERBOSE
+    UsePrivilegeSeparation          sandbox
 " ### END-QUOTE
     echo "$SSHD_OPTIONS" \
     | while read dataset options; do
@@ -332,6 +332,12 @@ EOF
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ed25519_key
 EOF
+    ### no weak DH keys
+    if [ ! -e /etc/ssh/moduli.tmp ]; then
+        if which ssh-moduli ; then
+            ssh-moduli
+        fi
+    fi
 }
 
 
