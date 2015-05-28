@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150527-201408
+SCRIPTVERSION=150528-012831
 
 ### Variables you can edit
 
@@ -337,7 +337,7 @@ EOF
         ssh-keygen -q -f /etc/ssh/ssh_host_rsa_key -t rsa -b 4096 -N ""
         ssh-keygen -l -f /etc/ssh/ssh_host_rsa_key.pub
     fi
-    if [ `ls -l /etc/ssh/ssh_host_ed25519_key | awk '{print $5}'` -lt 411 ]; then
+    if [ `ls -l /etc/ssh/ssh_host_ed25519_key | awk '{print $5}'` -lt 399 ]; then
         ssh-keygen -q -f /etc/ssh/ssh_host_ed25519_key -t ed25519 -N ""
         ssh-keygen -l -f /etc/ssh/ssh_host_ed25519_key.pub
     fi
