@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150528-063118
+SCRIPTVERSION=150528-074323
 
 ### Variables you can edit
 
@@ -1182,10 +1182,10 @@ if [ "$FZG_NEW_MFSROOT" -o -z "$FZG_NEW_MFSROOT" ]; then
     echo "Running: chroot ${FZG_MNT} freebsd-update fetch"
     chroot ${FZG_MNT} freebsd-update fetch | cat >/tmp/fuf.log
     if ! cat /tmp/fuf.log | grep 'No updates needed to update system' >/dev/null 2>&1 ; then
-        cat /tmp/fuf.log
         echo "Running: chroot ${FZG_MNT} freebsd-update install"
         chroot ${FZG_MNT} freebsd-update install | cat >/tmp/fui.log
         if ! cat /tmp/fui.log | grep 'Installing....*done' >/dev/null 2>&1 ; then
+            cat /tmp/fuf.log
             cat /tmp/fui.log
             cat <<EOF
 Please connect another session and check that the system updated successfully:
