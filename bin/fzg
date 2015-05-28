@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150528-012831
+SCRIPTVERSION=150528-045016
 
 ### Variables you can edit
 
@@ -347,6 +347,10 @@ EOF
             ssh-moduli
         fi
     fi
+    ### sortconf
+    if which sortconf ; then
+        sortconf -f
+    fi
 }
 
 
@@ -410,6 +414,10 @@ EOF
     cat >>${FZG_MNT}/etc/rc.conf.d/routing <<EOF
 # defaultrouter="$router"
 EOF
+    ### sortconf
+    if which sortconf ; then
+        sortconf -f
+    fi
 }
 
 freebsdconfiglocalmfsroot() {
@@ -454,6 +462,10 @@ EOF
         fzg_u_disks="$fzg_u_disks ${i}p5"
     done
     sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_u_disks="$fzg_u_disks" >/dev/null
+    ### sortconf
+    if which sortconf ; then
+        sortconf -f
+    fi
 }
 
 
