@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150528-045016
+SCRIPTVERSION=150528-063118
 
 ### Variables you can edit
 
@@ -167,7 +167,7 @@ EOF
     Update operating system mfsroot:        fzg -f [-n] [-p pool]
                                             reboot
     Update operating system leftovers:      freebsd-update fetch
-                                            freebst-update install
+                                            freebsd-update install
                                             reboot
 EOF
         else
