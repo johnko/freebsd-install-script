@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150530-025037
+SCRIPTVERSION=150619-134413
 
 ### Variables you can edit
 
@@ -1103,6 +1103,7 @@ MFS_DATASETS="
 /var/cache      exec=off,setuid=off
 /var/cron       exec=off,setuid=off
 /var/db         exec=off,setuid=off
+/var/ports
 /var/run
 /var/spool      exec=off,setuid=off
 " ### END-QUOTE
