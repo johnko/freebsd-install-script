@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150619-134413
+SCRIPTVERSION=150619-144653
 
 ### Variables you can edit
 
@@ -1533,7 +1533,11 @@ while [ "$FZG_CHANGE_PASSWD" = "y" -o "$FZG_CHANGE_PASSWD" = "Y" ]; do
     esac
 done
 
-
+if [ -d /var/ports ]; then
+    if [ -d ${FZG_MNT}/var ]; then
+        rsync -viaP --exclude work /var/ports/ ${FZG_MNT}/var/ports/
+    fi
+fi
 
 if [ -z "$FZG_NEW_MFSROOT" ]; then
     ### Remind not to export pool
