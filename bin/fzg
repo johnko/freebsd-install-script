@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150620-085852
+SCRIPTVERSION=150620-091442
 
 ### Variables you can edit
 
@@ -1094,6 +1094,8 @@ MFS_DATASETS="
 /root           mountpoint=/root,canmount=off
 /root/.ssh      exec=off,setuid=off
 /root/bin       setuid=off
+/root/git       setuid=off
+/root/perm      exec=off,setuid=off
 
 /usr/local
 
