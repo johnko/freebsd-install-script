@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150619-145016
+SCRIPTVERSION=150620-085852
 
 ### Variables you can edit
 
@@ -1558,5 +1558,12 @@ EOF
 fi ### end of if [ -z "$FZG_NEW_MFSROOT" ]; then
 
 cat <<EOF
+New sshd pubkeys are:
+EOF
+ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub
+ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
+
+cat <<EOF
+You may want to:
     vi ${FZG_MNT}/etc/rc.conf.d/{network,routing} ${FZG_MNT}/boot/loader.conf.local
 EOF
