@@ -1226,8 +1226,8 @@ if [ -z "$FZG_NEW_MFSROOT" ]; then
         fi
         mkdirorerror /usr/local/etc 755
         echo "PKG_CACHEDIR = \"${FZG_MNT}/boot/packages\";" >>/usr/local/etc/pkg.conf
-        if [ -e $HOME/.cshpkglist ]; then
-            PKGLIST="`cat $HOME/.cshpkglist | grep -v '^#' | tr ' ' '\n' | grep -v '^\$'`"
+        if [ -e $HOME/perm/cshpkglist ]; then
+            PKGLIST="`cat $HOME/perm/cshpkglist | grep -v '^#' | tr ' ' '\n' | grep -v '^\$'`"
         else
             PKGLIST="
             cmdwatch
@@ -1458,9 +1458,9 @@ EOF
     runorerror "chmod 555 $FZG_MFS_MNT/etc/rc.d/packages"
     ### Package /usr
     runorerror "tar -c -J -f $FZG_MFS_MNT/.usr.tar.xz --exclude ${FZG_RELEASE} --options xz:compression-level=9 -C ${FZG_MNT} usr"
-    ### if .csh*
+    ### if .cshrc
     echo -n "Copying to ${FZG_MFS_MNT}/root/..."
-    for i in `ls /root/ | egrep '(.csh|.gitconfig|.tmux.conf)'` ; do
+    for i in `ls /root/ | egrep '(.cshrc|.gitconfig|.tmux.conf)'` ; do
         echo -n " ${i}"
         runorerror "cp /root/${i} ${FZG_MFS_MNT}/root/"
         runorerror     "chmod 600 ${FZG_MFS_MNT}/root/${i}"
@@ -1492,12 +1492,23 @@ if [ -z "$FZG_NEW_MFSROOT" ]; then
         runorerror "cp /root/.ssh/authorized_keys ${FZG_MNT}/root/.ssh/authorized_keys"
         runorerror "chmod 600 ${FZG_MNT}/root/.ssh/authorized_keys"
     fi
-    ### If fzg exists, copy that
-    if ls /root/bin | grep . >/dev/null 2>&1 ; then
-        runorerror "chmod 700 /root/bin"
-        mkdirorerror ${FZG_MNT}/root/bin 700
-        tar -c -f - -C /root bin | tar -C ${FZG_MNT}/root -x -f - || exiterror $? "tar -c -f - -C /root bin _ tar -C ${FZG_MNT}/root -x -f -"
-        runorerror "chmod 700 ${FZG_MNT}/root/bin/*"
+    ### If bin exists, copy that
+    if [ -d /root/bin ]; then
+        if ls /root/bin | grep . >/dev/null 2>&1 ; then
+            runorerror "chmod 700 /root/bin"
+            mkdirorerror ${FZG_MNT}/root/bin 700
+            tar -c -f - -C /root bin | tar -C ${FZG_MNT}/root -x -f - || exiterror $? "tar -c -f - -C /root bin _ tar -C ${FZG_MNT}/root -x -f -"
+            runorerror "chmod 700 ${FZG_MNT}/root/bin/*"
+        fi
+    fi
+    ### If perm exists, copy that
+    if [ -d /root/perm ]; then
+        if ls /root/perm | grep . >/dev/null 2>&1 ; then
+            runorerror "chmod 700 /root/perm"
+            mkdirorerror ${FZG_MNT}/root/perm 700
+            tar -c -f - -C /root perm | tar -C ${FZG_MNT}/root -x -f - || exiterror $? "tar -c -f - -C /root perm _ tar -C ${FZG_MNT}/root -x -f -"
+            runorerror "chmod 600 ${FZG_MNT}/root/perm/*"
+        fi
     fi
     ### If files exists, copy that
     for f in fstab hosts periodic.conf resolv.conf sysctl.conf ; do
