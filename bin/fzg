@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150620-142557
+SCRIPTVERSION=150621-113421
 
 ### Variables you can edit
 
@@ -166,14 +166,14 @@ EOF
             cat >>${1}/etc/motd <<EOF
     Update operating system mfsroot:        fzg -f [-n] [-p pool]
                                             reboot
-    Update operating system leftovers:      freebsd-update fetch
-                                            freebsd-update install
+    Update operating system leftovers:
+               env HTTP_PROXY=10.7.7.1:3128 freebsd-update -F fetch install
                                             reboot
 EOF
         else
             cat >>${1}/etc/motd <<EOF
-    Update operating system:                freebsd-update fetch
-                                            freebsd-update install
+    Update operating system:
+               env HTTP_PROXY=10.7.7.1:3128 freebsd-update -F fetch install
                                             reboot
 EOF
         fi
@@ -1195,8 +1195,7 @@ if [ "$FZG_NEW_MFSROOT" -o -z "$FZG_NEW_MFSROOT" ]; then
             cat /tmp/fui.log
             cat <<EOF
 Please connect another session and check that the system updated successfully:
-    chroot $FZG_MNT freebsd-update fetch
-    chroot $FZG_MNT freebsd-update install
+    chroot $FZG_MNT freebsd-update -F fetch install
 EOF
             echo -n "Then here, press ENTER to continue "
             read CONTINUENOW
