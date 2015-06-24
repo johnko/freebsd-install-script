@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150624-092356
+SCRIPTVERSION=150624-141106
 
 ### Variables you can edit
 
@@ -150,11 +150,25 @@ EOF
 }
 
 
+### create ${1}/etc/devfs.rules if not exist
+create_devfsrules() {
+    if [ ! -e ${1}/etc/devfs.rules ]; then
+        cat >>${1}/etc/devfs.rules <<EOF
+[devfsrules_jail=4]
+add include \$devfsrules_hide_all
+add include \$devfsrules_unhide_basic
+add include \$devfsrules_unhide_login
+add path zfs unhide
+add path pf unhide mode 0640 group 100
+EOF
+    fi
+}
+
 
 ### append motd function
 append_motd() {
     if ! grep "stat-all" ${1}/etc/motd >/dev/null 2>&1 ; then
-        cat >>${1}/etc/motd <<EOF
+        cat >${1}/etc/motd <<EOF
 
     Update programs and scripts:            fres
     Cache program packages for reboot:      fres -b
@@ -1268,6 +1282,7 @@ chroot $FZG_MNT sh -c 'echo "urep:1001::::::/usr/home/urep:/bin/csh:" | adduser 
 
 
 append_motd $FZG_MNT
+create_devfsrules $FZG_MNT
 
 
 
