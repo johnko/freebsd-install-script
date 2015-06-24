@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150621-113421
+SCRIPTVERSION=150624-092356
 
 ### Variables you can edit
 
@@ -580,8 +580,8 @@ makepoolwith() {
         done
         ### create main root pool
         [ "$ZFSBOOT_VDEV_TYPE" != "stripe" ] && TRAID=$ZFSBOOT_VDEV_TYPE
-        runorerror "zpool create -f -m none ${cacheoptions} -O compress=lz4 -O atime=off -R ${FZG_MNT} $ZFSBOOT_POOL_NAME $TRAID $TPARTS"
-        [ "$FZG_DEDUP" = "1" ] && zfs set dedup=on $ZFSBOOT_POOL_NAME
+        [ "$FZG_DEDUP" = "1" ] && DEDUPOPTION="-O dedup=on"
+        runorerror "zpool create -f -m none ${cacheoptions} ${DEDUPOPTION} -O compress=lz4 -O atime=off -R ${FZG_MNT} $ZFSBOOT_POOL_NAME $TRAID $TPARTS"
         ### create datasets
         echo -n "Creating ZFS datasets ..."
         echo "$ZFSBOOT_DATASETS" \
@@ -605,8 +605,8 @@ makepoolwith() {
         ### create boot pool
         count=$( echo "$ZFSBOOT_DISKS" | wc -w | awk '{ print $1 }' )
         [ "$count" -gt "1" ] && BRAID=mirror
-        runorerror "zpool create -f ${cacheoptions} -R ${FZG_MNT} $ZFSBOOT_BOOT_POOL_NAME $BRAID $BPARTS"
-        [ "$FZG_DEDUP" = "1" ] && zfs set dedup=on $ZFSBOOT_BOOT_POOL_NAME
+        [ "$FZG_DEDUP" = "1" ] && DEDUPOPTION="-O dedup=on"
+        runorerror "zpool create -f ${cacheoptions} ${DEDUPOPTION} -R ${FZG_MNT} $ZFSBOOT_BOOT_POOL_NAME $BRAID $BPARTS"
         ### link boot pool
         mkdirorerror ${FZG_MNT}/${ZFSBOOT_BOOT_POOL_NAME}/boot 700
         runorerror      "ln -sf ${ZFSBOOT_BOOT_POOL_NAME}/boot ${FZG_MNT}/boot"
@@ -860,8 +860,8 @@ if [ "$FZG_DATA_INIT" ]; then
         runorerror "zpool attach ${ZFSBOOT_POOL_NAME} ${rpoolrealdisk} ${vdevs}"
     else
         [ "$ZFSBOOT_VDEV_TYPE" != "stripe" ] && TRAID=$ZFSBOOT_VDEV_TYPE
-        runorerror "zpool create -O compress=lz4 -O atime=off ${ZFSBOOT_POOL_NAME} ${TRAID} ${vdevs}"
-        [ "$FZG_DEDUP" = "1" ] && zfs set dedup=on ${ZFSBOOT_POOL_NAME}
+        [ "$FZG_DEDUP" = "1" ] && DEDUPOPTION="-O dedup=on"
+        runorerror "zpool create ${DEDUPOPTION} -O compress=lz4 -O atime=off ${ZFSBOOT_POOL_NAME} ${TRAID} ${vdevs}"
     fi
 elif [ "$FZG_DATA_LOCK" ]; then
     ### FZG_DATA_LOCK
