@@ -9,6 +9,8 @@ mkdir -p /var/cache/pkg
 mount -t tmpfs tmpfs /var/cache/pkg
 mkdir -p /etc/pf
 mount -t tmpfs tmpfs /etc/pf
+mkdir -p /root/bin
+mount -t tmpfs tmpfs /root/bin
 mkdir -p /root/git
 mount -t tmpfs tmpfs /root/git
 mkdir -p /root/local
