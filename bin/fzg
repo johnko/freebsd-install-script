@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150624-141106
+SCRIPTVERSION=150701-124500
 
 ### Variables you can edit
 
@@ -465,10 +465,10 @@ freebsdconfiglocalmfsroot() {
 ### optional set packages to list we can pkg install -f -y ____
 # packages=""
 ### optional set zpools to import
-# zpool_import=""
+zpool_import="${ZFSBOOT_BOOT_POOL_NAME} ${ZFSBOOT_POOL_NAME}"
 ### optional set mdinit_shell
 # mdinit_shell="YES"
-# coretemp_load="YES"
+coretemp_load="YES"
 EOF
     ### Set some options that may contain spaces
     sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_i_disks="$ZFSBOOT_DISKS" >/dev/null
