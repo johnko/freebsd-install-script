@@ -1,0 +1,68 @@
+#!/bin/sh
+######################################################################
+# LICENSE pulled in with, cat LICENSE  | awk '{print "# "$0}'
+######################################################################
+# Portions of code modified from the compilation of software known
+# as mfsBSD: Copyright (C) 2007-2013 Martin Matuska
+#
+# They are noted in code comments as beind borrowed of modified
+# from https://github.com/mmatuska/mfsbsd
+#
+# The rest of the code: Copyright (c) 2014-2015, John Ko
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
+# FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+# DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+# SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+# CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+# OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+# OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+######################################################################
+# Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
+######################################################################
+SCRIPTVERSION=150703-200039
+
+FZG_BSDINSTALL_TMP=/tmp/bsdinstall_boot
+FZG_DATA_CRYPT_KEY=/boot/data.crypt.key
+FZG_RESTORE_UMASK=`umask`
+
+runorerror() {
+    $@ || exiterror $? $@
+}
+
+mkdirorerror() {
+    [ "x" != "x$1" ] && mkdir -p $1
+    [ "x" != "x$2" ] && runorerror "chmod $2 $1"
+    [ "x" != "x$3" ] && runorerror "chown $3 $1"
+}
+
+mkdirorerror ${FZG_BSDINSTALL_TMP} 700
+umount ${FZG_BSDINSTALL_TMP} >/dev/null 2>&1
+runorerror "mount -t tmpfs tmpfs ${FZG_BSDINSTALL_TMP}"
+keyfiletmp=${FZG_BSDINSTALL_TMP}/encryption.key
+if [ ! -e ${keyfiletmp} ]; then
+    umask 077
+    runorerror "dd if=/dev/random of=${keyfiletmp} bs=4096 count=1"
+    runorerror "chmod go-rwx ${keyfiletmp}"
+    umask $FZG_RESTORE_UMASK
+fi
+
+if [ -e ${keyfiletmp} ]; then
+    if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
+        openssl enc -aes-256-cbc -in ${keyfiletmp} -out ${FZG_DATA_CRYPT_KEY} -e -salt
+    fi
+fi
