@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150701-124500
+SCRIPTVERSION=150703-190231
 
 ### Variables you can edit
 
@@ -45,6 +45,7 @@ BSDINSTALL_DISTSITE_BASE="http://ftp.freebsd.org/pub/FreeBSD/releases"
 ZFSBOOT_GELI_KEY_FILE=/boot/encryption.key
 FZG_RELEASE=10.1-RELEASE
 ZFSBOOT_SWAP_SIZE=2g
+TANKPART="5"
 
 ### Variables you don't touch
 
@@ -475,7 +476,7 @@ EOF
     ### set fzg_u_disks
     fzg_u_disks=""
     for i in $ZFSBOOT_DISKS; do
-        fzg_u_disks="$fzg_u_disks ${i}p5"
+        fzg_u_disks="$fzg_u_disks ${i}p${TANKPART}"
     done
     sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_u_disks="$fzg_u_disks" >/dev/null
     ### sortconf
@@ -814,13 +815,13 @@ if [ "$FZG_DATA_INIT" ]; then
             for GSIZE in $FZG_DATA_SIZES ; do
                 while [ "$PARTCREATED" = "0" ]; do
                     if [ "$PARTCREATED" != "1" ]; then
-                        if /sbin/gpart add -i 5 -t freebsd-zfs $FZG_ALIGN4K -s ${GSIZE}G ${disk} >/dev/null 2>&1 ; then
+                        if /sbin/gpart add -i ${TANKPART} -t freebsd-zfs $FZG_ALIGN4K -s ${GSIZE}G ${disk} >/dev/null 2>&1 ; then
                             echo " success adding partition sized ${GSIZE}G at $disk"
                             PARTCREATED=1
-                            gptidtarget=`glabel list ${disk}p5 | grep Name | head -1 | awk '{print $NF}'`
+                            gptidtarget=`glabel list ${disk}p${TANKPART} | grep Name | head -1 | awk '{print $NF}'`
                             runorerror  "dd if=/dev/zero of=/dev/$gptidtarget bs=512 count=560"
                             runorerror "zpool labelclear -f /dev/$gptidtarget"
-                            GPARTS="$GPARTS ${disk}p5"
+                            GPARTS="$GPARTS ${disk}p${TANKPART}"
                         else
                             ### we should actually use the next FZG_DATA_SIZES,
                             ### but for now we'll decrement by 1
