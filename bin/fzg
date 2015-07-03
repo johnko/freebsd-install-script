@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150703-190231
+SCRIPTVERSION=150703-191743
 
 ### Variables you can edit
 
@@ -1543,11 +1543,15 @@ while [ "$FZG_CHANGE_PASSWD" = "y" -o "$FZG_CHANGE_PASSWD" = "Y" ]; do
     esac
 done
 
+
 if [ -d /var/ports ]; then
     if [ -d ${FZG_MNT}/var ]; then
         rsync -viaP --exclude work /var/ports/ ${FZG_MNT}/var/ports/
     fi
 fi
+
+
+
 
 if [ -z "$FZG_NEW_MFSROOT" ]; then
     ### Remind not to export pool
@@ -1565,15 +1569,20 @@ You may want to set the hostname with:
     sysrc -f ${FZG_MNT}/etc/rc.conf.d/hostname hostname=name
 EOF
     fi
-fi ### end of if [ -z "$FZG_NEW_MFSROOT" ]; then
-
-cat <<EOF
-New sshd pubkeys are:
-EOF
-ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub
-ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
-
-cat <<EOF
+    cat <<EOF
 You may want to:
     vi ${FZG_MNT}/etc/rc.conf.d/{network,routing} ${FZG_MNT}/boot/loader.conf.local
 EOF
+
+fi ### end of if [ -z "$FZG_NEW_MFSROOT" ]; then
+
+
+
+
+if [ -e ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub -o -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub ]; then
+    cat <<EOF
+New sshd pubkeys are:
+EOF
+    test -e ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub     && ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub
+    test -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub && ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
+fi
