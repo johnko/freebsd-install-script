@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150703-191743
+SCRIPTVERSION=150704-012547
 
 ### Variables you can edit
 
@@ -911,7 +911,7 @@ elif [ "$FZG_DATA_UNLOCK" ]; then
     rm $TMPFILE
     umount $FZG_TMP_CRYPT
     echo " done"
-    runorerror "zpool import ${ZFSBOOT_POOL_NAME}"
+    runorerror "zpool import -f ${ZFSBOOT_POOL_NAME}"
 fi
 
 
