@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150704-012547
+SCRIPTVERSION=150704-015615
 
 ### Variables you can edit
 
@@ -1419,6 +1419,27 @@ load_rc_config \$name
 run_rc_command "\$1"
 EOF
     runorerror "chmod 555 $FZG_MFS_MNT/etc/rc.d/zpoolimport"
+    ### ucarp
+    cat >$FZG_MFS_MNT/etc/rc.d/wrapperucarp <<EOF
+#!/bin/sh
+# \$Id\$
+# PROVIDE: wrapperucarp
+# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN dhclient
+# KEYWORD: FreeBSD
+. /etc/rc.subr
+name="wrapperucarp"
+start_cmd="wrapperucarp_start"
+stop_cmd=":"
+wrapperucarp_start()
+{
+    for i in \$( service -l | grep '^ucarp' ) ; do
+        service \${i} start
+    done
+}
+load_rc_config \$name
+run_rc_command "\$1"
+EOF
+    runorerror "chmod 555 $FZG_MFS_MNT/etc/rc.d/wrapperucarp"
     ### packages because we are in mfs and harder to persist
     cat >$FZG_MFS_MNT/etc/rc.d/packages <<EOF
 #!/bin/sh
