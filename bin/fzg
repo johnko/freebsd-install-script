@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150704-015615
+SCRIPTVERSION=150709-180829
 
 ### Variables you can edit
 
@@ -1122,8 +1122,10 @@ MFS_DATASETS="
 /var/cron       exec=off,setuid=off
 /var/db         exec=off,setuid=off
 /var/ports
+/var/radmind
 /var/run
 /var/spool      exec=off,setuid=off
+/var/yp
 " ### END-QUOTE
 
 if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_NEW_MFSROOT" ]; then
