@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150725-035634
+SCRIPTVERSION=150725-050052
 
 ### Variables you can edit
 
@@ -182,13 +182,13 @@ EOF
     Update operating system mfsroot:        fzg -f [-n] [-p pool]
                                             reboot
     Update operating system leftovers:
-               env HTTP_PROXY=10.7.7.1:3128 freebsd-update -F fetch install
+                              env PAGER=cat freebsd-update -F fetch install
                                             reboot
 EOF
         else
             cat >>${1}/etc/motd <<EOF
     Update operating system:
-               env HTTP_PROXY=10.7.7.1:3128 freebsd-update -F fetch install
+                              env PAGER=cat freebsd-update -F fetch install
                                             reboot
 EOF
         fi
