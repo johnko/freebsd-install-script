@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150709-180829
+SCRIPTVERSION=150725-023817
 
 ### Variables you can edit
 
@@ -1290,6 +1290,34 @@ create_devfsrules $FZG_MNT
 
 
 if [ "$FZG_MAKE_MFSROOT" -o "$FZG_NEW_MFSROOT" ]; then
+    ### trim rescue
+    PRUNERESCUE="
+    atmconfig
+    badsect
+    bzcat
+    ccdconfig
+    chio
+    clri
+    ed
+    ex
+    mt
+    nos-tun
+    rdump
+    red
+    rrestore
+    rtquery
+    rtsol
+    spppcontrol
+    xzcat
+    zcat
+    " # end PRUNERESCUE
+    for i in ${PRUNERESCUE} ; do
+        if [ "x" != "x$FZG_MNT" ] && [ "x" != "x$i" ]; then
+            if [ -e $FZG_MNT/rescue/$i ]; then
+                rm $FZG_MNT/rescue/$i
+            fi
+        fi
+    done
     ### Actually make the MFSROOT
     runorerror "dd if=/dev/zero of=${mfspath} bs=512 count=245760"
     mdevice=`mdconfig -a -t vnode -f ${mfspath}`
