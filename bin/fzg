@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150815-025921
+SCRIPTVERSION=150815-052727
 
 ### Variables you can edit
 
@@ -658,8 +658,9 @@ makepoolwith() {
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
-while getopts b:d:e:H:p:r:s:M:z:DcCiulxmfnvh o; do
+while getopts t:b:d:e:H:p:r:s:M:z:DcCiulxmfnvh o; do
     case "$o" in
+        t) TANKPART="$OPTARG" ;;
         b) ZFSBOOT_BOOT_POOL_SIZE="$OPTARG" ;;
         d) ZFSBOOT_DISKS="$ZFSBOOT_DISKS ${OPTARG##/dev/}" ;;
         e) edisk="$OPTARG" ; ADDTOPOOL=1 ;;
