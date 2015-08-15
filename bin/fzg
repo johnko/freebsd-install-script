@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150815-052727
+SCRIPTVERSION=150815-054842
 
 ### Variables you can edit
 
@@ -317,7 +317,7 @@ EOF
     # LEFT                      RIGHT
 
     ChallengeResponseAuthentication no
-    PermitRootLogin                 yes
+    PermitRootLogin                 without-password
     UseDNS                          no
     ClientAliveInterval             5
     KexAlgorithms                   curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
