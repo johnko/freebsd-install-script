@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150830-183152
+SCRIPTVERSION=150830-183848
 
 ### Variables you can edit
 
@@ -97,9 +97,10 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         -f          freebsd-update / make a new mfsroot.
 
         ${0##*/} -i -d vdev [-d vdev ...] [-p poolname] [-x] [-D]
-        ${0##*/} -i -e vdev -d vdev [-p poolname] [-D]
-        ${0##*/} -u -d vdev [-d vdev ...] [-p poolname]
-        ${0##*/} -l [-p poolname]
+        [-t tank_partition]
+        ${0##*/} -i -e vdev -d vdev [-p poolname] [-D] [-t tank_partition]
+        ${0##*/} -u -d vdev [-d vdev ...] [-p poolname] [-t tank_partition]
+        ${0##*/} -l [-p poolname] [-t tank_partition]
 
         -i          Initialize data partition with geli and create pool.
                     Automatically create partition 5 unless -x is set.
@@ -108,6 +109,7 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
         -x          Explicit -d device, don't create partition 5 automatically.
         -D          Dedup on.
         -d vdev     Virtual device to grab gptid label from (eg. da0p5)
+        -t part     GPT slice that should be used (eg. 5 or 6)
 
 typical usage:
 
