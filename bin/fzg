@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150830-070718
+SCRIPTVERSION=150830-072143
 
 ### Variables you can edit
 
@@ -369,7 +369,7 @@ EOF
         ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
     fi
     ### no weak DH keys
-    if [ ! -e ${FZG_MNT}/etc/ssh/moduli.tmp ]; then
+    if [ "0" != "$(cat /etc/ssh/moduli | awk '$5<=2048' | wc -l)" ]; then
         echo "########## ### Weak DH / Logjam ###   ##########"
         echo "########## You should run: ssh-moduli ##########"
         echo "##########   ##########  ##########   ##########"
