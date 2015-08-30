@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150830-072143
+SCRIPTVERSION=150830-183152
 
 ### Variables you can edit
 
@@ -249,6 +249,14 @@ cryptdecode() {
 
 ### Post-install configuration
 freebsdconfigglobal() {
+    ### virtual if using emulators/virtio-kmod
+    cat >>"${FZG_MNT}/boot/loader.conf" <<EOF
+# if_vtnet_load="YES"
+# virtio_load="YES"
+# virtio_pci_load="YES"
+# virtio_blk_load="YES"
+# virtio_balloon_load="YES"
+EOF
     ### Set some loader.conf options global to vps hosts too
     CONFIG_OPTIONS="
     # FILE                      SETTING
@@ -303,23 +311,15 @@ freebsdconfigglobal() {
         done
         sysrc -f "${FZG_MNT}${dataset}" "${options}" >/dev/null
     done
-    ### virtual if using emulators/virtio-kmod
-    cat >>"${FZG_MNT}/boot/loader.conf" <<EOF
-# if_vtnet_load="YES"
-# virtio_load="YES"
-# virtio_pci_load="YES"
-# virtio_blk_load="YES"
-# virtio_balloon_load="YES"
-EOF
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf"
     ### Set some rc.conf options that may contain spaces
     sysrc -f "${FZG_MNT}/etc/rc.conf.d/ntpdate"  ntpdate_hosts="$ntpdate_hosts" >/dev/null
     sysrc -f "${FZG_MNT}/etc/rc.conf.d/syslogd"  syslogd_flags="-s -b127.0.0.1" >/dev/null
     cat    >>"${FZG_MNT}/etc/rc.conf.d/sendmail" <<EOF
 # sendmail_enable="NO"
-# sendmail_submit_enable="NO"
-# sendmail_outbound_enable="NO"
 # sendmail_msp_queue_enable="NO"
+# sendmail_outbound_enable="NO"
+# sendmail_submit_enable="NO"
 EOF
     ### Set SSH options
     SSHD_OPTIONS="
