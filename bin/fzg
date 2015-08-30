@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150816-023747
+SCRIPTVERSION=150830-070718
 
 ### Variables you can edit
 
@@ -263,6 +263,15 @@ freebsdconfigglobal() {
     /boot/loader.conf           loader_logo=none # should stop logo from showing, appears to be BROKEN
     /boot/loader.conf           nullfs_load=YES
     /boot/loader.conf           tmpfs_load=YES # for mfsroot /usr
+
+    /etc/periodic.conf          daily_output=/var/log/daily.log
+    /etc/periodic.conf          daily_status_security_output=/var/log/daily_status_security.log
+    /etc/periodic.conf          weekly_output=/var/log/weekly.log
+    /etc/periodic.conf          weekly_status_security_output=/var/log/weekly_status_security.log
+    /etc/periodic.conf          monthly_output=/var/log/monthly.log
+    /etc/periodic.conf          monthly_status_security_output=/var/log/monthly_status_security.log
+    /etc/periodic.conf          security_status_chksetuid_enable=NO
+    /etc/periodic.conf          security_status_neggrpperm_enable=NO
 
     /etc/rc.conf.d/abi          linux_enable=YES
     /etc/rc.conf.d/auditd       auditd_enable=YES
