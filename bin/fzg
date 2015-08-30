@@ -261,45 +261,45 @@ freebsdconfigglobal() {
 EOF
     ### Set some loader.conf options global to vps hosts too
     CONFIG_OPTIONS="
-    # FILE                      SETTING
+    #FILE                          SETTING
 
-    /boot/loader.conf           autoboot_delay=1
-    /boot/loader.conf           hw.usb.no_shutdown_wait=1 # allows USB not to stall poweroff
-    /boot/loader.conf           kern.cam.boot_delay=10000
-    /boot/loader.conf           kern.geom.label.disk_ident.enable=0 # I prefer no disk ID
-    /boot/loader.conf           kern.geom.label.gpt.enable=0
-    /boot/loader.conf           kern.geom.label.gptid.enable=1 # But I allow UUID
-    /boot/loader.conf           kern.maxfiles=65530 # Kernel max
-    /boot/loader.conf           loader_logo=none # should stop logo from showing, appears to be BROKEN
-    /boot/loader.conf           nullfs_load=YES
-    /boot/loader.conf           tmpfs_load=YES # for mfsroot /usr
+    /boot/loader.conf              autoboot_delay=1
+    /boot/loader.conf              hw.usb.no_shutdown_wait=1                #  allows USB not to stall poweroff
+    /boot/loader.conf              kern.cam.boot_delay=10000
+    /boot/loader.conf              kern.geom.label.disk_ident.enable=0      #  I prefer no disk ID
+    /boot/loader.conf              kern.geom.label.gpt.enable=0
+    /boot/loader.conf              kern.geom.label.gptid.enable=1           #  But I allow UUID
+    /boot/loader.conf              kern.maxfiles=65530                      #  Kernel max
+    /boot/loader.conf              loader_logo=none                         #  should stop logo from showing, appears to be BROKEN
+    /boot/loader.conf              nullfs_load=YES
+    /boot/loader.conf              tmpfs_load=YES                           #  for mfsroot /usr
 
-    /etc/periodic.conf          daily_output=/var/log/daily.log
-    /etc/periodic.conf          daily_status_security_output=/var/log/daily_status_security.log
-    /etc/periodic.conf          weekly_output=/var/log/weekly.log
-    /etc/periodic.conf          weekly_status_security_output=/var/log/weekly_status_security.log
-    /etc/periodic.conf          monthly_output=/var/log/monthly.log
-    /etc/periodic.conf          monthly_status_security_output=/var/log/monthly_status_security.log
-    /etc/periodic.conf          security_status_chksetuid_enable=NO
-    /etc/periodic.conf          security_status_neggrpperm_enable=NO
+    /boot/periodic.conf.overwrite  daily_output=/var/log/daily.log
+    /boot/periodic.conf.overwrite  daily_status_security_output=/var/log/daily_status_security.log
+    /boot/periodic.conf.overwrite  weekly_output=/var/log/weekly.log
+    /boot/periodic.conf.overwrite  weekly_status_security_output=/var/log/weekly_status_security.log
+    /boot/periodic.conf.overwrite  monthly_output=/var/log/monthly.log
+    /boot/periodic.conf.overwrite  monthly_status_security_output=/var/log/monthly_status_security.log
+    /boot/periodic.conf.overwrite  security_status_chksetuid_enable=NO
+    /boot/periodic.conf.overwrite  security_status_neggrpperm_enable=NO
 
-    /etc/rc.conf.d/abi          linux_enable=YES
-    /etc/rc.conf.d/auditd       auditd_enable=YES
-    /etc/rc.conf.d/ezjail       ezjail_enable=YES
-    /etc/rc.conf.d/ftp-proxy    ftpproxy_enable=YES
-    /etc/rc.conf.d/ntpdate      ntpdate_enable=YES
-    /etc/rc.conf.d/openntpd     openntpd_enable=YES
-    /etc/rc.conf.d/pf           pf_enable=YES
-    /etc/rc.conf.d/pf           pf_rules=/etc/pf/pf.conf
-    /etc/rc.conf.d/pflog        pflog_enable=YES
-    /etc/rc.conf.d/pflog        pflog_logfile=/var/log/pflog
-    /etc/rc.conf.d/random       entropy_file=/var/db/entropy-file
-    /etc/rc.conf.d/sshd         sshd_enable=YES
-    /etc/rc.conf.d/sshd         sshd_rsa1_enable=NO
-    /etc/rc.conf.d/sshd         sshd_dsa_enable=NO
-    /etc/rc.conf.d/sshd         sshd_ecdsa_enable=NO
+    /etc/rc.conf.d/abi             linux_enable=YES
+    /etc/rc.conf.d/auditd          auditd_enable=YES
+    /etc/rc.conf.d/ezjail          ezjail_enable=YES
+    /etc/rc.conf.d/ftp-proxy       ftpproxy_enable=YES
+    /etc/rc.conf.d/ntpdate         ntpdate_enable=YES
+    /etc/rc.conf.d/openntpd        openntpd_enable=YES
+    /etc/rc.conf.d/pf              pf_enable=YES
+    /etc/rc.conf.d/pf              pf_rules=/etc/pf/pf.conf
+    /etc/rc.conf.d/pflog           pflog_enable=YES
+    /etc/rc.conf.d/pflog           pflog_logfile=/var/log/pflog
+    /etc/rc.conf.d/random          entropy_file=/var/db/entropy-file
+    /etc/rc.conf.d/sshd            sshd_enable=YES
+    /etc/rc.conf.d/sshd            sshd_rsa1_enable=NO
+    /etc/rc.conf.d/sshd            sshd_dsa_enable=NO
+    /etc/rc.conf.d/sshd            sshd_ecdsa_enable=NO
 
-    /etc/rc.conf.local          zfs_enable=YES
+    /etc/rc.conf.local             zfs_enable=YES
 " ### END-QUOTE
     echo "$CONFIG_OPTIONS" \
     | while read dataset options; do
