@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150830-183848
+SCRIPTVERSION=150831-052847
 
 ### Variables you can edit
 
@@ -1294,6 +1294,10 @@ echo
 
 ### Add urep user
 chroot $FZG_MNT sh -c 'echo "urep:1001::::::/usr/home/urep:/bin/csh:" | adduser -w no -f -'
+
+### Add btfs user
+chroot $FZG_MNT sh -c 'echo "btfs:1002::::::/usr/home/btfs:/bin/csh:" | adduser -w no -f -'
+chroot $FZG_MNT sh -c 'pw groupmod operator -m btfs'
 
 ### Add _sshtunl user
 chroot $FZG_MNT sh -c 'echo "_sshtunl:1022::::::/usr/home/_sshtunl:/usr/sbin/nologin:" | adduser -w no -f -'
