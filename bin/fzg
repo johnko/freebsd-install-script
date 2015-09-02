@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150831-052847
+SCRIPTVERSION=150902-011345
 
 ### Variables you can edit
 
@@ -254,10 +254,10 @@ freebsdconfigglobal() {
     ### virtual if using emulators/virtio-kmod
     cat >>"${FZG_MNT}/boot/loader.conf" <<EOF
 # if_vtnet_load="YES"
+# virtio_balloon_load="YES"
+# virtio_blk_load="YES"
 # virtio_load="YES"
 # virtio_pci_load="YES"
-# virtio_blk_load="YES"
-# virtio_balloon_load="YES"
 EOF
     ### Set some loader.conf options global to vps hosts too
     CONFIG_OPTIONS="
