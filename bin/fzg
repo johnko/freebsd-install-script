@@ -34,7 +34,7 @@
 ######################################################################
 # Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
 ######################################################################
-SCRIPTVERSION=150902-011345
+SCRIPTVERSION=150904-214624
 
 ### Variables you can edit
 
@@ -287,6 +287,7 @@ EOF
     /etc/rc.conf.d/auditd          auditd_enable=YES
     /etc/rc.conf.d/ezjail          ezjail_enable=YES
     /etc/rc.conf.d/ftp-proxy       ftpproxy_enable=YES
+    /etc/rc.conf.d/mdnsd           mdnsd_enable=YES
     /etc/rc.conf.d/ntpdate         ntpdate_enable=YES
     /etc/rc.conf.d/openntpd        openntpd_enable=YES
     /etc/rc.conf.d/pf              pf_enable=YES
