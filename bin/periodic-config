@@ -1,0 +1,27 @@
+#!/bin/sh
+
+CONFIG_OPTIONS="
+#FILE                          SETTING
+
+/etc/periodic.conf  daily_output=/var/log/daily.log
+/etc/periodic.conf  daily_status_security_output=/var/log/daily_status_security.log
+/etc/periodic.conf  weekly_output=/var/log/weekly.log
+/etc/periodic.conf  weekly_status_security_output=/var/log/weekly_status_security.log
+/etc/periodic.conf  monthly_output=/var/log/monthly.log
+/etc/periodic.conf  monthly_status_security_output=/var/log/monthly_status_security.log
+/etc/periodic.conf  security_status_chksetuid_enable=NO
+/etc/periodic.conf  security_status_neggrpperm_enable=NO
+" ### END-QUOTE
+
+echo "$CONFIG_OPTIONS" \
+| while read dataset options; do
+    case "$dataset" in "#"*|"") continue; esac
+    options="${options%%#*}"
+    oldoptions=
+    while [ "$oldoptions" != "$options" ]; do
+        oldoptions="$options"
+        newoptions=`echo $options | sed 's/  / /g'`
+        options="$newoptions"
+    done
+    sysrc -f "${dataset}" "${options}" >/dev/null
+done
