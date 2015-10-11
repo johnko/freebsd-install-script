@@ -1,0 +1,73 @@
+#!/bin/sh
+
+FZG_MNT=$1
+
+CONFIG_OPTIONS="
+#FILE                          SETTING
+
+/etc/rc.conf.d/sshd            sshd_enable=YES
+/etc/rc.conf.d/sshd            sshd_rsa1_enable=NO
+/etc/rc.conf.d/sshd            sshd_dsa_enable=NO
+/etc/rc.conf.d/sshd            sshd_ecdsa_enable=NO
+" ### END-QUOTE
+
+echo "$CONFIG_OPTIONS" \
+| while read dataset options; do
+    case "$dataset" in "#"*|"") continue; esac
+    options="${options%%#*}"
+    oldoptions=
+    while [ "$oldoptions" != "$options" ]; do
+        oldoptions="$options"
+        newoptions=`echo $options | sed 's/  / /g'`
+        options="$newoptions"
+    done
+    sysrc -f "${FZG_MNT}${dataset}" "${options}" >/dev/null
+done
+
+### Set SSH options
+SSHD_OPTIONS="
+# https://wiki.mozilla.org/Security/Guidelines/OpenSSH
+# LEFT                      RIGHT
+
+ChallengeResponseAuthentication no
+PermitRootLogin                 without-password
+UseDNS                          no
+ClientAliveInterval             5
+KexAlgorithms                   curve25519-sha256@libssh.org,ecdh-sha2-nistp521,ecdh-sha2-nistp384,ecdh-sha2-nistp256,diffie-hellman-group-exchange-sha256
+Ciphers                         chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com,aes256-ctr,aes192-ctr,aes128-ctr
+MACs                            hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com,umac-128-etm@openssh.com,hmac-sha2-512,hmac-sha2-256,umac-128@openssh.com
+KeyRegenerationInterval         1800
+AuthenticationMethods           publickey
+LogLevel                        VERBOSE
+UsePrivilegeSeparation          sandbox
+" ### END-QUOTE
+echo "$SSHD_OPTIONS" \
+| while read dataset options; do
+    case "$dataset" in "#"*|"") continue; esac
+    options="${options%%#*}"
+    oldoptions=
+    while [ "$oldoptions" != "$options" ]; do
+        oldoptions="$options"
+        newoptions=`echo $options | sed 's/  / /g'`
+        options="$newoptions"
+    done
+    grep       "^$dataset"            "${FZG_MNT}/etc/ssh/sshd_config" \
+        || echo "$dataset $options" >>"${FZG_MNT}/etc/ssh/sshd_config"
+done
+### SSHD Hardening
+grep '^HostKey' "${FZG_MNT}/etc/ssh/sshd_config" \
+    || cat    >>"${FZG_MNT}/etc/ssh/sshd_config" <<EOF
+HostKey /etc/ssh/ssh_host_rsa_key
+HostKey /etc/ssh/ssh_host_ed25519_key
+EOF
+### stronger private keys
+if [ ! -e ${FZG_MNT}/etc/ssh/ssh_host_rsa_key ] \
+|| [ `ls -l ${FZG_MNT}/etc/ssh/ssh_host_rsa_key | awk '{print $5}'` -lt 3243 ]; then
+    ssh-keygen -q -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key -t rsa -b 4096 -N ""
+    ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub
+fi
+if [ ! -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key ] \
+|| [ `ls -l ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key | awk '{print $5}'` -lt 399 ]; then
+    ssh-keygen -q -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key -t ed25519 -N ""
+    ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
+fi
