@@ -1,5 +1,7 @@
 #!/bin/sh
 
+FZG_MNT=$1
+
 CONFIG_OPTIONS="
 #FILE                          SETTING
 
@@ -23,5 +25,5 @@ echo "$CONFIG_OPTIONS" \
         newoptions=`echo $options | sed 's/  / /g'`
         options="$newoptions"
     done
-    sysrc -f "${dataset}" "${options}" >/dev/null
+    sysrc -f "${FZG_MNT}${dataset}" "${options}" >/dev/null
 done
