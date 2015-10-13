@@ -31,10 +31,6 @@
 # OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-######################################################################
-# Script version is yymmdd-HHMMSS in UTC, date -u +%y%m%d-%H%M%S
-######################################################################
-SCRIPTVERSION=151011-082028
 
 ### Variables you can edit
 
@@ -181,6 +177,7 @@ append_motd() {
 EOF
         if [ -e /boot/../mfsroot ]; then
             cat >>${1}/etc/motd <<EOF
+This system uses an mfsroot boot image located at /boot/../mfsroot
     Update operating system mfsroot:        fzg -f [-n] [-p pool]
                                             reboot
     Update operating system leftovers:
@@ -1545,7 +1542,7 @@ done
 
 if [ -d /var/ports ]; then
     if [ -d ${FZG_MNT}/var ]; then
-        rsync -viaP --exclude work /var/ports/ ${FZG_MNT}/var/ports/
+        rsync -vimaP --exclude work /var/ports/ ${FZG_MNT}/var/ports/
     fi
 fi
 
