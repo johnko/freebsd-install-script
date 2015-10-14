@@ -1163,27 +1163,25 @@ bsdinstall distextract || exiterror $? "bsdinstall distextract"
 
 
 
-if [ "$FZG_UPDATE_MFSROOT" -o -z "$FZG_UPDATE_MFSROOT" ]; then
-    ### Allow for update using freebsd-update
-    echo "nameserver 8.8.8.8" >${FZG_MNT}/etc/resolv.conf
-    echo "Running: chroot ${FZG_MNT} freebsd-update fetch"
-    chroot ${FZG_MNT} freebsd-update fetch | cat >/tmp/fuf.log
-    if ! cat /tmp/fuf.log | grep 'No updates needed to update system' >/dev/null 2>&1 ; then
-        echo "Running: chroot ${FZG_MNT} freebsd-update install"
-        chroot ${FZG_MNT} freebsd-update install | cat >/tmp/fui.log
-        if ! cat /tmp/fui.log | grep 'Installing....*done' >/dev/null 2>&1 ; then
-            cat /tmp/fuf.log
-            cat /tmp/fui.log
-            cat <<EOF
+### Allow for update using freebsd-update
+echo "nameserver 8.8.8.8" >${FZG_MNT}/etc/resolv.conf
+echo "Running: chroot ${FZG_MNT} freebsd-update fetch"
+chroot ${FZG_MNT} freebsd-update fetch | cat >/tmp/fuf.log
+if ! cat /tmp/fuf.log | grep 'No updates needed to update system' >/dev/null 2>&1 ; then
+    echo "Running: chroot ${FZG_MNT} freebsd-update install"
+    chroot ${FZG_MNT} freebsd-update install | cat >/tmp/fui.log
+    if ! cat /tmp/fui.log | grep 'Installing....*done' >/dev/null 2>&1 ; then
+        cat /tmp/fuf.log
+        cat /tmp/fui.log
+        cat <<EOF
 Please connect another session and check that the system updated successfully:
     chroot $FZG_MNT freebsd-update -F fetch install
 EOF
-            echo -n "Then here, press ENTER to continue "
-            read CONTINUENOW
-        fi
+        echo -n "Then here, press ENTER to continue "
+        read CONTINUENOW
     fi
-    rm ${FZG_MNT}/etc/resolv.conf
-fi ### end of if [ "$FZG_UPDATE_MFSROOT" -o -z "$FZG_UPDATE_MFSROOT" ]; then
+fi
+rm ${FZG_MNT}/etc/resolv.conf
 
 
 
