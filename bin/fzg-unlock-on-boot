@@ -1,0 +1,38 @@
+#!/bin/sh
+
+# decrypts the /boot/data.crypt.key file to /boot/data.key
+# and adds geli settings to /boot/loader.conf.local
+
+DATAPOOL=$1
+
+if [ "x" = "x${DATAPOOL}" ]; then
+    DATAPOOL=tank
+fi
+
+FZG_DATA_CRYPT_KEY=/boot/data.crypt.key
+TMPFILE=/boot/data-${DATAPOOL}.key
+FZG_RESTORE_UMASK=`umask`
+
+runorerror() {
+    $@ || exiterror $? $@
+}
+
+if zpool status ${DATAPOOL} >/dev/null 2>/dev/null ; then
+    if [ ! -e ${TMPFILE} ]; then
+        if [ -e ${FZG_DATA_CRYPT_KEY} ]; then
+            umask 077
+            #
+            echo -n "Decrypting Password, "
+            runorerror "openssl enc -aes-256-cbc -in ${FZG_DATA_CRYPT_KEY} -out ${TMPFILE} -d -salt"
+            umask $FZG_RESTORE_UMASK
+        fi
+    fi
+
+    zpool status tank | grep '\.eli' | awk '{print $1}' \
+    | while read gptidtarget ; do
+        safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
+        sysrc -f /boot/loader.conf "geli_${safegptidtarget}_keyfile0_load=YES"
+        sysrc -f /boot/loader.conf "geli_${safegptidtarget}_keyfile0_type=${gptidtarget}:geli_keyfile0"
+        sysrc -f /boot/loader.conf "geli_${safegptidtarget}_keyfile0_name=${TMPFILE}"
+    done
+fi
