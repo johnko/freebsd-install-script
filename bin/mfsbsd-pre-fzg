@@ -1,8 +1,7 @@
 #!/bin/sh
- 
+
 # on mfsbsd, before fzg
- 
-touch /boot/../mfsroot
+
 mkdir -p /var/db/pkg
 mount -t tmpfs tmpfs /var/db/pkg
 mkdir -p /var/cache/pkg
@@ -15,12 +14,10 @@ mkdir -p /root/git
 mount -t tmpfs tmpfs /root/git
 mkdir -p /root/local
 mount -t tmpfs tmpfs /root/local
-mkdir -p /boot/packages
-mount -t tmpfs tmpfs /boot/packages
 pkg install -y git
 cd /root/bin
 fetch --no-verify-peer https://raw.githubusercontent.com/johnko/skel/master/bin/fres
 chmod +x fres
 fetch --no-verify-peer https://raw.githubusercontent.com/johnko/freebsd-install-script/master/bin/fzg
 chmod +x fzg
-fres -b
+fres
