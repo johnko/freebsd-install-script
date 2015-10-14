@@ -28,7 +28,7 @@ if zpool status ${DATAPOOL} >/dev/null 2>/dev/null ; then
         fi
     fi
 
-    zpool status tank | grep '\.eli' | awk '{print $1}' \
+    zpool status tank | grep -o 'gptid.*\.eli' \
     | while read gptidtarget ; do
         safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
         sysrc -f /boot/loader.conf "geli_${safegptidtarget}_keyfile0_load=YES"
