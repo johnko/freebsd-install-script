@@ -38,6 +38,7 @@ if [ "x" = "x$STEP" ]; then
     fi
     cat <<EOF
 Please reboot then run:
+    gdf
     $0 - - $SQUID ada1 2
 EOF
 elif [ "x2" = "x$STEP" ]; then
