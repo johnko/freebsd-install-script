@@ -36,4 +36,6 @@ if zpool status ${DATAPOOL} >/dev/null 2>/dev/null ; then
         sysrc -f /boot/loader.conf.local "geli_${safegptidtarget}_keyfile0_type=${gptidtarget}:geli_keyfile0"
         sysrc -f /boot/loader.conf.local "geli_${safegptidtarget}_keyfile0_name=${TMPFILE}"
     done
+
+    sortconf -f
 fi
