@@ -170,7 +170,6 @@ append_motd() {
         cat >${1}/etc/motd <<EOF
 
     Update programs and scripts:            fres
-    Cache program packages for reboot:      fres -b
     System information:                     stat-all
     Hard drive information:                 hddid
     zpool status + geli translation:        zss
@@ -178,10 +177,8 @@ EOF
         if [ -e /boot/../mfsroot ]; then
             cat >>${1}/etc/motd <<EOF
 This system uses an mfsroot boot image located at /boot/../mfsroot
+    Cache program packages for reboot:      fres -b
     Update operating system mfsroot:        fzg -f [-n] [-p pool]
-                                            reboot
-    Update operating system leftovers:
-                              env PAGER=cat freebsd-update -F fetch install
                                             reboot
 EOF
         else
