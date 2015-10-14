@@ -350,6 +350,9 @@ freebsdconfiglocal() {
     /boot/loader.conf.local     kern.maxswzone=512M
     /boot/loader.conf.local     vfs.zfs.arc_max=256M # limit arc usage on low RAM systems
     /boot/loader.conf.local     zfs_load=YES
+
+    /boot/loader.conf.local     fzg_ilu_p_pool=tank
+    /boot/loader.conf.local     coretemp_load=YES
 " ### END-QUOTE
     echo "$CONFIG_LOCAL_OPTIONS" \
     | while read dataset options; do
@@ -363,6 +366,14 @@ freebsdconfiglocal() {
         done
         sysrc -f "${FZG_MNT}${dataset}" "${options}" >/dev/null
     done
+    ### Set some options that may contain spaces
+    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_i_disks="$ZFSBOOT_DISKS" >/dev/null
+    ### set fzg_u_disks
+    fzg_u_disks=""
+    for i in $ZFSBOOT_DISKS; do
+        fzg_u_disks="$fzg_u_disks ${i}p${TANKPART}"
+    done
+    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_u_disks="$fzg_u_disks" >/dev/null
     ### network interfaces
     nics=""
     realnics \
@@ -409,8 +420,6 @@ freebsdconfiglocalmfsroot() {
     /boot/loader.conf.local     mfs_type=mfs_root
     /boot/loader.conf.local     mfs_name=/$FZG_MFSROOT
     /boot/loader.conf.local     vfs.root.mountfrom=ufs:/dev/md0
-
-    /boot/loader.conf.local     fzg_ilu_p_pool=tank
 " ### END-QUOTE
     echo "$CONFIG_LOCAL_MFS_OPTIONS" \
     | while read dataset options; do
@@ -431,16 +440,7 @@ freebsdconfiglocalmfsroot() {
 zpool_import="${ZFSBOOT_BOOT_POOL_NAME} ${ZFSBOOT_POOL_NAME}"
 ### optional set mdinit_shell
 # mdinit_shell="YES"
-coretemp_load="YES"
 EOF
-    ### Set some options that may contain spaces
-    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_i_disks="$ZFSBOOT_DISKS" >/dev/null
-    ### set fzg_u_disks
-    fzg_u_disks=""
-    for i in $ZFSBOOT_DISKS; do
-        fzg_u_disks="$fzg_u_disks ${i}p${TANKPART}"
-    done
-    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_u_disks="$fzg_u_disks" >/dev/null
     ### sortconf
     if which sortconf ; then
         sortconf -f ${FZG_MNT}
