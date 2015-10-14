@@ -1345,15 +1345,15 @@ mdinit_start()
         echo "ERROR: in mdinit while extracting /usr, entering shell:"
         /rescue/sh
     fi
-    if zfs list -H -o name,canmount,mountpoint | awk '\$2 ~ /on/ {print}' | grep 'on[^/]*/\$' ; then
+    if /sbin/zfs list -H -o name,canmount,mountpoint | /usr/bin/awk '\$2 ~ /on/ {print}' | /usr/bin/grep 'on[^/]*/\$' ; then
         echo "Disabling some zfs datasets that mount to /"
-        DATASETS=\$(zfs list -H -o name,canmount,mountpoint | awk '\$2 ~ /on/ {print}' | grep 'on[^/]*/\$' | awk '{print \$1}')
+        DATASETS=\$( /sbin/zfs list -H -o name,canmount,mountpoint | /usr/bin/awk '\$2 ~ /on/ {print}' | /usr/bin/grep 'on[^/]*/\$' | /usr/bin/awk '{print \$1}')
         for Z in \$DATASETS ; do
             echo zfs set canmount=off \$Z
-            zfs set canmount=off \$Z
+            /sbin/zfs set canmount=off \$Z
         done
     fi
-    if /bin/kenv -q mdinit_shell | grep YES ; then
+    if /bin/kenv -q mdinit_shell | /usr/bin/grep YES ; then
         echo "Found mdinit_shell, entering shell:"
         /rescue/sh
     fi
@@ -1382,17 +1382,23 @@ zpoolimport_start()
             /sbin/zpool import -f "\$i"
         done
     fi
+    ### relink /boot if /boot is mislinked because of fzg -q (quick)
+    if ! /bin/ls /boot >/dev/null 2>/dev/null ; then
+        bootpool=\$( /bin/kenv loaddev | /usr/bin/cut -f2 -d: )
+        bootdir=\$( /sbin/zfs list -H \${bootpool} | /usr/bin/awk '{print \$NF"/boot"}' )
+        /bin/ln -sf \${bootdir} /boot
+    fi
     for f in fstab hosts periodic.conf resolv.conf sysctl.conf ; do
         suffix=.overwrite
         if [ -e /boot/\${f}\${suffix} ]; then
-            cat /boot/\${f}\${suffix} >/etc/\${f}
+            /bin/cat /boot/\${f}\${suffix} >/etc/\${f}
         fi
         suffix=.append
         if [ -e /boot/\${f}\${suffix} ]; then
-            cat /boot/\${f}\${suffix} >>/etc/\${f}
+            /bin/cat /boot/\${f}\${suffix} >>/etc/\${f}
         fi
     done
-    service sysctl start
+    /usr/sbin/service sysctl start
 }
 load_rc_config \$name
 run_rc_command "\$1"
@@ -1411,8 +1417,8 @@ start_cmd="wrapperucarp_start"
 stop_cmd=":"
 wrapperucarp_start()
 {
-    for i in \$( service -l | grep '^ucarp' ) ; do
-        service \${i} start
+    for i in \$( /usr/sbin/service -l | /usr/bin/grep '^ucarp' ) ; do
+        /usr/sbin/service \${i} start
     done
 }
 load_rc_config \$name
@@ -1438,11 +1444,11 @@ do_p_install()
         pkg-static install -f -y \$P >/var/log/packages.net.log 2>&1
         echo "done"
     done
-    service ezjail start
-    if ls /boot/packages/*.t?z >/dev/null 2>&1 ; then
+    /usr/sbin/service ezjail start
+    if /bin/ls /boot/packages/*.t?z >/dev/null 2>&1 ; then
         ### force pkg to re-add to create user/groups
-        pkg-static add -f \$( ls /boot/packages/*.t?z ) >/var/log/packages.local.log 2>&1
-        service openntpd restart
+        pkg-static add -f \$( /bin/ls /boot/packages/*.t?z ) >/var/log/packages.local.log 2>&1
+        /usr/sbin/service openntpd restart
     fi
 }
 packages_start()
@@ -1573,6 +1579,8 @@ EOF
     cat <<EOF
 You may want to:
     vi ${FZG_MNT}/etc/rc.conf.d/{network,routing} ${FZG_MNT}/boot/loader.conf.local
+or
+    copy-network-conf-to-mnt
 EOF
 
 fi ### end of if [ -z "$FZG_NEW_MFSROOT" ]; then
