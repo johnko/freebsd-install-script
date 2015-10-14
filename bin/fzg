@@ -640,7 +640,7 @@ while getopts t:b:d:e:H:p:r:s:M:z:DcCiulxmfnqvh o; do
         l) FZG_DATA_LOCK=1 ;;
         x) unset FZG_DATA_AUTO_SIZE ;;
         m) FZG_MAKE_MFSROOT=1 ;;
-        f) FZG_NEW_MFSROOT=1 ;;
+        f) FZG_UPDATE_MFSROOT=1 ;;
         n) FZG_CHANGE_PASSWD=n ;;
         q) FZG_QUICK=1 ;;
         v) echo $SCRIPTVERSION ; exiterror 1 ;;
@@ -654,11 +654,11 @@ elif [ "$FZG_DATA_LOCK" -a "$FZG_DATA_UNLOCK" ]; then
     exiterror 2 "Only pass -l or -u, not both."
 elif [ "$FZG_DATA_UNLOCK" -a "$FZG_DATA_INIT" ]; then
     exiterror 2 "Only pass -u or -i, not both."
-elif [ "$FZG_DATA_INIT" -a "$FZG_NEW_MFSROOT" ]; then
+elif [ "$FZG_DATA_INIT" -a "$FZG_UPDATE_MFSROOT" ]; then
     exiterror 2 "Only pass -i or -f, not both."
-elif [ "$FZG_DATA_LOCK" -a "$FZG_NEW_MFSROOT" ]; then
+elif [ "$FZG_DATA_LOCK" -a "$FZG_UPDATE_MFSROOT" ]; then
     exiterror 2 "Only pass -l or -f, not both."
-elif [ "$FZG_DATA_UNLOCK" -a "$FZG_NEW_MFSROOT" ]; then
+elif [ "$FZG_DATA_UNLOCK" -a "$FZG_UPDATE_MFSROOT" ]; then
     exiterror 2 "Only pass -u or -f, not both."
 fi
 
@@ -690,7 +690,7 @@ fi
 
 ### backup mfsroot
 mfspath=${FZG_MNT}/${ZFSBOOT_BOOT_POOL_NAME}/$FZG_MFSROOT
-if [ "$FZG_NEW_MFSROOT" ]; then
+if [ "$FZG_UPDATE_MFSROOT" ]; then
     mfspath=/boot/../${FZG_MFSROOT}
     if [ -e ${mfspath} ]; then
         runorerror "cp -a ${mfspath} ${mfspath}_old"
@@ -709,7 +709,7 @@ targetpart=p3
 
 ### Disk parsing for testing raid type
 ### modified from https://github.com/mmatuska/mfsbsd
-if [ -z "$ADDTOPOOL" ] && [ -z "$FZG_DATA_UNLOCK" ] && [ -z "$FZG_NEW_MFSROOT" ]; then
+if [ -z "$ADDTOPOOL" ] && [ -z "$FZG_DATA_UNLOCK" ] && [ -z "$FZG_UPDATE_MFSROOT" ]; then
     count=$( echo "$ZFSBOOT_DISKS" | wc -w | awk '{ print $1 }' )
     if [ "$count" -lt "3" -a "$ZFSBOOT_VDEV_TYPE" = "raidz" ]; then
         exiterror 3 "raidz needs at least three devices (-d switch)"
@@ -731,7 +731,7 @@ fi
 
 ### Disk detect
 ### modified from https://github.com/mmatuska/mfsbsd
-if [ "$FZG_DATA_INIT" -o "$FZG_DATA_LOCK" -o "$FZG_DATA_UNLOCK" -o "$FZG_NEW_MFSROOT" ]; then
+if [ "$FZG_DATA_INIT" -o "$FZG_DATA_LOCK" -o "$FZG_DATA_UNLOCK" -o "$FZG_UPDATE_MFSROOT" ]; then
     echo "NOTICE: Skipping device check."
 else
     for DEV in $ZFSBOOT_DISKS ; do
@@ -747,7 +747,7 @@ fi
 
 
 ### Quit if pools exist, but if ADDTOPOOL, quit if not exist
-if [ -z "$FZG_DATA_LOCK" -a -z "$FZG_DATA_UNLOCK" -a -z "$ADDTOPOOL" -a -z "$FZG_NEW_MFSROOT" ]; then
+if [ -z "$FZG_DATA_LOCK" -a -z "$FZG_DATA_UNLOCK" -a -z "$ADDTOPOOL" -a -z "$FZG_UPDATE_MFSROOT" ]; then
     if zpool status $ZFSBOOT_POOL_NAME >/dev/null 2>&1 ; then
         exiterror 5 "A pool named $ZFSBOOT_POOL_NAME already exists."
     fi
@@ -964,7 +964,7 @@ rm -r /tmp/bsdinstall*
 
 
 ### Perform creation of zfsboot using zfsboot or zfsinstall
-if [ -z "$FZG_NEW_MFSROOT" ]; then
+if [ -z "$FZG_UPDATE_MFSROOT" ]; then
     if [ "$ADDTOPOOL" = "1" ]; then
         bpoolreal=$ZFSBOOT_BOOT_POOL_NAME
         bpooltmp=tmpbpool
@@ -1025,21 +1025,21 @@ EOF
     if [ "$ADDTOPOOL" = "1" ]; then
         exiterror 0
     fi
-fi # end of if [ -z "$FZG_NEW_MFSROOT" ]; then
+fi # end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 
 
 
 ### Check if local distribution exists, if so copy to FZG_MNT
 ### this notation /boot/.. is in case /boot is a symlink (eg. mfsroot)
 BSDINSTALL_DISTDIR=/boot/../${FZG_RELEASE}
-if [ -z "$FZG_NEW_MFSROOT" ]; then
+if [ -z "$FZG_UPDATE_MFSROOT" ]; then
     if [ ! -e $BSDINSTALL_DISTDIR/kernel.txz -o ! -e $BSDINSTALL_DISTDIR/base.txz ]; then
         BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${FZG_RELEASE}
     else
         mkdirorerror ${FZG_MNT}/boot/../${FZG_RELEASE} 755
         tar -c -f - -C /boot/.. ${FZG_RELEASE} | tar -C ${FZG_MNT}/boot/.. -x -f - || exiterror $? "tar -c -f - -C /boot/.. ${FZG_RELEASE} _ tar -C ${FZG_MNT}/boot/.. -x -f -"
     fi
-fi # end of if [ -z "$FZG_NEW_MFSROOT" ]; then
+fi # end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 mkdirorerror $BSDINSTALL_DISTDIR 755
 
 
@@ -1055,8 +1055,8 @@ fi
 
 
 
-if [ "$FZG_NEW_MFSROOT" ]; then
-    ### Create upgrade if $FZG_NEW_MFSROOT
+if [ "$FZG_UPDATE_MFSROOT" ]; then
+    ### Create upgrade if $FZG_UPDATE_MFSROOT
     zfs destroy -r ${ZFSBOOT_POOL_NAME}/upgrade >/dev/null 2>&1
     runorerror "zfs create -o mountpoint=${FZG_MNT} ${ZFSBOOT_POOL_NAME}/upgrade"
 fi
@@ -1092,7 +1092,7 @@ MFS_DATASETS="
 /var/yp
 " ### END-QUOTE
 
-if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_NEW_MFSROOT" ]; then
+if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_UPDATE_MFSROOT" ]; then
     ### create datasets
     echo -n "Creating ZFS datasets for MFS setup ..."
     echo "$MFS_DATASETS" \
@@ -1111,7 +1111,7 @@ if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_NEW_MFSROOT" ]; then
         echo -n " $dataset"
     done
     echo " done"
-elif [ "$FZG_NEW_MFSROOT" ]; then
+elif [ "$FZG_UPDATE_MFSROOT" ]; then
     ORIGINAL_SET="
     /${ZFSBOOT_BOOT_POOL_NAME}
     /tmp
@@ -1163,7 +1163,7 @@ bsdinstall distextract || exiterror $? "bsdinstall distextract"
 
 
 
-if [ "$FZG_NEW_MFSROOT" -o -z "$FZG_NEW_MFSROOT" ]; then
+if [ "$FZG_UPDATE_MFSROOT" -o -z "$FZG_UPDATE_MFSROOT" ]; then
     ### Allow for update using freebsd-update
     echo "nameserver 8.8.8.8" >${FZG_MNT}/etc/resolv.conf
     echo "Running: chroot ${FZG_MNT} freebsd-update fetch"
@@ -1183,7 +1183,7 @@ EOF
         fi
     fi
     rm ${FZG_MNT}/etc/resolv.conf
-fi ### end of if [ "$FZG_NEW_MFSROOT" -o -z "$FZG_NEW_MFSROOT" ]; then
+fi ### end of if [ "$FZG_UPDATE_MFSROOT" -o -z "$FZG_UPDATE_MFSROOT" ]; then
 
 
 
@@ -1196,7 +1196,7 @@ fi
 
 
 
-if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_NEW_MFSROOT" ]; then
+if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_UPDATE_MFSROOT" ]; then
     ### Fetch some packages we can cache in /boot/packages
     mkdirorerror ${FZG_MNT}/boot/packages 700
     if [ -d /boot/packages ]; then
@@ -1219,7 +1219,7 @@ if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_NEW_MFSROOT" ]; then
             rm /usr/local/etc/pkg.conf
         fi
     fi
-fi ### end of if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_NEW_MFSROOT" ]; then
+fi ### end of if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_UPDATE_MFSROOT" ]; then
 
 
 
@@ -1260,7 +1260,7 @@ append_motd $FZG_MNT
 
 
 
-if [ "$FZG_MAKE_MFSROOT" -o "$FZG_NEW_MFSROOT" ]; then
+if [ "$FZG_MAKE_MFSROOT" -o "$FZG_UPDATE_MFSROOT" ]; then
     if [ "$FZG_QUICK" ] && [ -e /boot/../mfsroot ]; then
         install -m 644 /boot/../mfsroot ${mfspath}
     else
@@ -1471,12 +1471,12 @@ EOF
         runorerror "mdconfig -d -u ${mdevice#md}"
     fi ### end of if [ "$FZG_QUICK" ] && [ -e /boot/../mfsroot ]; then
     freebsdconfiglocalmfsroot
-fi ### end of if [ "$FZG_MAKE_MFSROOT" -o "$FZG_NEW_MFSROOT" ]; then
+fi ### end of if [ "$FZG_MAKE_MFSROOT" -o "$FZG_UPDATE_MFSROOT" ]; then
 
 
 
-if [ "$FZG_NEW_MFSROOT" ]; then
-    ### Destroy upgrade if $FZG_NEW_MFSROOT
+if [ "$FZG_UPDATE_MFSROOT" ]; then
+    ### Destroy upgrade if $FZG_UPDATE_MFSROOT
     for k in 1 2 ; do
         for i in `mount | grep "tmpfs" | grep $FZG_MNT | awk '{print $3}'` ; do
             umount $i >/dev/null 2>&1
@@ -1487,7 +1487,7 @@ fi
 
 
 
-if [ -z "$FZG_NEW_MFSROOT" ]; then
+if [ -z "$FZG_UPDATE_MFSROOT" ]; then
     ### If .ssh/authorized_keys exists, copy that
     if [ -e /root/.ssh/authorized_keys ]; then
         runorerror "cp /root/.ssh/authorized_keys ${FZG_MNT}/root/.ssh/authorized_keys"
@@ -1522,7 +1522,7 @@ if [ -z "$FZG_NEW_MFSROOT" ]; then
             done
         done
     fi ### end of if [ "$FZG_MAKE_MFSROOT" ]; then
-fi ### end of if [ -z "$FZG_NEW_MFSROOT" ]; then
+fi ### end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 
 
 
@@ -1532,7 +1532,7 @@ while [ "$FZG_CHANGE_PASSWD" = "y" -o "$FZG_CHANGE_PASSWD" = "Y" ]; do
     read FZG_CHANGE_PASSWD
     case $FZG_CHANGE_PASSWD in
         y|Y)
-            if [ "$FZG_MAKE_MFSROOT" -o "$FZG_NEW_MFSROOT" ]; then
+            if [ "$FZG_MAKE_MFSROOT" -o "$FZG_UPDATE_MFSROOT" ]; then
                 mdevice=`mdconfig -a -t vnode -f ${mfspath}`
                 runorerror "mount /dev/${mdevice} $FZG_MFS_MNT"
                 runorerror "mount -t devfs devfs $FZG_MFS_MNT/dev"
@@ -1559,7 +1559,7 @@ fi
 
 
 
-if [ -z "$FZG_NEW_MFSROOT" ]; then
+if [ -z "$FZG_UPDATE_MFSROOT" ]; then
     ### Remind not to export pool
     cat <<EOF
 
@@ -1582,7 +1582,7 @@ or
     copy-network-conf-to-mnt
 EOF
 
-fi ### end of if [ -z "$FZG_NEW_MFSROOT" ]; then
+fi ### end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 
 
 
