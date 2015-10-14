@@ -174,7 +174,7 @@ append_motd() {
     Hard drive information:                 hddid
     zpool status + geli translation:        zss
 EOF
-        if [ -e /boot/../mfsroot ]; then
+        if [ "$FZG_MAKE_MFSROOT" ]; then
             cat >>${1}/etc/motd <<EOF
 This system uses an mfsroot boot image located at /boot/../mfsroot
     Cache program packages for reboot:      fres -b
@@ -1196,7 +1196,7 @@ fi
 
 
 
-if [ -z "$FZG_NEW_MFSROOT" ]; then
+if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_NEW_MFSROOT" ]; then
     ### Fetch some packages we can cache in /boot/packages
     mkdirorerror ${FZG_MNT}/boot/packages 700
     if [ -d /boot/packages ]; then
@@ -1219,7 +1219,7 @@ if [ -z "$FZG_NEW_MFSROOT" ]; then
             rm /usr/local/etc/pkg.conf
         fi
     fi
-fi ### end of if [ -z "$FZG_NEW_MFSROOT" ]; then
+fi ### end of if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_NEW_MFSROOT" ]; then
 
 
 
@@ -1511,15 +1511,17 @@ if [ -z "$FZG_NEW_MFSROOT" ]; then
             runorerror "chmod 600 ${FZG_MNT}/root/perm/*"
         fi
     fi
-    ### If files exists, copy that
-    for f in fstab hosts periodic.conf resolv.conf sysctl.conf ; do
-        for suffix in .overwrite .append ; do
-            if [ -e /boot/${f}${suffix} ] && [ ! -e ${FZG_MNT}/boot/${f}${suffix} ] ; then
-                runorerror "cp /boot/${f}${suffix} ${FZG_MNT}/boot/${f}${suffix}"
-                runorerror "chmod 600 ${FZG_MNT}/boot/${f}${suffix}"
-            fi
+    if [ "$FZG_MAKE_MFSROOT" ]; then
+        ### If files exists, copy that
+        for f in fstab hosts periodic.conf resolv.conf sysctl.conf ; do
+            for suffix in .overwrite .append ; do
+                if [ -e /boot/${f}${suffix} ] && [ ! -e ${FZG_MNT}/boot/${f}${suffix} ] ; then
+                    runorerror "cp /boot/${f}${suffix} ${FZG_MNT}/boot/${f}${suffix}"
+                    runorerror "chmod 600 ${FZG_MNT}/boot/${f}${suffix}"
+                fi
+            done
         done
-    done
+    fi ### end of if [ "$FZG_MAKE_MFSROOT" ]; then
 fi ### end of if [ -z "$FZG_NEW_MFSROOT" ]; then
 
 
