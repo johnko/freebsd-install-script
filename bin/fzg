@@ -620,7 +620,7 @@ makepoolwith() {
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
-while getopts t:b:d:e:H:p:r:s:M:z:DcCiulxmfnqvh o; do
+while getopts t:b:d:e:H:p:r:s:M:z:DcCiulxmfnqUvh o; do
     case "$o" in
         t) TANKPART="$OPTARG" ;;
         b) ZFSBOOT_BOOT_POOL_SIZE="$OPTARG" ;;
@@ -643,6 +643,7 @@ while getopts t:b:d:e:H:p:r:s:M:z:DcCiulxmfnqvh o; do
         f) FZG_UPDATE_MFSROOT=1 ;;
         n) FZG_CHANGE_PASSWD=n ;;
         q) FZG_QUICK=1 ;;
+        U) FZG_SKIP_UPDATE=1 ;;
         v) echo $SCRIPTVERSION ; exiterror 1 ;;
         h) usage ; exiterror 1 ;;
         [?]) usage ; exiterror 1 ;;
@@ -1163,25 +1164,27 @@ bsdinstall distextract || exiterror $? "bsdinstall distextract"
 
 
 
-### Allow for update using freebsd-update
-echo "nameserver 8.8.8.8" >${FZG_MNT}/etc/resolv.conf
-echo "Running: chroot ${FZG_MNT} freebsd-update fetch"
-chroot ${FZG_MNT} freebsd-update fetch | cat >/tmp/fuf.log
-if ! cat /tmp/fuf.log | grep 'No updates needed to update system' >/dev/null 2>&1 ; then
-    echo "Running: chroot ${FZG_MNT} freebsd-update install"
-    chroot ${FZG_MNT} freebsd-update install | cat >/tmp/fui.log
-    if ! cat /tmp/fui.log | grep 'Installing....*done' >/dev/null 2>&1 ; then
-        cat /tmp/fuf.log
-        cat /tmp/fui.log
-        cat <<EOF
+if [ -z "$FZG_SKIP_UPDATE" ]; then
+    ### Allow for update using freebsd-update
+    echo "nameserver 8.8.8.8" >${FZG_MNT}/etc/resolv.conf
+    echo "Running: chroot ${FZG_MNT} freebsd-update fetch"
+    chroot ${FZG_MNT} freebsd-update fetch | cat >/tmp/fuf.log
+    if ! cat /tmp/fuf.log | grep 'No updates needed to update system' >/dev/null 2>&1 ; then
+        echo "Running: chroot ${FZG_MNT} freebsd-update install"
+        chroot ${FZG_MNT} freebsd-update install | cat >/tmp/fui.log
+        if ! cat /tmp/fui.log | grep 'Installing....*done' >/dev/null 2>&1 ; then
+            cat /tmp/fuf.log
+            cat /tmp/fui.log
+            cat <<EOF
 Please connect another session and check that the system updated successfully:
     chroot $FZG_MNT freebsd-update -F fetch install
 EOF
-        echo -n "Then here, press ENTER to continue "
-        read CONTINUENOW
+            echo -n "Then here, press ENTER to continue "
+            read CONTINUENOW
+        fi
     fi
-fi
-rm ${FZG_MNT}/etc/resolv.conf
+    rm ${FZG_MNT}/etc/resolv.conf
+fi ### end of if [ -z "$FZG_SKIP_UPDATE" ]; then
 
 
 
