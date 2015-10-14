@@ -110,12 +110,12 @@ usage:  ${0##*/} -d disk [-d disk ...] [-e disk]
 typical usage:
 
     Install on mirror, make /bootpool/mfsroot
-        ${0##*/} -d ada0 -d ada1 -z 2g -m -D
+        ${0##*/} -d ada0 -d ada1 -z 2g -m
     Update /bootpool/mfsroot, reboot to take effect
         ${0##*/} -f
         reboot
     Create /tank
-        ${0##*/} -i -D
+        ${0##*/} -i
     Unlock /tank
         ${0##*/} -u
     Unmount and lock /tank
@@ -124,27 +124,27 @@ typical usage:
 examples:
 
     Install on disk 0, pool name mini with size 2 GB:
-        ${0##*/} -d ada0 -z 2g -p mini -D
+        ${0##*/} -d ada0 -z 2g -p mini
     Add disk 1 as mirror to existing pool mini that contains disk ada0:
         ${0##*/} -e ada0 -d ada1 -z 2g -p mini
     After rebooting again, add data partition automatically + create pool tank:
-        ${0##*/} -i -d ada0 -p tank -D
+        ${0##*/} -i -d ada0 -p tank
     Create another data partition and attach to pool tank:
         ${0##*/} -i -e ada0p5 -d ada1 -p tank
 
 other examples:
 
     Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
-        ${0##*/} -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror -D
+        ${0##*/} -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror
     Make a bootable ZFS USB, which loads as mfs:
     Note we change the pool name so they don't conflict.
-        ${0##*/} -d da0 -m -p usb -D
+        ${0##*/} -d da0 -m -p usb
     Minimal mirror mfs server:
-        ${0##*/} -d ada0 -d ada1 -z 2g -m -p mini -D
+        ${0##*/} -d ada0 -d ada1 -z 2g -m -p mini
     After rebooting into the new mfsroot system, it can be updated with:
         ${0##*/} -f -p mini
     Create data pool with these devices, no auto partition creation:
-        ${0##*/} -i -d ada0p5 -d ada1p5 -p data -x -D
+        ${0##*/} -i -d ada0p5 -d ada1p5 -p data -x
 EOF
 }
 
