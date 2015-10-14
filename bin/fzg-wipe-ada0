@@ -1,0 +1,56 @@
+#!/bin/sh
+
+# remove ada0, reinstall on ada0
+# add ada1 to ada0 mirror
+
+POOL=$1
+NEWHOSTNAME=$2
+SQUID=$3
+DISK=$4
+STEP=$5
+
+if [ "x" = "$POOL" ]; then
+    cat <<EOF
+Usage:
+    $0 pool newhostname SQUID
+EOF
+    exit 1
+fi
+
+
+
+if [ "x" = "$STEP" ]; then
+    glabel status | grep ada0 | awk '{print $1}' \
+    | while read line ; do
+    test -e /dev/${line}.eli && zpool detach $POOL ${line}.eli && geli detach ${line}.eli
+    test -e /dev/${line}.eli && zpool detach tank ${line}.eli && geli detach ${line}.eli
+    test -e /dev/${line} && zpool detach boot$POOL ${line}
+    done
+    gpart destroy -F ada0
+    if [ "pool" = "$POOL" ]; then
+        fzg -d ada0 -z 2g -n -H usb.local -p usb
+    elif [ "usb" = "$POOL" ]; then
+        fzg -d ada0 -z 2g -n -H $NEWHOSTNAME
+    fi
+    copy-network-conf-to-mnt
+    if [ "x" = "$SQUID" ]; then
+        SQUID="-"
+    fi
+    cat <<EOF
+Please reboot then run:
+    $0 - - $SQUID ada1 2
+EOF
+elif [ "x2" = "$STEP" ]; then
+    if [ "x-" = "$SQUID" ]; then
+        SQUID=""
+        unset SQUID
+    fi
+    env SQUID=$SQUID first-run -q
+    gpart destroy -F ${DISK}
+    if zpool status usb >/dev/null 2>/dev/null ; then
+        fzg -e ada0 -z 2g -d ${DISK} -p usb
+    elif zpool status pool >/dev/null 2>/dev/null ; then
+        fzg -e ada0 -z 2g -d ${DISK} -p pool
+    fi
+    env SQUID=$SQUID first-run
+fi
