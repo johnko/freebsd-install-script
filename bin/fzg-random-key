@@ -1,5 +1,7 @@
 #!/bin/sh
 
+# generates a random keyfile at /boot/data.crypt.key
+
 FZG_BSDINSTALL_TMP=/tmp/bsdinstall_boot
 TMPFILE=${FZG_BSDINSTALL_TMP}/encryption.key
 FZG_DATA_CRYPT_KEY=/boot/data.crypt.key
