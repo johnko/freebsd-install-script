@@ -1,6 +1,7 @@
 #!/bin/sh
 
 FZG_BSDINSTALL_TMP=/tmp/bsdinstall_boot
+TMPFILE=${FZG_BSDINSTALL_TMP}/encryption.key
 FZG_DATA_CRYPT_KEY=/boot/data.crypt.key
 FZG_RESTORE_UMASK=`umask`
 
@@ -17,16 +18,18 @@ mkdirorerror() {
 mkdirorerror ${FZG_BSDINSTALL_TMP} 700
 umount ${FZG_BSDINSTALL_TMP} >/dev/null 2>&1
 runorerror "mount -t tmpfs tmpfs ${FZG_BSDINSTALL_TMP}"
-keyfiletmp=${FZG_BSDINSTALL_TMP}/encryption.key
-if [ ! -e ${keyfiletmp} ]; then
+
+if [ ! -e ${TMPFILE} ]; then
     umask 077
-    runorerror "dd if=/dev/random of=${keyfiletmp} bs=4096 count=1"
-    runorerror "chmod go-rwx ${keyfiletmp}"
+    runorerror "dd if=/dev/random of=${TMPFILE} bs=4096 count=1"
+    runorerror "chmod go-rwx ${TMPFILE}"
     umask $FZG_RESTORE_UMASK
 fi
 
-if [ -e ${keyfiletmp} ]; then
+if [ -e ${TMPFILE} ]; then
     if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
-        openssl enc -aes-256-cbc -in ${keyfiletmp} -out ${FZG_DATA_CRYPT_KEY} -e -salt
+        runorerror "openssl enc -aes-256-cbc -in ${TMPFILE} -out ${FZG_DATA_CRYPT_KEY} -e -salt"
     fi
 fi
+
+umount ${FZG_BSDINSTALL_TMP} >/dev/null 2>&1
