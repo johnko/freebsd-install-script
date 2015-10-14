@@ -762,11 +762,6 @@ elif [ "$ADDTOPOOL" -o "$FZG_DATA_LOCK" ]; then
         exiterror 5 "A pool named $ZFSBOOT_POOL_NAME doesn't exists."
 
     fi
-    if [ -z "$FZG_DATA_LOCK" ]; then
-        if ! zpool status $ZFSBOOT_BOOT_POOL_NAME >/dev/null 2>&1 ; then
-            exiterror 5 "A pool named $ZFSBOOT_BOOT_POOL_NAME doesn't exists."
-        fi
-    fi
 fi
 
 
