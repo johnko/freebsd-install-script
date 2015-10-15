@@ -32,6 +32,9 @@
 # OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 
+# 4096 block to futureproof hdd upgrade of zpool
+sysctl vfs.zfs.min_auto_ashift=12
+
 ### Variables you can edit
 
 ZFSBOOT_BEROOT_NAME=rfs
@@ -268,14 +271,14 @@ EOF
     /boot/loader.conf              nullfs_load=YES
     /boot/loader.conf              tmpfs_load=YES                           #  for mfsroot /usr
 
-    /boot/periodic.conf.overwrite  daily_output=/var/log/daily.log
-    /boot/periodic.conf.overwrite  daily_status_security_output=/var/log/daily_status_security.log
-    /boot/periodic.conf.overwrite  weekly_output=/var/log/weekly.log
-    /boot/periodic.conf.overwrite  weekly_status_security_output=/var/log/weekly_status_security.log
-    /boot/periodic.conf.overwrite  monthly_output=/var/log/monthly.log
-    /boot/periodic.conf.overwrite  monthly_status_security_output=/var/log/monthly_status_security.log
-    /boot/periodic.conf.overwrite  security_status_chksetuid_enable=NO
-    /boot/periodic.conf.overwrite  security_status_neggrpperm_enable=NO
+    /etc/periodic.conf  daily_output=/var/log/daily.log
+    /etc/periodic.conf  daily_status_security_output=/var/log/daily_status_security.log
+    /etc/periodic.conf  weekly_output=/var/log/weekly.log
+    /etc/periodic.conf  weekly_status_security_output=/var/log/weekly_status_security.log
+    /etc/periodic.conf  monthly_output=/var/log/monthly.log
+    /etc/periodic.conf  monthly_status_security_output=/var/log/monthly_status_security.log
+    /etc/periodic.conf  security_status_chksetuid_enable=NO
+    /etc/periodic.conf  security_status_neggrpperm_enable=NO
 
     /etc/rc.conf.d/abi             linux_enable=YES
     /etc/rc.conf.d/auditd          auditd_enable=YES
@@ -295,6 +298,8 @@ EOF
     /etc/rc.conf.d/sshd            sshd_ecdsa_enable=NO
 
     /etc/rc.conf.local             zfs_enable=YES
+
+    /etc/sysctl.conf            vfs.zfs.min_auto_ashift=12 # 4096 block to futureproof hdd upgrade of zpool
 " ### END-QUOTE
     echo "$CONFIG_OPTIONS" \
     | while read dataset options; do
@@ -420,6 +425,17 @@ freebsdconfiglocalmfsroot() {
     /boot/loader.conf.local     mfs_type=mfs_root
     /boot/loader.conf.local     mfs_name=/$FZG_MFSROOT
     /boot/loader.conf.local     vfs.root.mountfrom=ufs:/dev/md0
+
+    /boot/periodic.conf.overwrite  daily_output=/var/log/daily.log
+    /boot/periodic.conf.overwrite  daily_status_security_output=/var/log/daily_status_security.log
+    /boot/periodic.conf.overwrite  weekly_output=/var/log/weekly.log
+    /boot/periodic.conf.overwrite  weekly_status_security_output=/var/log/weekly_status_security.log
+    /boot/periodic.conf.overwrite  monthly_output=/var/log/monthly.log
+    /boot/periodic.conf.overwrite  monthly_status_security_output=/var/log/monthly_status_security.log
+    /boot/periodic.conf.overwrite  security_status_chksetuid_enable=NO
+    /boot/periodic.conf.overwrite  security_status_neggrpperm_enable=NO
+
+    /boot/sysctl.conf.append       vfs.zfs.min_auto_ashift=12 # 4096 block to futureproof hdd upgrade of zpool
 " ### END-QUOTE
     echo "$CONFIG_LOCAL_MFS_OPTIONS" \
     | while read dataset options; do
@@ -1015,8 +1031,13 @@ EOF
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf.local"
     umount ${FZG_BSDINSTALL_TMP} >/dev/null 2>&1
     if [ -e ${FZG_BSDINSTALL_ETC}/fstab ]; then
-        cat ${FZG_BSDINSTALL_ETC}/fstab >>${FZG_MNT}/boot/fstab.append
-        runorerror "chmod 600 ${FZG_MNT}/boot/fstab.append"
+        if [ "$FZG_MAKE_MFSROOT" ]; then
+            FSTABFILE=${FZG_MNT}/boot/fstab.append
+        else
+            FSTABFILE=${FZG_MNT}/etc/fstab
+        fi
+        cat ${FZG_BSDINSTALL_ETC}/fstab >>${FSTABFILE}
+        runorerror "chmod 600 ${FSTABFILE}"
     fi
     if [ "$ADDTOPOOL" = "1" ]; then
         exiterror 0
