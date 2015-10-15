@@ -13,7 +13,7 @@ STEP=$6
 if [ "x" = "x$POOL" ]; then
     cat <<EOF
 Usage:
-    $0 pool newhostname SQUID ada0
+    $0 pool newhostname SQUID ada0 ada1
 EOF
     exit 1
 fi
@@ -35,24 +35,24 @@ if [ "x" = "x$STEP" ]; then
         fzg -d ${DISK} -z 2g -n -H $NEWHOSTNAME
     fi
     copy-network-conf-to-mnt
-    if [ "x" = "x$SQUID" ]; then
+    if [ "x" = "x${SQUID}" ]; then
         SQUID="-"
     fi
     cat <<EOF
 Please reboot then run:
-    $0 - - $SQUID ada0 ada1 2
+    $0 - - ${SQUID} ${DISK} ${DISKTWO} 2
 EOF
 elif [ "x2" = "x$STEP" ]; then
-    if [ "x-" = "x$SQUID" ]; then
+    if [ "x-" = "x${SQUID}" ]; then
         SQUID=""
         unset SQUID
     fi
-    env SQUID=$SQUID first-run -q
+    env SQUID=${SQUID} first-run -q
     gpart destroy -F ${DISKTWO}
     if zpool status usb >/dev/null 2>/dev/null ; then
         fzg -e ${DISK} -z 2g -d ${DISKTWO} -p usb
     elif zpool status pool >/dev/null 2>/dev/null ; then
         fzg -e ${DISK} -z 2g -d ${DISKTWO} -p pool
     fi
-    env SQUID=$SQUID first-run
+    env SQUID=${SQUID} first-run
 fi
