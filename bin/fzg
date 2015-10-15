@@ -1030,15 +1030,6 @@ EOF
     fi
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf.local"
     umount ${FZG_BSDINSTALL_TMP} >/dev/null 2>&1
-    if [ -e ${FZG_BSDINSTALL_ETC}/fstab ]; then
-        if [ "$FZG_MAKE_MFSROOT" ]; then
-            FSTABFILE=${FZG_MNT}/boot/fstab.append
-        else
-            FSTABFILE=${FZG_MNT}/etc/fstab
-        fi
-        cat ${FZG_BSDINSTALL_ETC}/fstab >>${FSTABFILE}
-        runorerror "chmod 600 ${FSTABFILE}"
-    fi
     if [ "$ADDTOPOOL" = "1" ]; then
         exiterror 0
     fi
@@ -1177,6 +1168,20 @@ BSDINSTALL_DISTDIR=$BSDINSTALL_DISTDIR \
 BSDINSTALL_CHROOT=$FZG_MNT \
 nonInteractive=0 \
 bsdinstall distextract || exiterror $? "bsdinstall distextract"
+
+
+
+if [ -z "$FZG_UPDATE_MFSROOT" ]; then
+    if [ -e ${FZG_BSDINSTALL_ETC}/fstab ]; then
+        if [ "$FZG_MAKE_MFSROOT" ]; then
+            FSTABFILE=${FZG_MNT}/boot/fstab.append
+        else
+            FSTABFILE=${FZG_MNT}/etc/fstab
+        fi
+        cat ${FZG_BSDINSTALL_ETC}/fstab >>${FSTABFILE}
+        runorerror "chmod 600 ${FSTABFILE}"
+    fi
+fi # end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 
 
 
