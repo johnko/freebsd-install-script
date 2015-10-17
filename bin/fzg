@@ -1218,33 +1218,6 @@ fi
 
 
 
-if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_UPDATE_MFSROOT" ]; then
-    ### Fetch some packages we can cache in /boot/packages
-    mkdirorerror ${FZG_MNT}/boot/packages 700
-    if [ -d /boot/packages ]; then
-        tar -c -f - -C /boot/ packages | tar -C ${FZG_MNT}/boot/ -x -f - || exiterror $? "tar -c -f - -C /boot/ packages _ tar -C ${FZG_MNT}/boot/ -x -f -"
-    else
-        if [ -f /usr/local/etc/pkg.conf ]; then
-            cat /usr/local/etc/pkg.conf >/usr/local/etc/pkg.conf.bkp
-        fi
-        mkdirorerror /usr/local/etc 755
-        echo "PKG_CACHEDIR = \"${FZG_MNT}/boot/packages\";" >>/usr/local/etc/pkg.conf
-        if [ -e $HOME/perm/cshpkglist ]; then
-            PKGLIST="`cat $HOME/perm/cshpkglist | grep -v '^#' | tr ' ' '\n' | grep -v '^\$'`"
-        fi
-        ### Don't exiterror, because pkg-static segfault
-        pkg-static fetch -y $PKGLIST
-        if [ -f /usr/local/etc/pkg.conf.bkp ]; then
-            cat /usr/local/etc/pkg.conf.bkp >/usr/local/etc/pkg.conf
-            rm /usr/local/etc/pkg.conf.bkp
-        else
-            rm /usr/local/etc/pkg.conf
-        fi
-    fi
-fi ### end of if [ "$FZG_MAKE_MFSROOT" -a -z "$FZG_UPDATE_MFSROOT" ]; then
-
-
-
 ### Set config
 freebsdconfigglobal
 freebsdconfiglocal
