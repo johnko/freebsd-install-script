@@ -646,7 +646,7 @@ while getopts t:b:d:e:H:p:r:s:M:z:DcCiulxmfnqUvh o; do
         r) ZFSBOOT_VDEV_TYPE="$OPTARG" ;;
         s) ZFSBOOT_SWAP_SIZE="$OPTARG" ;;
         M) FZG_MNT="$OPTARG" ;;
-        z) ZFSBOOT_POOL_SIZE="$OPTARG" ;;
+        z) ZFSBOOT_POOL_SIZE="$OPTARG" ; FZG_DATA_SIZES="$OPTARG" ;;
         H) FZG_HOSTNAME="$OPTARG" ;;
         D) FZG_DEDUP=1 ;;
         c) freebsdconfigglobal ; exit ;;
