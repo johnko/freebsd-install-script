@@ -1308,13 +1308,13 @@ if [ "$FZG_MAKE_MFSROOT" -o "$FZG_UPDATE_MFSROOT" ]; then
             -C ${FZG_MNT} ./ _ tar -C $FZG_MFS_MNT -x -f -"
         ### rc script for tmpfs /usr
         ### modified from https://github.com/mmatuska/mfsbsd
-        runorerror "install -m 555 ~/git/freebsd-install-script/etc/rc.d/mdinit $FZG_MFS_MNT/etc/rc.d/mdinit"
+        runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/mdinit $FZG_MFS_MNT/etc/rc.d/mdinit"
         ### zpoolimport because we are in mfs and harder to persist
-        runorerror "install -m 555 ~/git/freebsd-install-script/etc/rc.d/mdzpoolimport $FZG_MFS_MNT/etc/rc.d/mdzpoolimport"
+        runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/mdzpoolimport $FZG_MFS_MNT/etc/rc.d/mdzpoolimport"
         ### ucarp
-        runorerror "install -m 555 ~/git/freebsd-install-script/etc/rc.d/mdwrapperucarp $FZG_MFS_MNT/etc/rc.d/mdwrapperucarp"
+        runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/mdwrapperucarp $FZG_MFS_MNT/etc/rc.d/mdwrapperucarp"
         ### packages because we are in mfs and harder to persist
-        runorerror "install -m 555 ~/git/freebsd-install-script/etc/rc.d/mdpackages $FZG_MFS_MNT/etc/rc.d/mdpackages"
+        runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/mdpackages $FZG_MFS_MNT/etc/rc.d/mdpackages"
         ### Package /usr
         runorerror "tar -c -J -f $FZG_MFS_MNT/.usr.tar.xz --exclude ${FZG_RELEASE} --options xz:compression-level=9 -C ${FZG_MNT} usr"
         ### if .cshrc
@@ -1390,7 +1390,7 @@ if [ -z "$FZG_UPDATE_MFSROOT" ]; then
         ### create firstboot_sentinel only if not update and not mfsroot
         touch $FZG_MNT/firstboot
         ### install the firstboot script
-        runorerror "install -m 555 ~/git/freebsd-install-script/etc/rc.d/firstboot_realhost $FZG_MNT/etc/rc.d/firstboot_realhost"
+        runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/firstboot_realhost $FZG_MNT/etc/rc.d/firstboot_realhost"
     fi ### end of if [ "$FZG_MAKE_MFSROOT" ]; then
 fi ### end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 
