@@ -1388,9 +1388,9 @@ if [ -z "$FZG_UPDATE_MFSROOT" ]; then
         done
     else
         ### create firstboot_sentinel only if not update and not mfsroot
-        touch $FZG_MFS_MNT/firstboot
+        touch $FZG_MNT/firstboot
         ### install the firstboot script
-        runorerror "install -m 555 ~/git/freebsd-install-script/etc/rc.d/firstboot_realhost $FZG_MFS_MNT/etc/rc.d/firstboot_realhost"
+        runorerror "install -m 555 ~/git/freebsd-install-script/etc/rc.d/firstboot_realhost $FZG_MNT/etc/rc.d/firstboot_realhost"
     fi ### end of if [ "$FZG_MAKE_MFSROOT" ]; then
 fi ### end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 
