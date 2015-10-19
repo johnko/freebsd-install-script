@@ -42,12 +42,12 @@ firstboot_realhost_run()
     # fres sets up /root/bin/* and pkg installs
     /root/bin/fres
     # prune /root/bin/
-    rm -r /root/bin/
-    sh /root/git/skel/bin/fres
+    /bin/rm -r /root/bin/
+    /bin/sh /root/git/skel/bin/fres
 
     # make root ssh key
-    if [ ! -e ~/.ssh/id_ed25519 ]; then
-        ssh-makeprivkey-ed25519
+    if [ ! -e /root/.ssh/id_ed25519 ]; then
+        /root/bin/ssh-makeprivkey-ed25519
     fi
 
     # Count rc.d scripts again
