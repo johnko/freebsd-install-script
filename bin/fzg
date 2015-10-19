@@ -1453,7 +1453,7 @@ or
 EOF
 
 
-    SQUID=$( setenv | grep HTTP_PROXY | awk -F/ '{print $NF}' )
+    SQUID=$( echo ${HTTP_PROXY} | awk -F/ '{print $NF}' )
     if [ "x" != "x${SQUID}" ]; then
         sysrc -f ${FZG_MNT}/etc/rc.conf.d/firstboot_realhost firstboot_realhost_squid="${SQUID}"
     fi
