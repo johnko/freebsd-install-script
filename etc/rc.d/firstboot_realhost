@@ -32,30 +32,37 @@ firstboot_realhost_run()
     # Count rc.d scripts
     nscriptso=`ls /usr/local/etc/rc.d | wc -l`
 
-    echo "HOME var before: $HOME"
+    ## Set HOME so we have the right HOME folder
+    # echo "HOME var before: $HOME"
     HOME=/root
     export HOME
-    echo "HOME var after: $HOME"
+    ## set PATH so fres can find git
+    PATH="/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:${HOME}/bin"
+    export PATH
+    # echo "HOME var after: $HOME"
 
     if [ "x" != "x${firstboot_realhost_squid}" ]; then
-        echo "set proxy"
-        env SQUID=${firstboot_realhost_squid} /root/bin/setproxy
+        echo "RUN: env SQUID=${firstboot_realhost_squid} setproxy"
+                   env SQUID=${firstboot_realhost_squid} setproxy
     fi
 
-    echo "gdf sets up pf"
-    /root/bin/gdf
+    ## Setup the pf firewall
+    echo "RUN: gdf"
+               gdf
 
-    echo "fres sets up /root/bin/* and pkg installs"
-    /root/bin/fres
-    if [ -e /root/git/skel/bin/fres ]; then
-        echo "prune /root/bin/"
-        /bin/rm -r /root/bin/
-        /bin/sh /root/git/skel/bin/fres
+    ## Setup $HOME/bin , $HOME/git and more
+    echo "RUN: fres"
+               fres
+    if [ -e ${HOME}/git/skel/bin/fres ]; then
+        echo "RUN: rm -r ${HOME}/bin/"
+                   rm -r ${HOME}/bin/
+        sh ${HOME}/git/skel/bin/fres
     fi
 
-    echo "make root ssh key"
-    if [ ! -e /root/.ssh/id_ed25519 ]; then
-        /root/bin/ssh-makeprivkey-ed25519
+    ## Create an ssh key
+    if [ ! -e ${HOME}/.ssh/id_ed25519 ]; then
+        echo "RUN: ssh-makeprivkey-ed25519"
+                   ssh-makeprivkey-ed25519
     fi
 
     # Count rc.d scripts again
