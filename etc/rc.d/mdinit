@@ -1,0 +1,45 @@
+#!/bin/sh
+# $Id$
+# PROVIDE: mdinit
+# BEFORE: zfs FILESYSTEMS
+# REQUIRE: mountcritlocal
+# KEYWORD: FreeBSD
+### modified from https://github.com/mmatuska/mfsbsd
+. /etc/rc.subr
+name="mdinit"
+start_cmd="mdinit_start"
+stop_cmd=":"
+mdinit_start()
+{
+    if [ -f /.usr.tar.xz ]; then
+        /rescue/test -d /usr || /rescue/mkdir /usr
+        /rescue/test -d /usr && /rescue/mount -t tmpfs tmpfs /usr
+        /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.xz
+    elif [ -f /.usr.tar.bz2 ]; then
+        /rescue/test -d /usr || /rescue/mkdir /usr
+        /rescue/test -d /usr && /rescue/mount -t tmpfs tmpfs /usr
+        /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.bz2
+    elif [ -f /.usr.tar.gz ]; then
+        /rescue/test -d /usr || /rescue/mkdir /usr
+        /rescue/test -d /usr && /rescue/mount -t tmpfs tmpfs /usr
+        /rescue/test -d /usr && /rescue/tar -x -C / -f /.usr.tar.gz
+    fi
+    if [ ! -f /usr/bin/which ]; then
+        echo "ERROR: in mdinit while extracting /usr, entering shell:"
+        /rescue/sh
+    fi
+    if /sbin/zfs list -H -o name,canmount,mountpoint | /usr/bin/awk '$2 ~ /on/ {print}' | /usr/bin/grep 'on[^/]*/$' ; then
+        echo "Disabling some zfs datasets that mount to /"
+        DATASETS=$( /sbin/zfs list -H -o name,canmount,mountpoint | /usr/bin/awk '$2 ~ /on/ {print}' | /usr/bin/grep 'on[^/]*/$' | /usr/bin/awk '{print $1}')
+        for Z in $DATASETS ; do
+            echo zfs set canmount=off $Z
+            /sbin/zfs set canmount=off $Z
+        done
+    fi
+    if /bin/kenv -q mdinit_shell | /usr/bin/grep YES ; then
+        echo "Found mdinit_shell, entering shell:"
+        /rescue/sh
+    fi
+}
+load_rc_config $name
+run_rc_command "$1"

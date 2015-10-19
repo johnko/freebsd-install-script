@@ -1,0 +1,17 @@
+#!/bin/sh
+# $Id$
+# PROVIDE: mdwrapperucarp
+# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN dhclient
+# KEYWORD: FreeBSD
+. /etc/rc.subr
+name="mdwrapperucarp"
+start_cmd="wrapperucarp_start"
+stop_cmd=":"
+wrapperucarp_start()
+{
+    for i in $( /usr/sbin/service -l | /usr/bin/grep '^ucarp' ) ; do
+        /usr/sbin/service ${i} start
+    done
+}
+load_rc_config $name
+run_rc_command "$1"

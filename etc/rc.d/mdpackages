@@ -1,0 +1,30 @@
+#!/bin/sh
+# $Id$
+# PROVIDE: mdpackages
+# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN dhclient
+# KEYWORD: FreeBSD
+. /etc/rc.subr
+name="mdpackages"
+start_cmd="packages_start"
+stop_cmd=":"
+do_p_install()
+{
+    for P in $( /bin/kenv -q packages ) ; do
+        echo -n "Installing $P..."
+        ### force pkg to re-add to create user/groups
+        pkg-static install -f -y $P >/var/log/packages.net.log 2>&1
+        echo "done"
+    done
+    /usr/sbin/service ezjail start
+    if /bin/ls /boot/packages/*.t?z >/dev/null 2>&1 ; then
+        ### force pkg to re-add to create user/groups
+        pkg-static add -f $( /bin/ls /boot/packages/*.t?z ) >/var/log/packages.local.log 2>&1
+        /usr/sbin/service openntpd restart
+    fi
+}
+packages_start()
+{
+    do_p_install &
+}
+load_rc_config $name
+run_rc_command "$1"

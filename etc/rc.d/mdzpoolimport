@@ -1,0 +1,38 @@
+#!/bin/sh
+# $Id$
+# PROVIDE: mdzpoolimport
+# BEFORE: hostname netif
+# REQUIRE: mdinit FILESYSTEMS
+# KEYWORD: FreeBSD
+. /etc/rc.subr
+name="mdzpoolimport"
+start_cmd="zpoolimport_start"
+stop_cmd=":"
+zpoolimport_start()
+{
+    ### import before trying /boot/*
+    if /bin/kenv -q zpool_import 2>/dev/null ; then
+        for i in $( /bin/kenv -q zpool_import ) ; do
+            /sbin/zpool import -f "$i"
+        done
+    fi
+    ### relink /boot if /boot is mislinked because of fzg -q (quick)
+    if ! /bin/ls /boot >/dev/null 2>/dev/null ; then
+        bootpool=$( /bin/kenv loaddev | /usr/bin/cut -f2 -d: )
+        bootdir=$( /sbin/zfs list -H ${bootpool} | /usr/bin/awk '{print $NF"/boot"}' )
+        /bin/ln -sf ${bootdir} /boot
+    fi
+    for f in fstab hosts periodic.conf resolv.conf sysctl.conf ; do
+        suffix=.overwrite
+        if [ -e /boot/${f}${suffix} ]; then
+            /bin/cat /boot/${f}${suffix} >/etc/${f}
+        fi
+        suffix=.append
+        if [ -e /boot/${f}${suffix} ]; then
+            /bin/cat /boot/${f}${suffix} >>/etc/${f}
+        fi
+    done
+    /usr/sbin/service sysctl start
+}
+load_rc_config $name
+run_rc_command "$1"
