@@ -5,10 +5,9 @@
 
 POOL=$1
 NEWHOSTNAME=$2
-SQUID=$3
-DISK=$4
-DISKTWO=$5
-STEP=$6
+DISK=$3
+DISKTWO=$4
+STEP=$5
 
 if [ "x" = "x$POOL" ]; then
     cat <<EOF
@@ -35,24 +34,26 @@ if [ "x" = "x$STEP" ]; then
         fzg -d ${DISK} -z 2g -n -H $NEWHOSTNAME
     fi
     copy-network-conf-to-mnt
-    if [ "x" = "x${SQUID}" ]; then
-        SQUID="-"
-    fi
     cat <<EOF
 Please reboot then run:
-    $0 - - ${SQUID} ${DISK} ${DISKTWO} 2
+    $0 - - ${DISK} ${DISKTWO} 2
 EOF
 elif [ "x2" = "x$STEP" ]; then
-    if [ "x-" = "x${SQUID}" ]; then
-        SQUID=""
-        unset SQUID
-    fi
-    env SQUID=${SQUID} first-run -q
     gpart destroy -F ${DISKTWO}
     if zpool status usb >/dev/null 2>/dev/null ; then
         fzg -e ${DISK} -z 2g -d ${DISKTWO} -p usb
     elif zpool status pool >/dev/null 2>/dev/null ; then
         fzg -e ${DISK} -z 2g -d ${DISKTWO} -p pool
     fi
-    env SQUID=${SQUID} first-run
+    if [ ! -e ~/local/cshvars ] && [ -e ~/perm/cshvars ]; then
+        install -m 600 ~/perm/cshvars ~/local/cshvars
+        vi ~/local/cshvars
+    fi
+    cat <<EOF
+A reminder to run these commands to setup tank/iocage:
+    fzg-random-key
+    fzg -i -z 925 -p tank -r mirror -d ada0 -d ada1 -d ada2
+    fzg-unlock-on-boot
+    ioc-setup
+EOF
 fi

@@ -1,0 +1,64 @@
+#!/bin/sh
+
+# $FreeBSD$
+# KEYWORD: firstboot
+# PROVIDE: firstboot_realhost
+# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN dhclient
+# BEFORE: LOGIN
+
+## Modified from cperciva's sysutils/firstboot-pkgs
+
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf (in the disk
+# image, since this only runs on the first boot) to enable this:
+#
+# firstboot_realhost_enable="YES"
+#
+# and set the HTTP_PROXY IP:PORT part in firstboot_realhost_squid, e.g.,
+#
+# firstboot_realhost_squid="192.168.255.201:3128"
+
+. /etc/rc.subr
+
+: ${firstboot_realhost_enable:="NO"}
+
+name="firstboot_realhost"
+rcvar=firstboot_realhost_enable
+start_cmd="firstboot_realhost_run"
+stop_cmd=":"
+
+firstboot_realhost_run()
+{
+
+    # Count rc.d scripts
+    nscriptso=`ls /usr/local/etc/rc.d | wc -l`
+
+    if [ "x" != "x${firstboot_realhost_squid}" ]; then
+        env SQUID=${firstboot_realhost_squid} /root/bin/setproxy
+    fi
+
+    # gdf sets up pf
+    /root/bin/gdf
+
+    # fres sets up /root/bin/* and pkg installs
+    /root/bin/fres
+    # prune /root/bin/
+    rm -r /root/bin/
+    sh /root/git/skel/bin/fres
+
+    # make root ssh key
+    if [ ! -e ~/.ssh/id_ed25519 ]; then
+        ssh-makeprivkey-ed25519
+    fi
+
+    # Count rc.d scripts again
+    nscriptsn=`ls /usr/local/etc/rc.d | wc -l`
+
+    # If we have more scripts, request a reboot
+    if [ $nscriptsn -ne $nscriptso ]; then
+        echo "Requesting reboot after installing packages with rc.d scripts."
+        touch ${firstboot_sentinel}-reboot
+    fi
+}
+
+load_rc_config $name
+run_rc_command "$1"
