@@ -12,7 +12,7 @@ STEP=$5
 if [ "x" = "x$POOL" ]; then
     cat <<EOF
 Usage:
-    $0 pool newhostname SQUID ada0 ada1
+    $0 pool newhostname ada0 ada1
 EOF
     exit 1
 fi
