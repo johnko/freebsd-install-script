@@ -292,6 +292,7 @@ EOF
     /etc/rc.conf.d/pflog           pflog_enable=YES
     /etc/rc.conf.d/pflog           pflog_logfile=/var/log/pflog
     /etc/rc.conf.d/random          entropy_file=/var/db/entropy-file
+    /etc/rc.conf.d/firstboot_realhost   firstboot_realhost_enable=YES
     /etc/rc.conf.d/sshd            sshd_enable=YES
     /etc/rc.conf.d/sshd            sshd_rsa1_enable=NO
     /etc/rc.conf.d/sshd            sshd_dsa_enable=NO
@@ -1385,6 +1386,9 @@ if [ -z "$FZG_UPDATE_MFSROOT" ]; then
                 fi
             done
         done
+    else
+        ### create firstboot_sentinel only if not update and not mfsroot
+        touch $FZG_MFS_MNT/firstboot
     fi ### end of if [ "$FZG_MAKE_MFSROOT" ]; then
 fi ### end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 
@@ -1445,6 +1449,12 @@ You may want to:
 or
     copy-network-conf-to-mnt
 EOF
+
+
+    SQUID=$( setenv | grep HTTP_PROXY | awk -F/ '{print $NF}' )
+    if [ "x" != "x${SQUID}" ]; then
+        sysrc -f ${FZG_MNT}/etc/rc.conf.d/firstboot_realhost firstboot_realhost_squid="${SQUID}"
+    fi
 
 fi ### end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 
