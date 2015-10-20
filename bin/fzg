@@ -42,9 +42,12 @@ ZFSBOOT_BOOTFS_NAME=default
 ZFSBOOT_BOOT_POOL_SIZE=2g
 BSDINSTALL_DISTSITE_BASE="http://ftp.freebsd.org/pub/FreeBSD/releases"
 ZFSBOOT_GELI_KEY_FILE=/boot/encryption.key
-FZG_RELEASE=10.1-RELEASE
 ZFSBOOT_SWAP_SIZE=2g
 TANKPART="5"
+if [ "x" = "x${IOCRELEASE}" ]; then
+    IOCRELEASE=10.1-RELEASE
+fi
+
 
 ### Variables you don't touch
 
@@ -1040,13 +1043,13 @@ fi # end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 
 ### Check if local distribution exists, if so copy to FZG_MNT
 ### this notation /boot/.. is in case /boot is a symlink (eg. mfsroot)
-BSDINSTALL_DISTDIR=/boot/../${FZG_RELEASE}
+BSDINSTALL_DISTDIR=/boot/../${IOCRELEASE}
 if [ -z "$FZG_UPDATE_MFSROOT" ]; then
     if [ ! -e $BSDINSTALL_DISTDIR/kernel.txz -o ! -e $BSDINSTALL_DISTDIR/base.txz ]; then
-        BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${FZG_RELEASE}
+        BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${IOCRELEASE}
     else
-        mkdirorerror ${FZG_MNT}/boot/../${FZG_RELEASE} 755
-        tar -c -f - -C /boot/.. ${FZG_RELEASE} | tar -C ${FZG_MNT}/boot/.. -x -f - || exiterror $? "tar -c -f - -C /boot/.. ${FZG_RELEASE} _ tar -C ${FZG_MNT}/boot/.. -x -f -"
+        mkdirorerror ${FZG_MNT}/boot/../${IOCRELEASE} 755
+        tar -c -f - -C /boot/.. ${IOCRELEASE} | tar -C ${FZG_MNT}/boot/.. -x -f - || exiterror $? "tar -c -f - -C /boot/.. ${IOCRELEASE} _ tar -C ${FZG_MNT}/boot/.. -x -f -"
     fi
 fi # end of if [ -z "$FZG_UPDATE_MFSROOT" ]; then
 mkdirorerror $BSDINSTALL_DISTDIR 755
@@ -1057,7 +1060,7 @@ if [ ! -e $BSDINSTALL_DISTDIR/kernel.txz -o ! -e $BSDINSTALL_DISTDIR/base.txz ];
     ### Fetch distribution if no local copy exists
     DISTRIBUTIONS="kernel.txz base.txz lib32.txz" \
     BSDINSTALL_DISTDIR=$BSDINSTALL_DISTDIR \
-    BSDINSTALL_DISTSITE="$BSDINSTALL_DISTSITE_BASE/`uname -m`/`uname -p`/${FZG_RELEASE}" \
+    BSDINSTALL_DISTSITE="$BSDINSTALL_DISTSITE_BASE/`uname -m`/`uname -p`/${IOCRELEASE}" \
     nonInteractive=0 \
     bsdinstall distfetch || exiterror $? "bsdinstall distfetch"
 fi
@@ -1269,7 +1272,7 @@ if [ "$FZG_MAKE_MFSROOT" -o "$FZG_UPDATE_MFSROOT" ]; then
         ### Copy everything except ...
         tar -c -f - \
             --exclude ./$ZFSBOOT_BOOT_POOL_NAME \
-            --exclude ./${FZG_RELEASE} \
+            --exclude ./${IOCRELEASE} \
             --exclude ./etc/mail \
             --exclude ./etc/pf \
             --exclude ./etc/rc.conf.d \
@@ -1288,7 +1291,7 @@ if [ "$FZG_MAKE_MFSROOT" -o "$FZG_UPDATE_MFSROOT" ]; then
             --exclude ./var/tmp \
             -C ${FZG_MNT} ./ | tar -C $FZG_MFS_MNT -x -f - || exiterror $? "tar -c -f - \
             --exclude ./$ZFSBOOT_BOOT_POOL_NAME \
-            --exclude ./${FZG_RELEASE} \
+            --exclude ./${IOCRELEASE} \
             --exclude ./etc/mail \
             --exclude ./etc/pf \
             --exclude ./etc/rc.conf.d \
@@ -1316,7 +1319,7 @@ if [ "$FZG_MAKE_MFSROOT" -o "$FZG_UPDATE_MFSROOT" ]; then
         ### packages because we are in mfs and harder to persist
         runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/mdpackages $FZG_MFS_MNT/etc/rc.d/mdpackages"
         ### Package /usr
-        runorerror "tar -c -J -f $FZG_MFS_MNT/.usr.tar.xz --exclude ${FZG_RELEASE} --options xz:compression-level=9 -C ${FZG_MNT} usr"
+        runorerror "tar -c -J -f $FZG_MFS_MNT/.usr.tar.xz --exclude ${IOCRELEASE} --options xz:compression-level=9 -C ${FZG_MNT} usr"
         ### if .cshrc
         echo -n "Copying to ${FZG_MFS_MNT}/root/..."
         for i in `ls /root/ | egrep '(.cshrc|.gitconfig|.tmux.conf)'` ; do
