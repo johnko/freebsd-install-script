@@ -24,8 +24,12 @@ if [ "x" = "x$STEP" ]; then
     | while read line ; do
     test -e /dev/${line}.eli && zpool detach $POOL ${line}.eli && geli detach ${line}.eli
     test -e /dev/${line}.eli && zpool detach tank ${line}.eli && geli detach ${line}.eli
+    test -e /dev/${line}.eli && zpool detach priv ${line}.eli && geli detach ${line}.eli
     test -e /dev/${line}.eli && swapoff /dev/${line}.eli
     test -e /dev/${line} && zpool detach boot$POOL ${line}
+    test -e /dev/${line} && zpool detach $POOL ${line}
+    test -e /dev/${line} && zpool detach tank ${line}
+    test -e /dev/${line} && zpool detach priv ${line}
     done
     gpart destroy -F ${DISK}
     if [ "pool" = "$POOL" ]; then
