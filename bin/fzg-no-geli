@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# converts a single mirror geli pool to non-geli
+
+POOLNAME=${1}
+
+if [ "x" = "x${POOLNAME}" ]; then
+    echo "Usage: $0 tank"
+    exit 1
+fi
+
+if ! zpool status ${POOLNAME} >/dev/null 2>&1 ; then
+    echo "ERROR: didn't find a pool named ${POOLNAME}"
+    exit 1
+fi
+
+if zpool status ${POOLNAME} | grep "resilvering" >/dev/null 2>&1 ; then
+    echo "ERROR: ${POOLNAME} is resilvering"
+    exit 1
+fi
+
+if [ 1 -ne $( zpool status ${POOLNAME} | grep "mirror-" | wc -l ) ]; then
+    echo "ERROR: ${POOLNAME} needs to have exactly/only 1 mirror vdev"
+    exit 1
+fi
+
+VDEVS=$( zpool status ${POOLNAME} | grep ONLINE | awk '{print $1}' | egrep -v "^(state:|${POOLNAME}|mirror-)" )
+
+VDEVTODO=""
+for i in ${VDEVS} ; do
+    if [ "x" = "x${VDEVTODO}" ]; then
+        if echo ${i} | grep "\.eli$" >/dev/null 2>&1 ; then
+            VDEVTODO="${i}"
+        else
+            VDEVTOKEEP="${i}"
+        fi
+    else
+        VDEVTOKEEP="${i}"
+    fi
+done
+
+zpool detach ${POOLNAME} ${VDEVTODO}
+geli detach ${VDEVTODO}
+geli clear ${VDEVTODO%%.eli}
+zpool attach ${POOLNAME} ${VDEVTOKEEP} ${VDEVTODO%%.eli}
+
