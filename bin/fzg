@@ -339,6 +339,8 @@ EOF
     if which sortconf ; then
         sortconf -f ${FZG_MNT}
     fi
+    ### periodic
+    periodic-config ${FZG_MNT}
 }
 
 
@@ -1391,6 +1393,7 @@ if [ -z "$FZG_UPDATE_MFSROOT" ]; then
         done
     else
         ### create firstboot_sentinel only if not update and not mfsroot
+        ### also we do this after to avoide creating it on the /mfsroot image
         touch $FZG_MNT/firstboot
         ### install the firstboot script
         runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/firstboot_realhost $FZG_MNT/etc/rc.d/firstboot_realhost"
