@@ -1060,7 +1060,7 @@ mkdirorerror $BSDINSTALL_DISTDIR 755
 
 if [ ! -e $BSDINSTALL_DISTDIR/kernel.txz -o ! -e $BSDINSTALL_DISTDIR/base.txz ]; then
     ### Fetch distribution if no local copy exists
-    DISTRIBUTIONS="kernel.txz base.txz lib32.txz" \
+    DISTRIBUTIONS="kernel.txz base.txz lib32.txz doc.txz src.txz" \
     BSDINSTALL_DISTDIR=$BSDINSTALL_DISTDIR \
     BSDINSTALL_DISTSITE="$BSDINSTALL_DISTSITE_BASE/`uname -m`/`uname -p`/${IOCRELEASE}" \
     nonInteractive=0 \
@@ -1169,7 +1169,7 @@ mkdirorerror ${FZG_MNT}/var/audit/remote 700 auditdistd:wheel
 
 
 ### Extract ditribution
-DISTRIBUTIONS="kernel.txz base.txz" \
+DISTRIBUTIONS="kernel.txz base.txz lib32.txz doc.txz src.txz" \
 BSDINSTALL_DISTDIR=$BSDINSTALL_DISTDIR \
 BSDINSTALL_CHROOT=$FZG_MNT \
 nonInteractive=0 \
