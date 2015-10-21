@@ -39,8 +39,12 @@ for i in ${VDEVS} ; do
     fi
 done
 
+if [ "x" = "x${VDEVTODO}" ]; then
+    echo "ERROR: pool doesn't contain geli"
+    exit 1
+fi
+
 zpool detach ${POOLNAME} ${VDEVTODO}
 geli detach ${VDEVTODO}
 geli clear ${VDEVTODO%%.eli}
 zpool attach ${POOLNAME} ${VDEVTOKEEP} ${VDEVTODO%%.eli}
-
