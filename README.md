@@ -71,7 +71,7 @@ usage:  fzg -d disk [-d disk ...] [-e disk]
 
 ```
 Install on mirror, make /bootpool/mfsroot
-    fzg -d ada0 -d ada1 -z 2g -m -D
+    fzg -d ada0 -d ada1 -z 3g -m -D
 Update /bootpool/mfsroot, reboot to take effect
     fzg -f
     reboot
@@ -87,9 +87,9 @@ Unmount and lock /tank
 
 ```
 Install on disk 0, pool name mini with size 2 GB:
-    fzg -d ada0 -z 2g -p mini -D
+    fzg -d ada0 -z 3g -p mini -D
 Add disk 1 as mirror to existing pool mini that contains disk ada0:
-    fzg -e ada0 -d ada1 -z 2g -p mini
+    fzg -e ada0 -d ada1 -z 3g -p mini
 After rebooting again, add data partition automatically + create pool tank:
     fzg -i -d ada0 -p tank -D
 Create another data partition and attach to pool tank:
@@ -100,12 +100,12 @@ Create another data partition and attach to pool tank:
 
 ```
 Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
-    fzg -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 2g -r mirror -D
+    fzg -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 3g -r mirror -D
 Make a bootable ZFS USB, which loads as mfs:
 Note we change the pool name so they don't conflict.
     fzg -d da0 -m -p usb -D
 Minimal mirror mfs server:
-    fzg -d ada0 -d ada1 -z 2g -m -p mini -D
+    fzg -d ada0 -d ada1 -z 3g -m -p mini -D
 After rebooting into the new mfsroot system, it can be updated with:
     fzg -f -p mini
 Create data pool with these devices, no auto partition creation:
