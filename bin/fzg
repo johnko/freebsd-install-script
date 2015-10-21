@@ -685,6 +685,9 @@ elif [ "$FZG_DATA_LOCK" -a "$FZG_UPDATE_MFSROOT" ]; then
 elif [ "$FZG_DATA_UNLOCK" -a "$FZG_UPDATE_MFSROOT" ]; then
     exiterror 2 "Only pass -u or -f, not both."
 fi
+if [ "${IOCRELEASE}" != "$( uname -r | grep -o '.*-RELEASE' )" ]; then
+    FZG_SKIP_UPDATE=1
+fi
 
 
 
