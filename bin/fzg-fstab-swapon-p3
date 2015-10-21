@@ -1,0 +1,12 @@
+#!/bin/sh
+
+for i in $( glabel status | grep p3 | awk '{print $1}' ) ; do
+    if [ "x" != "x${i}" ] && ! grep "${i}" /etc/fstab >/dev/null 2>&1 ; then
+        cat >>/etc/fstab <<EOF
+/dev/${i}.eli  none  swap  sw  0  0
+EOF
+    fi
+done
+
+swapoff -a
+swapon -a

@@ -55,9 +55,13 @@ elif [ "x2" = "x$STEP" ]; then
     fi
     cat <<EOF
 A reminder to run these commands to setup tank/iocage:
+    fzg-fstab-swapon-p3
+    fzg-no-geli pool
     fzg-random-key
     fzg -i -z 922 -p tank -r mirror -d ada0 -d ada1 -d ada2
-    fzg-unlock-on-boot
+        fzg-unlock-on-boot
+    or
+        fzg-no-geli tank
     ioc-setup
 EOF
 fi
