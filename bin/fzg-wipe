@@ -61,6 +61,8 @@ A reminder to run these commands to setup tank/iocage:
         fzg-unlock-on-boot
     or
         fzg-no-geli tank
+    sortconf -f
+    vi /boot/loader.conf.local
     ioc-setup
 EOF
 fi
