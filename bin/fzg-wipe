@@ -56,7 +56,7 @@ elif [ "x2" = "x$STEP" ]; then
     cat <<EOF
 A reminder to run these commands to setup tank/iocage:
     fzg-random-key
-    fzg -i -z 924 -p tank -r mirror -d ada0 -d ada1 -d ada2
+    fzg -i -z 922 -p tank -r mirror -d ada0 -d ada1 -d ada2
     fzg-unlock-on-boot
     ioc-setup
 EOF
