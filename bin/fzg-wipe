@@ -49,14 +49,13 @@ elif [ "x2" = "x$STEP" ]; then
     elif zpool status pool >/dev/null 2>/dev/null ; then
         fzg -e ${DISK} -z 5g -d ${DISKTWO} -p pool
     fi
+    fzg-fstab-swapon-p3
     if [ ! -e ~/local/cshvars ] && [ -e ~/perm/cshvars ]; then
         install -m 600 ~/perm/cshvars ~/local/cshvars
         vi ~/local/cshvars
     fi
     cat <<EOF
 A reminder to run these commands to setup tank/iocage:
-    fzg-fstab-swapon-p3
-    fzg-no-geli pool
     fzg-random-key
     fzg -i -z 922 -p tank -r mirror -d ada0 -d ada1 -d ada2
         fzg-unlock-on-boot
