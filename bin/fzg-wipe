@@ -33,9 +33,9 @@ if [ "x" = "x$STEP" ]; then
     done
     gpart destroy -F ${DISK}
     if [ "pool" = "$POOL" ]; then
-        fzg -d ${DISK} -z 3g -n -H usb.local -p usb
+        fzg -d ${DISK} -z 5g -n -H usb.local -p usb
     elif [ "usb" = "$POOL" ]; then
-        fzg -d ${DISK} -z 3g -n -H $NEWHOSTNAME
+        fzg -d ${DISK} -z 5g -n -H $NEWHOSTNAME
     fi
     copy-network-conf-to-mnt
     cat <<EOF
@@ -45,9 +45,9 @@ EOF
 elif [ "x2" = "x$STEP" ]; then
     gpart destroy -F ${DISKTWO}
     if zpool status usb >/dev/null 2>/dev/null ; then
-        fzg -e ${DISK} -z 3g -d ${DISKTWO} -p usb
+        fzg -e ${DISK} -z 5g -d ${DISKTWO} -p usb
     elif zpool status pool >/dev/null 2>/dev/null ; then
-        fzg -e ${DISK} -z 3g -d ${DISKTWO} -p pool
+        fzg -e ${DISK} -z 5g -d ${DISKTWO} -p pool
     fi
     if [ ! -e ~/local/cshvars ] && [ -e ~/perm/cshvars ]; then
         install -m 600 ~/perm/cshvars ~/local/cshvars
