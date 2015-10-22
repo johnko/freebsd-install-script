@@ -8,5 +8,6 @@ EOF
     fi
 done
 
-swapoff -a
-swapon -a
+## don't run until all drives are transferred
+# swapoff -a
+# swapon -a
