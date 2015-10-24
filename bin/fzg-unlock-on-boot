@@ -28,7 +28,7 @@ if zpool status ${DATAPOOL} >/dev/null 2>/dev/null ; then
         fi
     fi
 
-    zpool status tank | grep -o '[a-z].*\.eli' \
+    zpool status tank | grep -o '[a-z].*\.eli.*ONLINE' \
     | while read gelitarget ; do
         gptidtarget=`echo $gelitarget | sed 's;\.eli;;'`
         safegptidtarget=`echo $gptidtarget | tr / _`
