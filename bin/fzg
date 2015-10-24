@@ -41,7 +41,7 @@ ZFSBOOT_BEROOT_NAME=rfs
 ZFSBOOT_BOOTFS_NAME=default
 ZFSBOOT_BOOT_POOL_SIZE=2g
 BSDINSTALL_DISTSITE_BASE="http://ftp.freebsd.org/pub/FreeBSD/releases"
-DISTRIBUTIONS="kernel.txz base.txz lib32.txz doc.txz src.txz"
+DISTRIBUTIONS="MANIFEST kernel.txz base.txz lib32.txz doc.txz src.txz"
 ZFSBOOT_GELI_KEY_FILE=/boot/encryption.key
 ZFSBOOT_SWAP_SIZE=2g
 TANKPART="5"
@@ -1065,7 +1065,10 @@ mkdirorerror $BSDINSTALL_DISTDIR 755
 
 
 
-if [ ! -e $BSDINSTALL_DISTDIR/kernel.txz -o ! -e $BSDINSTALL_DISTDIR/base.txz ]; then
+### Checksum distribution
+if ! DISTRIBUTIONS="${DISTRIBUTIONS}" \
+BSDINSTALL_DISTDIR=$BSDINSTALL_DISTDIR \
+bsdinstall checksum ; then
     ### Fetch distribution if no local copy exists
     DISTRIBUTIONS="${DISTRIBUTIONS}" \
     BSDINSTALL_DISTDIR=$BSDINSTALL_DISTDIR \
