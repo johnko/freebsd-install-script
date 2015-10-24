@@ -251,7 +251,7 @@ freebsdconfiglocal() {
     /boot/loader.conf.local     vfs.zfs.arc_max=256M # limit arc usage on low RAM systems
     /boot/loader.conf.local     zfs_load=YES
 
-    /boot/loader.conf.local     fzg_ilu_p_pool=tank
+    /boot/loader.conf.local     fzg_ilu_p_pool=vault
     /boot/loader.conf.local     coretemp_load=YES
 " ### END-QUOTE
     echo "${CONFIG_LOCAL_OPTIONS}" \
