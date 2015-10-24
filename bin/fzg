@@ -490,12 +490,13 @@ if [ "${FZG_DATA_INIT}" ]; then
         echo -n "Creating data partitions ..."
         for disk in ${ZFSBOOT_DISKS}; do
             PARTCREATED=0
+            uuid=$( uuidgen | md5 | cut -c1-6 )
             for GSIZE in ${FZG_DATA_SIZES} ; do
                 while [ ${PARTCREATED} -eq 0 ]; do
                     if [ ${PARTCREATED} -ne 1 ]; then
                         ### we try to add in whole integer sizes of GB so that all disk partition sizes are equal
                         ### so that we can mirror them correctly without having to worry about MB of variations
-                        if gpart add -i ${TANKPART} -t freebsd-zfs ${align_big} -s ${GSIZE}G ${disk} >/dev/null 2>&1 ; then
+                        if gpart add -l data${uuid} -t freebsd-zfs ${align_big} -s ${GSIZE}G ${disk} >/dev/null 2>&1 ; then
                             echo " success adding partition sized ${GSIZE}G at ${disk}"
                             PARTCREATED=1
                             runorerror  "dd if=/dev/zero of=/dev/$( glabel_of_diskpart ${disk}p${TANKPART} ) bs=512 count=560"
