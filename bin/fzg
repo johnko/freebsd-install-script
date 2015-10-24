@@ -165,7 +165,7 @@ EOF
     /boot/loader.conf              kern.cam.boot_delay=10000
     /boot/loader.conf              kern.geom.label.disk_ident.enable=0      #  I prefer no disk ID
     /boot/loader.conf              kern.geom.label.gpt.enable=0
-    /boot/loader.conf              kern.geom.label.gptid.enable=1           #  But I allow UUID
+    /boot/loader.conf              kern.geom.label.gptid.enable=0
     /boot/loader.conf              kern.maxfiles=65530                      #  Kernel max
     /boot/loader.conf              loader_logo=none                         #  should stop logo from showing, appears to be BROKEN
     /boot/loader.conf              nullfs_load=YES
@@ -579,7 +579,7 @@ if [ ! -f /usr/local/sbin/pkg-static ]; then
     pkg bootstrap
 fi
 
-### Patch zfsboot for POOL_SIZE and gptid
+### Patch zfsboot for POOL_SIZE and gptid or glabel uuid
 zfsbootpath=/usr/libexec/bsdinstall/zfsboot
 zfsbootdl=${HOME}/perm/zfsboot.dl
 zfsbootorig=${HOME}/perm/zfsboot.orig
@@ -592,9 +592,9 @@ fi
 MD5CHECK=$( md5 -r ${zfsbootdl} | cut -f1 -w )
 SHA1CHECK=$( sha1 -r ${zfsbootdl} | cut -f1 -w )
 SHA512CHECK=$( sha512 -r ${zfsbootdl} | cut -f1 -w )
-if [ "${MD5CHECK}" != "d0dd87ea7852850705b63efbb61a6345" ] \
-    || [ "${SHA1CHECK}" != "1fd55eae04470cacda2970e950569cd482a0cbc6" ] \
-    || [ "${SHA512CHECK}" != "2d8ee6a955398e1850bf8fcb39b40f64ec3272f02754aae9b871e210341b5884a6f15ea09c2a7f7b1575ff4fb6b1f3fd1bedfb1e8744828f39e6bdb621eec9ad" ] \
+if [ "${MD5CHECK}" != "47f38985ae370b650418554d38fb5a20" ] \
+    || [ "${SHA1CHECK}" != "74796c5129419fab96079e750b93091b038377d1" ] \
+    || [ "${SHA512CHECK}" != "412960341eb3207854d019f9d58df9bd5c6a389444f95c3929f7f2dbbe1e0e516bcf1616ff168527332028a7be6d53cfb86641816621d2f1c217d35a9370cb4f" ] \
     ; then
     rm ${zfsbootdl}
     exiterror 1 "ERROR: zfsboot HASHES don't match"
