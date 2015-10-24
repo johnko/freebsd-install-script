@@ -1066,7 +1066,7 @@ mkdirorerror $BSDINSTALL_DISTDIR 755
 
 
 ### Checksum distribution
-if ! DISTRIBUTIONS="${DISTRIBUTIONS}" \
+if [ ! -e $BSDINSTALL_DISTDIR/MANIFEST ] || ! DISTRIBUTIONS="${DISTRIBUTIONS}" \
 BSDINSTALL_DISTDIR=$BSDINSTALL_DISTDIR \
 bsdinstall checksum ; then
     ### Fetch distribution if no local copy exists
