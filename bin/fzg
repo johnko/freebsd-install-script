@@ -545,9 +545,7 @@ if [ ! -f /usr/local/sbin/pkg-static ]; then
     pkg bootstrap
 fi
 
-### How to create a b64 patch
-### diff -u zfsboot /usr/libexec/bsdinstall/zfsboot | xz | b64encode -
-### Patch zfsboot for passwordless (-P,-p) geli
+### Patch zfsboot for POOL_SIZE and gptid
 zfsbootpath=/usr/libexec/bsdinstall/zfsboot
 zfsbootdl=~/local/zfsboot.dl
 zfsbootorig=~/local/zfsboot.orig
