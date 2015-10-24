@@ -465,6 +465,26 @@ fi
 
 if [ "${FZG_DATA_INIT}" ]; then
     ### FZG_DATA_INIT
+    if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
+        umask 077
+        stty -echo
+        printf "Data GELI Partition Key:"
+        read PASSWORD
+        stty echo
+        printf "\n"
+        while [ ! -e ${FZG_DATA_CRYPT_KEY} ]; do
+            echo -n "Encrypting Password, "
+            echo ${PASSWORD} | openssl enc -aes-256-cbc -out ${FZG_DATA_CRYPT_KEY} -e -salt
+        done
+        unset PASSWORD
+        if [ -e ${FZG_MNT}/boot ]; then
+            runorerror "cp ${FZG_DATA_CRYPT_KEY} ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
+            runorerror             "chmod go-rwx ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
+        fi
+        umask ${FZG_RESTORE_UMASK}
+    fi
+    cryptdecode
+    ### now add disk partition
     if [ "${FZG_DATA_AUTO_SIZE}" ]; then
         echo -n "Creating data partitions ..."
         for disk in ${ZFSBOOT_DISKS}; do
@@ -496,25 +516,6 @@ if [ "${FZG_DATA_INIT}" ]; then
         done
         export ZFSBOOT_DISKS="${GPARTS}"
     fi
-    if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
-        umask 077
-        stty -echo
-        printf "Data GELI Partition Key:"
-        read PASSWORD
-        stty echo
-        printf "\n"
-        while [ ! -e ${FZG_DATA_CRYPT_KEY} ]; do
-            echo -n "Encrypting Password, "
-            echo ${PASSWORD} | openssl enc -aes-256-cbc -out ${FZG_DATA_CRYPT_KEY} -e -salt
-        done
-        unset PASSWORD
-        if [ -e ${FZG_MNT}/boot ]; then
-            runorerror "cp ${FZG_DATA_CRYPT_KEY} ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
-            runorerror             "chmod go-rwx ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
-        fi
-        umask ${FZG_RESTORE_UMASK}
-    fi
-    cryptdecode
     echo -n "Initializing geli partitions ..."
     for disk in ${ZFSBOOT_DISKS}; do
         echo -n " ${disk}"
