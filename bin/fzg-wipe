@@ -20,7 +20,7 @@ fi
 
 
 if [ "x" = "x$STEP" ]; then
-    glabel status | grep ${DISK} | awk '{print $1}' \
+    glabel status | grep ${DISK}p | awk '{print $1}' \
     | while read line ; do
     test -e /dev/${line}.eli && zpool detach $POOL ${line}.eli && geli detach ${line}.eli
     test -e /dev/${line}.eli && zpool detach tank ${line}.eli && geli detach ${line}.eli
@@ -30,6 +30,7 @@ if [ "x" = "x$STEP" ]; then
     test -e /dev/${line} && zpool detach $POOL ${line}
     test -e /dev/${line} && zpool detach tank ${line}
     test -e /dev/${line} && zpool detach vault ${line}
+    test -e /dev/${line} && swapoff /dev/${line}
     done
     gpart destroy -F ${DISK}
     if [ "pool" = "$POOL" ]; then
