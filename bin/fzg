@@ -30,7 +30,7 @@ export BSDINSTALL_DISTSITE_BASE="http://ftp.freebsd.org/pub/FreeBSD/releases"
 if [ "x" = "x${IOCRELEASE}" ]; then
     IOCRELEASE=10.2-RELEASE
 fi
-export BSDINSTALL_DISTSITE="$BSDINSTALL_DISTSITE_BASE/`uname -m`/`uname -p`/${IOCRELEASE}"
+export BSDINSTALL_DISTSITE="${BSDINSTALL_DISTSITE_BASE}/`uname -m`/`uname -p`/${IOCRELEASE}"
 export BSDINSTALL_DISTDIR=/boot/../${IOCRELEASE}
 
 ### Variables you don't touch
@@ -40,8 +40,7 @@ align_big="-a 1m"
 FZG_TMP_CRYPT=/tmp/crypt
 FZG_DATA_CRYPT_KEY=/boot/data.crypt.key
 FZG_DATA_SIZES="3730 3620 2800 2690 1860 1740 940 830" # Preferred descending order
-FZG_MFS_MNT=/mnt2
-ntpdate_hosts="pool.ntp.org"
+FZG_NTPDATE_HOSTS="pool.ntp.org"
 FZG_CHANGE_PASSWD=y
 FZG_RESTORE_UMASK=`umask`
 
@@ -111,12 +110,12 @@ EOF
 exiterror() {
     exitcode=$1
     shift
-    if [ "$exitcode" != "0" ]; then
-        echo "ERROR: code $exitcode: $@"
+    if [ "${exitcode}" != "0" ]; then
+        echo "ERROR: code ${exitcode}: $@"
     fi
     umount ${FZG_TMP_CRYPT} >/dev/null 2>&1
     umount ${BSDINSTALL_TMPBOOT} >/dev/null 2>&1
-    exit $exitcode
+    exit ${exitcode}
 }
 
 runorerror() {
@@ -143,7 +142,7 @@ cryptdecode() {
     TMPFILE=`mktemp ${FZG_TMP_CRYPT}/crypt.XXXXXX`
     echo -n "Decrypting Password, "
     runorerror "openssl enc -aes-256-cbc -in ${FZG_DATA_CRYPT_KEY} -out ${TMPFILE} -d -salt"
-    umask $FZG_RESTORE_UMASK
+    umask ${FZG_RESTORE_UMASK}
 }
 
 ### Post-install configuration
@@ -193,21 +192,21 @@ EOF
 
     /etc/sysctl.conf               vfs.zfs.min_auto_ashift=12 # 4096 block to futureproof hdd upgrade of zpool
 " ### END-QUOTE
-    echo "$CONFIG_OPTIONS" \
-    | while read dataset options; do
-        case "$dataset" in "#"*|"") continue; esac
+    echo "${CONFIG_OPTIONS}" \
+    | while read file options; do
+        case "${file}" in "#"*|"") continue; esac
         options="${options%%#*}"
         oldoptions=
-        while [ "$oldoptions" != "$options" ]; do
-            oldoptions="$options"
-            newoptions=`echo $options | sed 's/  / /g'`
-            options="$newoptions"
+        while [ "${oldoptions}" != "${options}" ]; do
+            oldoptions="${options}"
+            newoptions=`echo ${options} | sed 's/  / /g'`
+            options="${newoptions}"
         done
-        sysrc -f "${FZG_MNT}${dataset}" "${options}" >/dev/null
+        sysrc -f "${FZG_MNT}${file}" "${options}" >/dev/null
     done
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf"
     ### Set some rc.conf options that may contain spaces
-    sysrc -f "${FZG_MNT}/etc/rc.conf.d/ntpdate"  ntpdate_hosts="$ntpdate_hosts" >/dev/null
+    sysrc -f "${FZG_MNT}/etc/rc.conf.d/ntpdate"  ntpdate_hosts="${FZG_NTPDATE_HOSTS}" >/dev/null
     sysrc -f "${FZG_MNT}/etc/rc.conf.d/syslogd"  syslogd_flags="-s -b127.0.0.1" >/dev/null
     cat    >>"${FZG_MNT}/etc/rc.conf.d/sendmail" <<EOF
 # sendmail_enable="NO"
@@ -254,26 +253,26 @@ freebsdconfiglocal() {
     /boot/loader.conf.local     fzg_ilu_p_pool=tank
     /boot/loader.conf.local     coretemp_load=YES
 " ### END-QUOTE
-    echo "$CONFIG_LOCAL_OPTIONS" \
-    | while read dataset options; do
-        case "$dataset" in "#"*|"") continue; esac
+    echo "${CONFIG_LOCAL_OPTIONS}" \
+    | while read file options; do
+        case "${file}" in "#"*|"") continue; esac
         options="${options%%#*}"
         oldoptions=
-        while [ "$oldoptions" != "$options" ]; do
-            oldoptions="$options"
-            newoptions=`echo $options | sed 's/  / /g'`
-            options="$newoptions"
+        while [ "${oldoptions}" != "${options}" ]; do
+            oldoptions="${options}"
+            newoptions=`echo ${options} | sed 's/  / /g'`
+            options="${newoptions}"
         done
-        sysrc -f "${FZG_MNT}${dataset}" "${options}" >/dev/null
+        sysrc -f "${FZG_MNT}${file}" "${options}" >/dev/null
     done
     ### Set some options that may contain spaces
-    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_i_disks="$ZFSBOOT_DISKS" >/dev/null
+    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_i_disks="${ZFSBOOT_DISKS}" >/dev/null
     ### set fzg_u_disks
     fzg_u_disks=""
-    for i in $ZFSBOOT_DISKS; do
-        fzg_u_disks="$fzg_u_disks ${i}p${TANKPART}"
+    for i in ${ZFSBOOT_DISKS}; do
+        fzg_u_disks="${fzg_u_disks} ${i}p${TANKPART}"
     done
-    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_u_disks="$fzg_u_disks" >/dev/null
+    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_u_disks="${fzg_u_disks}" >/dev/null
     ### network interfaces
     nics=""
     realnics \
@@ -283,12 +282,12 @@ freebsdconfiglocal() {
         grep          "ifconfig_${line}"          ${FZG_MNT}/etc/rc.conf.d/network >/dev/null 2>&1 \
             || echo "# ifconfig_${line}=\"up\"" >>${FZG_MNT}/etc/rc.conf.d/network
         ### scope is stuck in loop
-        nics="$nics laggport ${line}"
+        nics="${nics} laggport ${line}"
         cat >/tmp/network.lagg <<EOF
 ### To enable Link Aggregation: BEGIN
 # cloned_interfaces="lagg0"
-# ifconfig_lagg0="DHCP laggproto loadbalance $nics"
-# ifconfig_lagg0="inet 192.168.0.2/24 laggproto loadbalance $nics"
+# ifconfig_lagg0="DHCP laggproto loadbalance ${nics}"
+# ifconfig_lagg0="inet 192.168.0.2/24 laggproto loadbalance ${nics}"
 ### To enable Link Aggregation: END
 EOF
     done
@@ -298,16 +297,52 @@ EOF
     ### optional set netwait_
     cat >>${FZG_MNT}/etc/rc.conf.d/netwait <<EOF
 # netwait_enable="YES"
-# netwait_ip="$router"
+# netwait_ip="${router}"
 EOF
     ### set defaultrouter
     cat >>${FZG_MNT}/etc/rc.conf.d/routing <<EOF
-# defaultrouter="$router"
+# defaultrouter="${router}"
 EOF
     ### sortconf
     if which sortconf ; then
         sortconf -f ${FZG_MNT}
     fi
+}
+
+# glabel_of_diskpart
+#
+# Translate $disk$part to its glabel(8) or gptid, otherwise $disk$part
+#
+glabel_of_diskpart()
+{
+	local disk_and_part="$1"
+	if [ -n "${disk_and_part}" ]; then
+		local gptid=$( glabel status -s ${disk_and_part} | cut -f1 -w )
+		if [ -n "${gptid}" ]; then
+			echo ${gptid}
+			return 0
+		fi
+	fi
+	echo ${disk_and_part}
+	return 1
+}
+
+# safe_glabel_of_diskpart
+#
+# Translate $disk$part to its glabel(8) or gptid and translate / to _ , otherwise $disk$part
+#
+safe_glabel_of_diskpart()
+{
+	local disk_and_part="$1"
+	if [ -n "${disk_and_part}" ]; then
+		local gptid=$( glabel status -s ${disk_and_part} | cut -f1 -w | tr / _ )
+		if [ -n "${gptid}" ]; then
+			echo ${gptid}
+			return 0
+		fi
+	fi
+	echo ${disk_and_part}
+	return 1
 }
 
 ######################################################################
@@ -320,17 +355,17 @@ if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
 while getopts t:b:d:e:p:r:s:M:z:H:cCiulxnUh o; do
-    case "$o" in
-        t) TANKPART="$OPTARG" ;;
-        b) export ZFSBOOT_BOOT_POOL_SIZE="$OPTARG" ;;
-        d) export ZFSBOOT_DISKS="$ZFSBOOT_DISKS ${OPTARG##/dev/}" ;;
-        e) edisk="$OPTARG" ; ADDTOPOOL=1 ;;
-        p) export ZFSBOOT_POOL_NAME="$OPTARG" ; export ZFSBOOT_BOOT_POOL_NAME="boot${ZFSBOOT_POOL_NAME}" ;;
-        r) export ZFSBOOT_VDEV_TYPE="$OPTARG" ;;
-        s) export ZFSBOOT_SWAP_SIZE="$OPTARG" ;;
-        M) FZG_MNT="$OPTARG" ; export BSDINSTALL_CHROOT="$OPTARG" ;;
-        z) export ZFSBOOT_POOL_SIZE="$OPTARG" ; FZG_DATA_SIZES="$OPTARG" ;;
-        H) FZG_HOSTNAME="$OPTARG" ;;
+    case "${o}" in
+        t) TANKPART="${OPTARG}" ;;
+        b) export ZFSBOOT_BOOT_POOL_SIZE="${OPTARG}" ;;
+        d) export ZFSBOOT_DISKS="${ZFSBOOT_DISKS} ${OPTARG##/dev/}" ;;
+        e) edisk="${OPTARG}" ; ADDTOPOOL=1 ;;
+        p) export ZFSBOOT_POOL_NAME="${OPTARG}" ; export ZFSBOOT_BOOT_POOL_NAME="boot${ZFSBOOT_POOL_NAME}" ;;
+        r) export ZFSBOOT_VDEV_TYPE="${OPTARG}" ;;
+        s) export ZFSBOOT_SWAP_SIZE="${OPTARG}" ;;
+        M) FZG_MNT="${OPTARG}" ; export BSDINSTALL_CHROOT="${OPTARG}" ;;
+        z) export ZFSBOOT_POOL_SIZE="${OPTARG}" ; FZG_DATA_SIZES="${OPTARG}" ;;
+        H) FZG_HOSTNAME="${OPTARG}" ;;
         c) freebsdconfigglobal ; exit ;;
         C) freebsdconfigglobal ; freebsdconfiglocal ; exit ;;
         i) FZG_DATA_INIT=1 ; FZG_DATA_AUTO_SIZE=1 ;;
@@ -343,11 +378,11 @@ while getopts t:b:d:e:p:r:s:M:z:H:cCiulxnUh o; do
         [?]) usage ; exiterror 1 ;;
     esac
 done
-if [ "$FZG_DATA_INIT" -a "$FZG_DATA_LOCK" ]; then
+if [ "${FZG_DATA_INIT}" -a "${FZG_DATA_LOCK}" ]; then
     exiterror 2 "Only pass -i or -l, not both."
-elif [ "$FZG_DATA_LOCK" -a "$FZG_DATA_UNLOCK" ]; then
+elif [ "${FZG_DATA_LOCK}" -a "${FZG_DATA_UNLOCK}" ]; then
     exiterror 2 "Only pass -l or -u, not both."
-elif [ "$FZG_DATA_UNLOCK" -a "$FZG_DATA_INIT" ]; then
+elif [ "${FZG_DATA_UNLOCK}" -a "${FZG_DATA_INIT}" ]; then
     exiterror 2 "Only pass -u or -i, not both."
 fi
 if [ "${IOCRELEASE}" != "$( uname -r | grep -o '.*-RELEASE' )" ]; then
@@ -355,7 +390,7 @@ if [ "${IOCRELEASE}" != "$( uname -r | grep -o '.*-RELEASE' )" ]; then
 fi
 
 ### if not set, set ZFSBOOT_POOL_NAME and FZG_MNT
-if [ "$FZG_DATA_INIT" -o "$FZG_DATA_LOCK" -o "$FZG_DATA_UNLOCK" ]; then
+if [ "${FZG_DATA_INIT}" -o "${FZG_DATA_LOCK}" -o "${FZG_DATA_UNLOCK}" ]; then
     if [ -n "`kenv -q fzg_ilu_p_pool`" ]; then
 : ${ZFSBOOT_POOL_NAME:=`kenv -q fzg_ilu_p_pool`}
     else
@@ -369,96 +404,97 @@ fi
 export ZFSBOOT_POOL_NAME
 
 ### if not set, set disks
-if [ "$FZG_DATA_INIT" ]; then
+if [ "${FZG_DATA_INIT}" ]; then
 : ${ZFSBOOT_DISKS:=`kenv -q fzg_i_disks`}
-elif [ "$FZG_DATA_UNLOCK" ]; then
+elif [ "${FZG_DATA_UNLOCK}" ]; then
 : ${ZFSBOOT_DISKS:=`kenv -q fzg_u_disks`}
 fi
 export ZFSBOOT_DISKS
 
 ### Disk parsing for testing raid type
 ### modified from https://github.com/mmatuska/mfsbsd
-if [ -z "$ADDTOPOOL" ] && [ -z "$FZG_DATA_UNLOCK" ]; then
-    count=$( echo "$ZFSBOOT_DISKS" | wc -w | awk '{ print $1 }' )
-    if [ "$count" -lt "3" -a "$ZFSBOOT_VDEV_TYPE" = "raidz" ]; then
+if [ -z "${ADDTOPOOL}" ] && [ -z "${FZG_DATA_UNLOCK}" ]; then
+    count=$( echo "${ZFSBOOT_DISKS}" | wc -w | awk '{ print $1 }' )
+    if [ "${count}" -lt "3" -a "${ZFSBOOT_VDEV_TYPE}" = "raidz" ]; then
         exiterror 3 "raidz needs at least three devices (-d switch)"
-    elif [ "$count" -lt "4" -a "$ZFSBOOT_VDEV_TYPE" = "raidz2" ]; then
+    elif [ "${count}" -lt "4" -a "${ZFSBOOT_VDEV_TYPE}" = "raidz2" ]; then
         exiterror 3 "raidz2 needs at least four devices (-d switch)"
-    elif [ "$count" -lt "5" -a "$ZFSBOOT_VDEV_TYPE" = "raidz3" ]; then
+    elif [ "${count}" -lt "5" -a "${ZFSBOOT_VDEV_TYPE}" = "raidz3" ]; then
         exiterror 3 "raidz3 needs at least five devices (-d switch)"
-    elif [ "$count" = "1" -a "$ZFSBOOT_VDEV_TYPE" = "mirror" ]; then
+    elif [ "${count}" = "1" -a "${ZFSBOOT_VDEV_TYPE}" = "mirror" ]; then
         exiterror 3 "mirror needs at least two devices (-d switch)"
-    elif [ "$count" = "2" -a "$ZFSBOOT_VDEV_TYPE" != "mirror" ]; then
+    elif [ "${count}" = "2" -a "${ZFSBOOT_VDEV_TYPE}" != "mirror" ]; then
         echo "NOTICE: two drives selected, automatically choosing mirror mode"
         export ZFSBOOT_VDEV_TYPE=mirror
-    elif [ "$count" -gt "2" -a "$ZFSBOOT_VDEV_TYPE" != "mirror" -a "$ZFSBOOT_VDEV_TYPE" != "raidz" -a "$ZFSBOOT_VDEV_TYPE" != "raidz2" -a "$ZFSBOOT_VDEV_TYPE" != "raidz3" ]; then
+    elif [ "${count}" -gt "2" -a "${ZFSBOOT_VDEV_TYPE}" != "mirror" -a "${ZFSBOOT_VDEV_TYPE}" != "raidz" -a "${ZFSBOOT_VDEV_TYPE}" != "raidz2" -a "${ZFSBOOT_VDEV_TYPE}" != "raidz3" ]; then
         exiterror 3 "please choose raid mode with -r (mirror or raidz{1,2,3})"
     fi
 fi
 
 ### Disk detect
 ### modified from https://github.com/mmatuska/mfsbsd
-if [ "$FZG_DATA_INIT" -o "$FZG_DATA_LOCK" -o "$FZG_DATA_UNLOCK" ]; then
+if [ "${FZG_DATA_INIT}" -o "${FZG_DATA_LOCK}" -o "${FZG_DATA_UNLOCK}" ]; then
     echo "NOTICE: Skipping device check."
 else
-    for DEV in $ZFSBOOT_DISKS ; do
-        if [ ! -c "/dev/$DEV" ]; then
-            exiterror 4 "/dev/$DEV is not a block device"
+    for DEV in ${ZFSBOOT_DISKS} ; do
+        if [ ! -c "/dev/${DEV}" ]; then
+            exiterror 4 "/dev/${DEV} is not a block device"
         fi
-        if gpart show "$DEV" >/dev/null 2>&1 ; then
-            exiterror 4 "/dev/$DEV already contains a partition table."
+        if gpart show "${DEV}" >/dev/null 2>&1 ; then
+            exiterror 4 "/dev/${DEV} already contains a partition table."
         fi
     done
 fi
 
 ### Quit if pools exist, but if ADDTOPOOL, quit if not exist
-if [ -z "$FZG_DATA_LOCK" -a -z "$FZG_DATA_UNLOCK" -a -z "$ADDTOPOOL" ]; then
-    if zpool status $ZFSBOOT_POOL_NAME >/dev/null 2>&1 ; then
-        exiterror 5 "A pool named $ZFSBOOT_POOL_NAME already exists."
+if [ -z "${FZG_DATA_LOCK}" -a -z "${FZG_DATA_UNLOCK}" -a -z "${ADDTOPOOL}" ]; then
+    if zpool status ${ZFSBOOT_POOL_NAME} >/dev/null 2>&1 ; then
+        exiterror 5 "A pool named ${ZFSBOOT_POOL_NAME} already exists."
     fi
-    if [ -z "$FZG_DATA_INIT" ]; then
-        if zpool status $ZFSBOOT_BOOT_POOL_NAME >/dev/null 2>&1 ; then
-            exiterror 5 "A pool named $ZFSBOOT_BOOT_POOL_NAME already exists."
+    if [ -z "${FZG_DATA_INIT}" ]; then
+        if zpool status ${ZFSBOOT_BOOT_POOL_NAME} >/dev/null 2>&1 ; then
+            exiterror 5 "A pool named ${ZFSBOOT_BOOT_POOL_NAME} already exists."
         fi
     fi
-elif [ "$ADDTOPOOL" -o "$FZG_DATA_LOCK" ]; then
-    if ! zpool status $ZFSBOOT_POOL_NAME >/dev/null 2>&1 ; then
-        exiterror 5 "A pool named $ZFSBOOT_POOL_NAME doesn't exists."
+elif [ "${ADDTOPOOL}" -o "${FZG_DATA_LOCK}" ]; then
+    if ! zpool status ${ZFSBOOT_POOL_NAME} >/dev/null 2>&1 ; then
+        exiterror 5 "A pool named ${ZFSBOOT_POOL_NAME} doesn't exists."
 
     fi
 fi
 
-if [ "$FZG_DATA_INIT" ]; then
+if [ "${FZG_DATA_INIT}" ]; then
     ### FZG_DATA_INIT
-    if [ "$FZG_DATA_AUTO_SIZE" ]; then
+    if [ "${FZG_DATA_AUTO_SIZE}" ]; then
         echo -n "Creating data partitions ..."
-        for disk in $ZFSBOOT_DISKS; do
+        for disk in ${ZFSBOOT_DISKS}; do
             PARTCREATED=0
-            for GSIZE in $FZG_DATA_SIZES ; do
-                while [ "$PARTCREATED" = "0" ]; do
-                    if [ "$PARTCREATED" != "1" ]; then
-                        if /sbin/gpart add -i ${TANKPART} -t freebsd-zfs $align_big -s ${GSIZE}G ${disk} >/dev/null 2>&1 ; then
-                            echo " success adding partition sized ${GSIZE}G at $disk"
+            for GSIZE in ${FZG_DATA_SIZES} ; do
+                while [ ${PARTCREATED} -eq 0 ]; do
+                    if [ ${PARTCREATED} -ne 1 ]; then
+                        ### we try to add in whole integer sizes of GB so that all disk partition sizes are equal
+                        ### so that we can mirror them correctly without having to worry about MB of variations
+                        if gpart add -i ${TANKPART} -t freebsd-zfs ${align_big} -s ${GSIZE}G ${disk} >/dev/null 2>&1 ; then
+                            echo " success adding partition sized ${GSIZE}G at ${disk}"
                             PARTCREATED=1
-                            gptidtarget=`glabel list ${disk}p${TANKPART} | grep Name | head -1 | awk '{print $NF}'`
-                            runorerror  "dd if=/dev/zero of=/dev/$gptidtarget bs=512 count=560"
-                            runorerror "zpool labelclear -f /dev/$gptidtarget"
-                            GPARTS="$GPARTS ${disk}p${TANKPART}"
+                            runorerror  "dd if=/dev/zero of=/dev/$( glabel_of_diskpart ${disk}p${TANKPART} ) bs=512 count=560"
+                            runorerror "zpool labelclear -f /dev/$( glabel_of_diskpart ${disk}p${TANKPART} )"
+                            GPARTS="${GPARTS} ${disk}p${TANKPART}"
                         else
                             ### we should actually use the next FZG_DATA_SIZES,
                             ### but for now we'll decrement by 1
                             GSIZE=$(( GSIZE - 1 ))
                         fi
                     fi
-                    if [ $GSIZE -lt 1 ]; then
+                    if [ ${GSIZE} -lt 1 ]; then
                         PARTCREATED=2
-                        echo " error adding partition at $disk"
+                        echo " error adding partition at ${disk}"
                     fi
                 done
             done
-            [ "$PARTCREATED" != "1" ] && exiterror 6 " error adding partition at $disk"
+            [ ${PARTCREATED} -ne 1 ] && exiterror 6 " error adding partition at ${disk}"
         done
-        export ZFSBOOT_DISKS="$GPARTS"
+        export ZFSBOOT_DISKS="${GPARTS}"
     fi
     if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
         umask 077
@@ -469,45 +505,43 @@ if [ "$FZG_DATA_INIT" ]; then
         printf "\n"
         while [ ! -e ${FZG_DATA_CRYPT_KEY} ]; do
             echo -n "Encrypting Password, "
-            echo $PASSWORD | openssl enc -aes-256-cbc -out ${FZG_DATA_CRYPT_KEY} -e -salt
+            echo ${PASSWORD} | openssl enc -aes-256-cbc -out ${FZG_DATA_CRYPT_KEY} -e -salt
         done
         unset PASSWORD
         if [ -e ${FZG_MNT}/boot ]; then
             runorerror "cp ${FZG_DATA_CRYPT_KEY} ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
             runorerror             "chmod go-rwx ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
         fi
-        umask $FZG_RESTORE_UMASK
+        umask ${FZG_RESTORE_UMASK}
     fi
     cryptdecode
     echo -n "Initializing geli partitions ..."
-    for disk in $ZFSBOOT_DISKS; do
-        echo -n " $disk"
-        gptidtarget=`glabel list $disk | grep Name | head -1 | awk '{print $NF}'`
-        safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
-        runorerror "geli init -b -B /boot/${safegptidtarget}.eli -e AES-XTS -P -K $TMPFILE -l 256 -s 4096 ${gptidtarget}"
-        [ -e ${FZG_MNT}/boot ] && runorerror "cp -a /boot/${safegptidtarget}.eli ${FZG_MNT}/boot/${safegptidtarget}.eli"
-        runorerror "geli attach -p -k $TMPFILE ${gptidtarget}"
-        vdevs="$vdevs ${gptidtarget}.eli"
+    for disk in ${ZFSBOOT_DISKS}; do
+        echo -n " ${disk}"
+        runorerror "geli init -b -B /boot/$( safe_glabel_of_diskpart ${disk} ).eli -e AES-XTS -P -K ${TMPFILE} -l 256 -s 4096 $( glabel_of_diskpart ${disk} )"
+        [ -e ${FZG_MNT}/boot ] && runorerror "cp -a /boot/$( safe_glabel_of_diskpart ${disk} ).eli ${FZG_MNT}/boot/$( safe_glabel_of_diskpart ${disk} ).eli"
+        runorerror "geli attach -p -k ${TMPFILE} $( glabel_of_diskpart ${disk} )"
+        vdevs="${vdevs} $( glabel_of_diskpart ${disk} ).eli"
     done
-    rm $TMPFILE
-    umount $FZG_TMP_CRYPT
+    rm ${TMPFILE}
+    umount ${FZG_TMP_CRYPT}
     echo " done"
-    if [ "$ADDTOPOOL" = "1" ]; then
-        rpoolrealdisk=`zpool status $rpoolreal | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+    if [ "${ADDTOPOOL}" ]; then
+        rpoolrealdisk=`zpool status ${rpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
         runorerror "zpool attach ${ZFSBOOT_POOL_NAME} ${rpoolrealdisk} ${vdevs}"
     else
-        [ "$ZFSBOOT_VDEV_TYPE" != "stripe" ] && TRAID=$ZFSBOOT_VDEV_TYPE
+        [ "${ZFSBOOT_VDEV_TYPE}" != "stripe" ] && TRAID=${ZFSBOOT_VDEV_TYPE}
         runorerror "zpool create -O compress=lz4 -O atime=off ${ZFSBOOT_POOL_NAME} ${TRAID} ${vdevs}"
     fi
-elif [ "$FZG_DATA_LOCK" ]; then
+elif [ "${FZG_DATA_LOCK}" ]; then
     ### FZG_DATA_LOCK
     export ZFSBOOT_DISKS=`zpool status ${ZFSBOOT_POOL_NAME} | grep 'eli *ONLINE' | awk '{print $1}' | tr '\n' ' '`
     runorerror "zpool export -f ${ZFSBOOT_POOL_NAME}"
     runorerror "sync"
     echo -n "Detaching geli partitions ..."
-    for disk in $ZFSBOOT_DISKS; do
+    for disk in ${ZFSBOOT_DISKS}; do
         if [ -e /dev/${disk} ]; then
-            echo -n " $disk"
+            echo -n " ${disk}"
             if ! geli detach ${disk} >/dev/null 2>&1 ; then
                 sleep 1
                 if [ -e /dev/${disk} ]; then
@@ -517,26 +551,24 @@ elif [ "$FZG_DATA_LOCK" ]; then
         fi
     done
     echo " done"
-elif [ "$FZG_DATA_UNLOCK" ]; then
+elif [ "${FZG_DATA_UNLOCK}" ]; then
     ### FZG_DATA_UNLOCK
     cryptdecode
     echo -n "Attaching geli partitions ..."
-    for disk in $ZFSBOOT_DISKS; do
-        gptidtarget=`glabel list $disk | grep Name | head -1 | awk '{print $NF}'`
-        safegptidtarget=`echo $gptidtarget | sed 's#/#_#'`
-        if [ ! -e /dev/${gptidtarget}.eli ]; then
-            echo -n " $disk"
-            runorerror "geli attach -p -k $TMPFILE ${gptidtarget}"
+    for disk in ${ZFSBOOT_DISKS}; do
+        if [ ! -e /dev/$( glabel_of_diskpart ${disk} ).eli ]; then
+            echo -n " ${disk}"
+            runorerror "geli attach -p -k ${TMPFILE} $( glabel_of_diskpart ${disk} )"
         fi
     done
-    rm $TMPFILE
-    umount $FZG_TMP_CRYPT
+    rm ${TMPFILE}
+    umount ${FZG_TMP_CRYPT}
     echo " done"
     runorerror "zpool import -f ${ZFSBOOT_POOL_NAME}"
 fi
 
 ### exit if DATA
-if [ "$FZG_DATA_INIT" -o "$FZG_DATA_LOCK" -o "$FZG_DATA_UNLOCK" ]; then
+if [ "${FZG_DATA_INIT}" -o "${FZG_DATA_LOCK}" -o "${FZG_DATA_UNLOCK}" ]; then
     exiterror 0
 fi
 
@@ -549,58 +581,58 @@ fi
 zfsbootpath=/usr/libexec/bsdinstall/zfsboot
 zfsbootdl=~/local/zfsboot.dl
 zfsbootorig=~/local/zfsboot.orig
-if [ ! -e $zfsbootorig ]; then
-    cp $zfsbootpath $zfsbootorig
+if [ ! -e ${zfsbootorig} ]; then
+    cp ${zfsbootpath} ${zfsbootorig}
 fi
-if [ ! -e $zfsbootdl ]; then
-    env HTTP_PROXY= fetch -o $zfsbootdl https://raw.githubusercontent.com/johnko/freebsd/user/johnko/gptid-poolsize/usr.sbin/bsdinstall/scripts/zfsboot
+if [ ! -e ${zfsbootdl} ]; then
+    env HTTP_PROXY= fetch -o ${zfsbootdl} https://raw.githubusercontent.com/johnko/freebsd/user/johnko/gptid-poolsize/usr.sbin/bsdinstall/scripts/zfsboot
 fi
-MD5CHECK=$( md5 -r $zfsbootdl | cut -f1 -w )
-SHA1CHECK=$( sha1 -r $zfsbootdl | cut -f1 -w )
-SHA512CHECK=$( sha512 -r $zfsbootdl | cut -f1 -w )
-if [ "$MD5CHECK" != "d0dd87ea7852850705b63efbb61a6345" ] \
-    || [ "$SHA1CHECK" != "1fd55eae04470cacda2970e950569cd482a0cbc6" ] \
-    || [ "$SHA512CHECK" != "2d8ee6a955398e1850bf8fcb39b40f64ec3272f02754aae9b871e210341b5884a6f15ea09c2a7f7b1575ff4fb6b1f3fd1bedfb1e8744828f39e6bdb621eec9ad" ] \
+MD5CHECK=$( md5 -r ${zfsbootdl} | cut -f1 -w )
+SHA1CHECK=$( sha1 -r ${zfsbootdl} | cut -f1 -w )
+SHA512CHECK=$( sha512 -r ${zfsbootdl} | cut -f1 -w )
+if [ "${MD5CHECK}" != "d0dd87ea7852850705b63efbb61a6345" ] \
+    || [ "${SHA1CHECK}" != "1fd55eae04470cacda2970e950569cd482a0cbc6" ] \
+    || [ "${SHA512CHECK}" != "2d8ee6a955398e1850bf8fcb39b40f64ec3272f02754aae9b871e210341b5884a6f15ea09c2a7f7b1575ff4fb6b1f3fd1bedfb1e8744828f39e6bdb621eec9ad" ] \
     ; then
-    rm $zfsbootdl
+    rm ${zfsbootdl}
     echo "ERROR: zfsboot HASHES don't match"
     exit 1
 fi
-chmod 755 $zfsbootpath
-cp $zfsbootdl $zfsbootpath
-chmod 555 $zfsbootpath
+chmod 755 ${zfsbootpath}
+cp ${zfsbootdl} ${zfsbootpath}
+chmod 555 ${zfsbootpath}
 
 ### load geli and remove past bsdinstall temporary files
 geli load >/dev/null 2>&1
 rm -r /tmp/bsdinstall* >/dev/null 2>&1
 
 ### If adding disk to pool
-if [ "$ADDTOPOOL" = "1" ]; then
-    bpoolreal=$ZFSBOOT_BOOT_POOL_NAME
+if [ "${ADDTOPOOL}" ]; then
+    bpoolreal=${ZFSBOOT_BOOT_POOL_NAME}
     bpooltmp=tmpbpool
-    export ZFSBOOT_BOOT_POOL_NAME=$bpooltmp
-    rpoolreal=$ZFSBOOT_POOL_NAME
+    export ZFSBOOT_BOOT_POOL_NAME=${bpooltmp}
+    rpoolreal=${ZFSBOOT_POOL_NAME}
     rpooltmp=tmprpool
-    export ZFSBOOT_POOL_NAME=$rpooltmp
+    export ZFSBOOT_POOL_NAME=${rpooltmp}
 fi
 ## create new pool
 nonInteractive=0 \
 bsdinstall zfsboot || exiterror $? "bsdinstall zfsboot"
 
 ### Do ADDTOPOOL stuff
-if [ "$ADDTOPOOL" = "1" ]; then
+if [ "${ADDTOPOOL}" ]; then
     ### get existing disk
-    bpoolrealdisk=`zpool status $bpoolreal | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
-    rpoolrealdisk=`zpool status $rpoolreal | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+    bpoolrealdisk=`zpool status ${bpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+    rpoolrealdisk=`zpool status ${rpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
     ### get new disk
-    bpooltmpdisk=`zpool status $bpooltmp | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
-    rpooltmpdisk=`zpool status $rpooltmp | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+    bpooltmpdisk=`zpool status ${bpooltmp} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+    rpooltmpdisk=`zpool status ${rpooltmp} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
     ### destroy pool
-    zpool destroy -f $bpooltmp
-    zpool destroy -f $rpooltmp
+    zpool destroy -f ${bpooltmp}
+    zpool destroy -f ${rpooltmp}
     ### attach bpool
-    runorerror "zpool attach -f $bpoolreal $bpoolrealdisk $bpooltmpdisk"
-    runorerror "zpool attach -f $rpoolreal $rpoolrealdisk $rpooltmpdisk"
+    runorerror "zpool attach -f ${bpoolreal} ${bpoolrealdisk} ${bpooltmpdisk}"
+    runorerror "zpool attach -f ${rpoolreal} ${rpoolrealdisk} ${rpooltmpdisk}"
     FZG_MNT=
     cat ${BSDINSTALL_TMPBOOT}/loader.conf.* | grep -v vfs.root.mountfrom | grep -v aesni_load | grep -v geom_eli_load | grep -v zfs_load | grep -v kern.geom.label.gptid.enable >>${FZG_MNT}/boot/loader.conf.local
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf.local"
@@ -612,16 +644,16 @@ fi
 
 ### Check if local distribution exists, if so copy to FZG_MNT
 ### this notation /boot/.. is in case /boot is a symlink
-if [ ! -e $BSDINSTALL_DISTDIR/MANIFEST ]; then
+if [ ! -e ${BSDINSTALL_DISTDIR}/MANIFEST ]; then
     export BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${IOCRELEASE}
 else
     mkdirorerror ${FZG_MNT}/boot/../${IOCRELEASE} 755
     tar -c -f - -C /boot/.. ${IOCRELEASE} | tar -C ${FZG_MNT}/boot/.. -x -f - || exiterror $? "tar -c -f - -C /boot/.. ${IOCRELEASE} _ tar -C ${FZG_MNT}/boot/.. -x -f -"
 fi
-mkdirorerror $BSDINSTALL_DISTDIR 755
+mkdirorerror ${BSDINSTALL_DISTDIR} 755
 
 ### Checksum distribution
-if [ ! -e $BSDINSTALL_DISTDIR/MANIFEST ] || ! bsdinstall checksum ; then
+if [ ! -e ${BSDINSTALL_DISTDIR}/MANIFEST ] || ! bsdinstall checksum ; then
     ### Fetch distribution if no local copy exists
     bsdinstall distfetch || exiterror $? "bsdinstall distfetch"
     bsdinstall checksum || exiterror $? "bsdinstall checksum"
@@ -642,7 +674,7 @@ if [ -e ${BSDINSTALL_TMPETC}/fstab ]; then
     runorerror "chmod 600 ${FSTABFILE}"
 fi
 
-if [ -z "$FZG_SKIP_UPDATE" ]; then
+if [ -z "${FZG_SKIP_UPDATE}" ]; then
     ### Allow for update using freebsd-update
     echo "nameserver 8.8.8.8" >${FZG_MNT}/etc/resolv.conf
     echo "Running: chroot ${FZG_MNT} freebsd-update fetch"
@@ -655,14 +687,14 @@ if [ -z "$FZG_SKIP_UPDATE" ]; then
             cat /tmp/fui.log
             cat <<EOF
 Please connect another session and check that the system updated successfully:
-    chroot $FZG_MNT freebsd-update -F fetch install
+    chroot ${FZG_MNT} freebsd-update -F fetch install
 EOF
             echo -n "Then here, press ENTER to continue "
             read CONTINUENOW
         fi
     fi
     rm ${FZG_MNT}/etc/resolv.conf
-fi ### end of if [ -z "$FZG_SKIP_UPDATE" ]; then
+fi ### end of if [ -z "${FZG_SKIP_UPDATE}" ]; then
 
 if [ -f /usr/local/sbin/pkg-static ]; then
     ### Copy pkg-static
@@ -682,18 +714,21 @@ realnics \
 done
 
 ### Change password of new system to blank
-yes '' | chroot $FZG_MNT passwd
+yes '' | chroot ${FZG_MNT} passwd
 echo
 
 ### Add urep user
-chroot $FZG_MNT sh -c 'echo "urep:1001::::::/usr/home/urep:/bin/csh:" | adduser -w no -f -'
+chroot ${FZG_MNT} sh -c 'echo "urep:1001::::::/usr/home/urep:/bin/csh:" | adduser -w no -f -'
 
 ### Add btfs user
-chroot $FZG_MNT sh -c 'echo "btfs:1002::::::/usr/home/btfs:/bin/csh:" | adduser -w no -f -'
-chroot $FZG_MNT sh -c 'pw groupmod operator -m btfs'
+chroot ${FZG_MNT} sh -c 'echo "btfs:1002::::::/usr/home/btfs:/bin/csh:" | adduser -w no -f -'
+chroot ${FZG_MNT} sh -c 'pw groupmod operator -m btfs'
 
 ### Add _sshtunl user
-chroot $FZG_MNT sh -c 'echo "_sshtunl:1022::::::/usr/home/_sshtunl:/usr/sbin/nologin:" | adduser -w no -f -'
+chroot ${FZG_MNT} sh -c 'echo "_sshtunl:1022::::::/usr/home/_sshtunl:/usr/sbin/nologin:" | adduser -w no -f -'
+
+### Run newaliases
+chroot ${FZG_MNT} /usr/bin/newaliases > /dev/null 2>&1
 
 if ! grep "stat-all" ${FZG_MNT}/etc/motd >/dev/null 2>&1 ; then
     cat >${FZG_MNT}/etc/motd <<EOF
@@ -714,7 +749,7 @@ EOF
 fi
 
 if ! grep "vfs.root.mountfrom" ${FZG_MNT}/boot/loader.conf.local >/dev/null 2>/dev/null ; then
-    sysrc -f ${FZG_MNT}/boot/loader.conf.local vfs.root.mountfrom=zfs:${ZFSBOOT_POOL_NAME}/$ZFSBOOT_BEROOT_NAME/$ZFSBOOT_BOOTFS_NAME >/dev/null
+    sysrc -f ${FZG_MNT}/boot/loader.conf.local vfs.root.mountfrom=zfs:${ZFSBOOT_POOL_NAME}/${ZFSBOOT_BEROOT_NAME}/${ZFSBOOT_BOOTFS_NAME} >/dev/null
 fi
 
 ### If .ssh/authorized_keys exists, copy that
@@ -738,15 +773,15 @@ if ls /root/perm | grep . >/dev/null 2>&1 ; then
 fi
 
 ### create firstboot_sentinel
-touch $FZG_MNT/firstboot
+touch ${FZG_MNT}/firstboot
 ### install the firstboot script
-runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/firstboot_realhost $FZG_MNT/etc/rc.d/firstboot_realhost"
+runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
 
-while [ "$FZG_CHANGE_PASSWD" = "y" -o "$FZG_CHANGE_PASSWD" = "Y" ]; do
+while [ "${FZG_CHANGE_PASSWD}" = "y" -o "${FZG_CHANGE_PASSWD}" = "Y" ]; do
     ### Prompt to change root password of new install
     echo -n "Change root password of new installation? [y/N] "
     read FZG_CHANGE_PASSWD
-    case $FZG_CHANGE_PASSWD in
+    case ${FZG_CHANGE_PASSWD} in
         y|Y)
             bsdinstall rootpass
         ;;
