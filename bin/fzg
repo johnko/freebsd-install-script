@@ -593,9 +593,9 @@ fi
 MD5CHECK=$( md5 -r ${zfsbootdl} | cut -f1 -w )
 SHA1CHECK=$( sha1 -r ${zfsbootdl} | cut -f1 -w )
 SHA512CHECK=$( sha512 -r ${zfsbootdl} | cut -f1 -w )
-if [ "${MD5CHECK}" != "3922352be7c8aab26f739d16a3deafe9" ] \
-    || [ "${SHA1CHECK}" != "22f66cb69f85938e939c91267c888ad9eeb7d7e5" ] \
-    || [ "${SHA512CHECK}" != "c8147f6fc28c75fd7b76394a430900ca2da600d2b230cab315e53390be27584c7d66fa10714606928d29e6ad4abb163aaf6ce616d2de51692f2ee5d9378350ba" ] \
+if [ "${MD5CHECK}" != "cb8723dc4ee519cf7b62d48cdc7ceb0a" ] \
+    || [ "${SHA1CHECK}" != "dbc74588cf698551b84a366b998a15d9c8ffcf43" ] \
+    || [ "${SHA512CHECK}" != "a85090d3e877a0cb434f4ded48c405083ee7c4e5ecab26950c6ae98878e0527ff04eb8ec338b71dc601335aca2932e80ff54f0d7bb63bc858dc2ea7e40b60d26" ] \
     ; then
     rm ${zfsbootdl}
     exiterror 1 "ERROR: zfsboot HASHES don't match"
