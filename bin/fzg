@@ -41,6 +41,7 @@ FZG_TMP_CRYPT=/tmp/crypt
 FZG_DATA_CRYPT_KEY=/boot/data.crypt.key
 FZG_DATA_SIZES="3730 3620 2800 2690 1860 1740 940 830" # Preferred descending order
 FZG_NTPDATE_HOSTS="pool.ntp.org"
+FZG_TMP_DNS="8.8.8.8"
 FZG_CHANGE_PASSWD=y
 FZG_RESTORE_UMASK=`umask`
 
@@ -677,7 +678,7 @@ fi
 
 if [ -z "${FZG_SKIP_UPDATE}" ]; then
     ### Allow for update using freebsd-update
-    echo "nameserver 8.8.8.8" >${FZG_MNT}/etc/resolv.conf
+    echo "nameserver ${FZG_TMP_DNS}" >${FZG_MNT}/etc/resolv.conf
     echo "Running: chroot ${FZG_MNT} freebsd-update fetch"
     chroot ${FZG_MNT} freebsd-update fetch | cat >/tmp/fuf.log
     if ! cat /tmp/fuf.log | grep 'No updates needed to update system' >/dev/null 2>&1 ; then
