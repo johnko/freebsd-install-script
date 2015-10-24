@@ -554,7 +554,9 @@ zfsbootorig=~/local/zfsboot.orig
 if [ ! -e $zfsbootorig ]; then
     cp $zfsbootpath $zfsbootorig
 fi
-fetch -o $zfsbootdl https://raw.githubusercontent.com/johnko/freebsd/user/johnko/gptid-poolsize/usr.sbin/bsdinstall/scripts/zfsboot
+if [ ! -e $zfsbootdl ]; then
+    env HTTP_PROXY= fetch -o $zfsbootdl https://raw.githubusercontent.com/johnko/freebsd/user/johnko/gptid-poolsize/usr.sbin/bsdinstall/scripts/zfsboot
+fi
 MD5CHECK=$( md5 -r $zfsbootdl | cut -f1 -w )
 SHA1CHECK=$( sha1 -r $zfsbootdl | cut -f1 -w )
 SHA512CHECK=$( sha512 -r $zfsbootdl | cut -f1 -w )
@@ -562,6 +564,7 @@ if [ "$MD5CHECK" != "f62275c1b4220aa8d9d0e6466e67cb3d" ] \
     || [ "$SHA1CHECK" != "c2d0824377984ed737803e7967db848581ac6d56" ] \
     || [ "$SHA512CHECK" != "429f5721593675c0bc298e4d323d3827e98975dd0bef75cb345fc2ecf324badb8e2d145f0a1ba6f739bdc1e3b0c5b2415a153072569d414f57b892ca395dd3a5" ] \
     ; then
+    rm $zfsbootdl
     echo "ERROR: zfsboot HASHES don't match"
     exit 1
 fi
