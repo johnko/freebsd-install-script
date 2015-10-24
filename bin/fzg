@@ -164,8 +164,8 @@ EOF
     /boot/loader.conf              hw.usb.no_shutdown_wait=1                #  allows USB not to stall poweroff
     /boot/loader.conf              kern.cam.boot_delay=10000
     /boot/loader.conf              kern.geom.label.disk_ident.enable=0      #  I prefer no disk ID
-    /boot/loader.conf              kern.geom.label.gpt.enable=0
-    /boot/loader.conf              kern.geom.label.gptid.enable=0
+    /boot/loader.conf              kern.geom.label.gpt.enable=1             #  MUST BE ENABLED FOR LABELS
+    /boot/loader.conf              kern.geom.label.gptid.enable=0           #  MUST BE DISABLED
     /boot/loader.conf              kern.maxfiles=65530                      #  Kernel max
     /boot/loader.conf              loader_logo=none                         #  should stop logo from showing, appears to be BROKEN
     /boot/loader.conf              nullfs_load=YES
@@ -635,11 +635,11 @@ if [ "${ADDTOPOOL}" ]; then
     runorerror "zpool attach -f ${bpoolreal} ${bpoolrealdisk} ${bpooltmpdisk}"
     runorerror "zpool attach -f ${rpoolreal} ${rpoolrealdisk} ${rpooltmpdisk}"
     FZG_MNT=
-    cat ${BSDINSTALL_TMPBOOT}/loader.conf.* | grep -v vfs.root.mountfrom | grep -v aesni_load | grep -v geom_eli_load | grep -v zfs_load | grep -v kern.geom.label.gptid.enable >>${FZG_MNT}/boot/loader.conf.local
+    cat ${BSDINSTALL_TMPBOOT}/loader.conf.* | grep -v vfs.root.mountfrom | grep -v aesni_load | grep -v geom_eli_load | grep -v zfs_load | grep -v kern.geom.label.gptid.enable | grep -v kern.geom.label.gpt.enable >>${FZG_MNT}/boot/loader.conf.local
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf.local"
     exiterror 0
 else
-    cat ${BSDINSTALL_TMPBOOT}/loader.conf.* |                              grep -v aesni_load | grep -v geom_eli_load | grep -v zfs_load | grep -v kern.geom.label.gptid.enable >>${FZG_MNT}/boot/loader.conf.local
+    cat ${BSDINSTALL_TMPBOOT}/loader.conf.* |                              grep -v aesni_load | grep -v geom_eli_load | grep -v zfs_load | grep -v kern.geom.label.gptid.enable | grep -v kern.geom.label.gpt.enable >>${FZG_MNT}/boot/loader.conf.local
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf.local"
 fi
 
