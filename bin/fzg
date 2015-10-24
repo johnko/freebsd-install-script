@@ -329,7 +329,7 @@ EOF
 # sendmail_submit_enable="NO"
 EOF
     ### Set SSH options
-    sshd-config ${FZG_MNT}
+    runorerror "sshd-config ${FZG_MNT}"
     ### no weak DH keys
     if [ "0" != "$(cat /etc/ssh/moduli | awk '$5<=2048' | wc -l)" ]; then
         echo "########## ### Weak DH / Logjam ###   ##########"
@@ -341,7 +341,9 @@ EOF
         sortconf -f ${FZG_MNT}
     fi
     ### periodic
-    periodic-config ${FZG_MNT}
+    runorerror "periodic-config ${FZG_MNT}"
+    ### syslog for ucarp and mt-daapd
+    runorerror "syslog-config ${FZG_MNT}"
 }
 
 

@@ -1,0 +1,10 @@
+#!/bin/sh
+
+FZG_MNT=$1
+
+if [ -e ${HOME}/git/freebsd-install-script/etc/syslog.conf ]; then
+    install -m 644 -o root -g wheel ${HOME}/git/freebsd-install-script/etc/syslog.conf ${FZG_MNT}/etc/syslog.conf
+else
+    echo "ERROR: didn't install syslog.conf"
+    exit 1
+fi
