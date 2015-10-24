@@ -149,7 +149,7 @@ cryptdecode() {
 ### Post-install configuration
 freebsdconfigglobal() {
     ### virtual if using emulators/virtio-kmod
-    cat >>"${FZG_MNT}/boot/loader.conf" <<EOF
+    cat >> ${FZG_MNT}/boot/loader.conf.local <<EOF
 # if_vtnet_load="YES"
 # virtio_balloon_load="YES"
 # virtio_blk_load="YES"
@@ -203,13 +203,13 @@ EOF
             newoptions=`echo ${options} | sed 's/  / /g'`
             options="${newoptions}"
         done
-        sysrc -f "${FZG_MNT}${file}" "${options}" >/dev/null
+        sysrc -f ${FZG_MNT}${file} "${options}" >/dev/null
     done
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf"
     ### Set some rc.conf options that may contain spaces
-    sysrc -f "${FZG_MNT}/etc/rc.conf.d/ntpdate"  ntpdate_hosts="${FZG_NTPDATE_HOSTS}" >/dev/null
-    sysrc -f "${FZG_MNT}/etc/rc.conf.d/syslogd"  syslogd_flags="-s -b127.0.0.1" >/dev/null
-    cat    >>"${FZG_MNT}/etc/rc.conf.d/sendmail" <<EOF
+    sysrc -f  ${FZG_MNT}/etc/rc.conf.d/ntpdate  ntpdate_hosts="${FZG_NTPDATE_HOSTS}" >/dev/null
+    sysrc -f  ${FZG_MNT}/etc/rc.conf.d/syslogd  syslogd_flags="-s -b127.0.0.1" >/dev/null
+    cat    >> ${FZG_MNT}/etc/rc.conf.d/sendmail <<EOF
 # sendmail_enable="NO"
 # sendmail_msp_queue_enable="NO"
 # sendmail_outbound_enable="NO"
@@ -264,16 +264,16 @@ freebsdconfiglocal() {
             newoptions=`echo ${options} | sed 's/  / /g'`
             options="${newoptions}"
         done
-        sysrc -f "${FZG_MNT}${file}" "${options}" >/dev/null
+        sysrc -f ${FZG_MNT}${file} "${options}" >/dev/null
     done
     ### Set some options that may contain spaces
-    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_i_disks="${ZFSBOOT_DISKS}" >/dev/null
+    sysrc -f ${FZG_MNT}/boot/loader.conf.local fzg_i_disks="${ZFSBOOT_DISKS}" >/dev/null
     ### set fzg_u_disks
     fzg_u_disks=""
     for i in ${ZFSBOOT_DISKS}; do
         fzg_u_disks="${fzg_u_disks} ${i}p${TANKPART}"
     done
-    sysrc -f "${FZG_MNT}/boot/loader.conf.local" fzg_u_disks="${fzg_u_disks}" >/dev/null
+    sysrc -f ${FZG_MNT}/boot/loader.conf.local fzg_u_disks="${fzg_u_disks}" >/dev/null
     ### network interfaces
     nics=""
     realnics \
@@ -635,11 +635,19 @@ if [ "${ADDTOPOOL}" ]; then
     runorerror "zpool attach -f ${bpoolreal} ${bpoolrealdisk} ${bpooltmpdisk}"
     runorerror "zpool attach -f ${rpoolreal} ${rpoolrealdisk} ${rpooltmpdisk}"
     FZG_MNT=
-    cat ${BSDINSTALL_TMPBOOT}/loader.conf.* | grep -v vfs.root.mountfrom | grep -v aesni_load | grep -v geom_eli_load | grep -v zfs_load | grep -v kern.geom.label.gptid.enable | grep -v kern.geom.label.gpt.enable >>${FZG_MNT}/boot/loader.conf.local
+    cat ${BSDINSTALL_TMPBOOT}/loader.conf.* | grep -v vfs.root.mountfrom | grep -v aesni_load \
+    | grep -v kern.geom.label.disk_ident.enable \
+    | grep -v kern.geom.label.gptid.enable \
+    | grep -v kern.geom.label.gpt.enable \
+    >>${FZG_MNT}/boot/loader.conf.local
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf.local"
     exiterror 0
 else
-    cat ${BSDINSTALL_TMPBOOT}/loader.conf.* |                              grep -v aesni_load | grep -v geom_eli_load | grep -v zfs_load | grep -v kern.geom.label.gptid.enable | grep -v kern.geom.label.gpt.enable >>${FZG_MNT}/boot/loader.conf.local
+    cat ${BSDINSTALL_TMPBOOT}/loader.conf.* |                              grep -v aesni_load \
+    | grep -v kern.geom.label.disk_ident.enable \
+    | grep -v kern.geom.label.gptid.enable \
+    | grep -v kern.geom.label.gpt.enable \
+    >>${FZG_MNT}/boot/loader.conf.local
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf.local"
 fi
 
@@ -711,7 +719,7 @@ freebsdconfiglocal
 ### Set ifconfig DHCP
 realnics \
 | while read line ; do
-    sysrc -f "${FZG_MNT}/etc/rc.conf.d/network" ifconfig_${line}="DHCP"
+    sysrc -f ${FZG_MNT}/etc/rc.conf.d/network ifconfig_${line}="DHCP"
 done
 
 ### Change password of new system to blank
