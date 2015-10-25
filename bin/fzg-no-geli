@@ -24,7 +24,7 @@ if [ 1 -ne $( zpool status ${POOLNAME} | grep "mirror-" | wc -l ) ]; then
     exit 1
 fi
 
-VDEVS=$( zpool status ${POOLNAME} | grep ONLINE | awk '{print $1}' | egrep -v "^(state:|${POOLNAME}|mirror-)" )
+VDEVS=$( zpool list -H -v -o name ${POOLNAME} | egrep '\-.*\-.*\-.*\-.*\-.*\-' | awk '{ print $1 }' )
 
 VDEVTODO=""
 for i in ${VDEVS} ; do

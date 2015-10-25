@@ -535,7 +535,7 @@ if [ "${FZG_DATA_INIT}" ]; then
         vdevs="${ZFSBOOT_DISKS}"
     fi
     if [ "${ADDTOPOOL}" ]; then
-        rpoolrealdisk=`zpool status ${rpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+        rpoolrealdisk=$( zpool list -H -v -o name ${rpoolreal} | egrep '\-.*\-.*\-.*\-.*\-.*\-' | awk '{ print $1 }' | head -1 )
         runorerror "zpool attach ${ZFSBOOT_POOL_NAME} ${rpoolrealdisk} ${vdevs}"
     else
         [ "${ZFSBOOT_VDEV_TYPE}" != "stripe" ] && TRAID=${ZFSBOOT_VDEV_TYPE}
@@ -629,11 +629,11 @@ bsdinstall zfsboot || exiterror $? "bsdinstall zfsboot"
 ### Do ADDTOPOOL stuff
 if [ "${ADDTOPOOL}" ]; then
     ### get existing disk
-    [ "$ZFSBOOT_BOOT_POOL" ] && bpoolrealdisk=`zpool status ${bpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
-    rpoolrealdisk=`zpool status ${rpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+    [ "$ZFSBOOT_BOOT_POOL" ] && bpoolrealdisk=$( zpool list -H -v -o name ${bpoolreal} | egrep '\-.*\-.*\-.*\-.*\-.*\-' | awk '{ print $1 }' | head -1 )
+    rpoolrealdisk=$( zpool list -H -v -o name ${rpoolreal} | egrep '\-.*\-.*\-.*\-.*\-.*\-' | awk '{ print $1 }' | head -1 )
     ### get new disk
-    [ "$ZFSBOOT_BOOT_POOL" ] && bpooltmpdisk=`zpool status ${bpooltmp} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
-    rpooltmpdisk=`zpool status ${rpooltmp} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+    [ "$ZFSBOOT_BOOT_POOL" ] && bpooltmpdisk=$( zpool list -H -v -o name ${bpooltmp} | egrep '\-.*\-.*\-.*\-.*\-.*\-' | awk '{ print $1 }' | head -1 )
+    rpooltmpdisk=$( zpool list -H -v -o name ${rpooltmp} | egrep '\-.*\-.*\-.*\-.*\-.*\-' | awk '{ print $1 }' | head -1 )
     ### destroy pool
     [ "$ZFSBOOT_BOOT_POOL" ] && zpool destroy -f ${bpooltmp}
     zpool destroy -f ${rpooltmp}
