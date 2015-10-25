@@ -20,7 +20,7 @@ fi
 
 
 if [ "x" = "x$STEP" ]; then
-    for devid in $( glabel status | grep ${DISK}p | awk '{print $1,$3}' ) ; do
+    for devid in $( glabel status -s | grep ${DISK}p | awk '{print $1,$3}' ) ; do
         while [ -e /dev/${devid}.eli ]; do
             zpool detach $POOL ${devid}.eli >/dev/null 2>&1
             zpool detach tank  ${devid}.eli >/dev/null 2>&1
