@@ -654,12 +654,11 @@ fi
 
 ### Check if local distribution exists, if so copy to FZG_MNT
 ### this notation /boot/.. is in case /boot is a symlink
-if [ ! -e ${BSDINSTALL_DISTDIR}/MANIFEST ]; then
-    export BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${IOCRELEASE}
-else
+if [ -e ${BSDINSTALL_DISTDIR}/MANIFEST ]; then
     mkdirorerror ${FZG_MNT}/boot/../${IOCRELEASE} 755
     cp -r /boot/../${IOCRELEASE} ${FZG_MNT}/boot/../ || exiterror $? "cp -r /boot/../${IOCRELEASE} ${FZG_MNT}/boot/../ "
 fi
+export BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${IOCRELEASE}
 mkdirorerror ${BSDINSTALL_DISTDIR} 755
 
 ### Checksum distribution
