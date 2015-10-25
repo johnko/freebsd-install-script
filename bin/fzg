@@ -828,7 +828,7 @@ cat <<EOF
 You may want to:
     vi ${FZG_MNT}/etc/rc.conf.d/{network,routing} ${FZG_MNT}/boot/loader.conf.local
 or
-    copy-network-conf-to-mnt
+    fzg-copy-network-conf-to-mnt
 Don't export the ZFS pools!
 EOF
 
