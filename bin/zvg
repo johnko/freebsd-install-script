@@ -24,6 +24,10 @@ exiterror() {
     exit ${exitcode}
 }
 
+runorerror() {
+    $@ || exiterror $? $@
+}
+
 ### Decrypt function
 cryptdecode() {
     umask 077
@@ -62,18 +66,21 @@ if [ "$ZVG_DATA_INIT" ]; then
     ZVG_DISK="${LOWER_POOL_NAME}/zvols/${UPPER_POOL_NAME}/$( uuidgen | md5 | cut -c1-6 )"
     if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
         zvg-random-key
+        if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
+            exiterror 1 "no key found"
+        fi
     fi
     cryptdecode
     zfs create -o compress=lz4 -o atime=off -o canmount=off ${LOWER_POOL_NAME}/zvols >/dev/null 2>&1
     zfs create -o compress=lz4 -o atime=off -o canmount=off ${LOWER_POOL_NAME}/zvols/${UPPER_POOL_NAME} >/dev/null 2>&1
-    zfs create -s -o compress=off -V ${ZVG_DATA_SIZES}G ${ZVG_DISK} || exiterror 1 "zfs failed to create ${ZVG_DISK}"
-    geli init -b -e AES-XTS -P -K ${TMPFILE} -l 256 -s 4096 /dev/zvol/${ZVG_DISK} || exiterror 1 "geli init failed."
-    geli attach -p -k ${TMPFILE} /dev/zvol/${ZVG_DISK} || exiterror 1 "geli attach failed."
+    runorerror "zfs create -s -o compress=off -V ${ZVG_DATA_SIZES}G ${ZVG_DISK}"
+    runorerror "geli init -b -e AES-XTS -P -K ${TMPFILE} -l 256 -s 4096 /dev/zvol/${ZVG_DISK}"
+    runorerror "geli attach -p -k ${TMPFILE} /dev/zvol/${ZVG_DISK}"
     if zpool status ${UPPER_POOL_NAME} >/dev/null 2>&1 ; then
         # Not mirror
-        zpool add ${UPPER_POOL_NAME} /dev/zvol/${ZVG_DISK}.eli || exiterror 1 "zpool add failed."
+        runorerror "zpool add ${UPPER_POOL_NAME} /dev/zvol/${ZVG_DISK}.eli"
     else
-        zpool create -O compression=lz4 -O atime=off ${UPPER_POOL_NAME} /dev/zvol/${ZVG_DISK}.eli || exiterror 1 "zpool create failed."
+        runorerror "zpool create -O compression=lz4 -O atime=off ${UPPER_POOL_NAME} /dev/zvol/${ZVG_DISK}.eli"
     fi
 elif [ "$ZVG_DATA_LOCK" ]; then
     ### FZG_DATA_LOCK
@@ -100,13 +107,13 @@ elif [ "$ZVG_DATA_UNLOCK" ]; then
     for disk in $( zfs list -H -t volume -o name -r ${LOWER_POOL_NAME}/zvols/${UPPER_POOL_NAME} ) ; do
         if [ ! -e /dev/${disk}.eli ]; then
             echo -n " ${disk}"
-            geli attach -p -k ${TMPFILE} /dev/zvol/${disk} || exiterror 1 "geli attach failed."
+            runorerror "geli attach -p -k ${TMPFILE} /dev/zvol/${disk}"
         fi
     done
     rm ${TMPFILE}
     umount ${FZG_TMP_CRYPT}
     echo " done"
-    zpool import -f ${ZFSBOOT_POOL_NAME} || exiterror 1 "zpool import failed."
+    runorerror "zpool import -f ${ZFSBOOT_POOL_NAME}"
 else
     usage ; exiterror 1
 fi
