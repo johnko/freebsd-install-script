@@ -1,10 +1,12 @@
 #!/bin/sh
 
+swappart=p2
+
 DISKTWO=${1}
 
 if [ "x" != "x${DISKTWO}" ] && ! grep "${DISKTWO}" /etc/fstab >/dev/null 2>&1 ; then
     cat >>/etc/fstab <<EOF
-/dev/${DISKTWO}p3.eli  none  swap  sw  0  0
+/dev/${DISKTWO}${swappart}.eli  none  swap  sw  0  0
 EOF
-    swapon /dev/${DISKTWO}p3.eli
+    swapon /dev/${DISKTWO}${swappart}.eli
 fi
