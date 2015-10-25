@@ -44,7 +44,7 @@ if [ "x" = "x$STEP" ]; then
     fzg-copy-network-conf-to-mnt
     cat <<EOF
 Please reboot then run:
-    $0 - - ${DISK} ${DISKTWO} 2
+    `basename $0` - - ${DISK} ${DISKTWO} 2
 EOF
 elif [ "x2" = "x$STEP" ]; then
     gpart destroy -F ${DISKTWO}
