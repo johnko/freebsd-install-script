@@ -47,7 +47,7 @@ fi
 zpool detach ${POOLNAME} ${VDEVTODO}
 geli detach ${VDEVTODO}
 geli clear ${VDEVTODO%%.eli}
-diskpart=$( glabel status | grep ${VDEVTODO%%.eli} | cut -f3 -w )
+diskpart=$( glabel status | grep ${VDEVTODO%%.eli} | awk '{print $3}' )
 if [ "x" != "x${diskpart}" ]; then
     zpool attach ${POOLNAME} ${VDEVTOKEEP} ${diskpart}
 else
