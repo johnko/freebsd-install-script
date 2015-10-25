@@ -20,17 +20,17 @@ fi
 
 
 if [ "x" = "x$STEP" ]; then
-    glabel status | grep ${DISK}p | awk '{print $1}' \
+    glabel status | grep ${DISK}p | awk '{print $1,$3}' \
     | while read line ; do
-    test -e /dev/${line}.eli && zpool detach $POOL ${line}.eli && geli detach ${line}.eli
-    test -e /dev/${line}.eli && zpool detach tank ${line}.eli && geli detach ${line}.eli
-    test -e /dev/${line}.eli && zpool detach vault ${line}.eli && geli detach ${line}.eli
-    test -e /dev/${line}.eli && swapoff /dev/${line}.eli
-    test -e /dev/${line} && zpool detach boot$POOL ${line}
-    test -e /dev/${line} && zpool detach $POOL ${line}
-    test -e /dev/${line} && zpool detach tank ${line}
-    test -e /dev/${line} && zpool detach vault ${line}
-    test -e /dev/${line} && swapoff /dev/${line}
+        test -e /dev/${line}.eli && zpool detach $POOL ${line}.eli >/dev/null 2>&1 && geli detach ${line}.eli >/dev/null 2>&1
+        test -e /dev/${line}.eli && zpool detach tank ${line}.eli  >/dev/null 2>&1 && geli detach ${line}.eli >/dev/null 2>&1
+        test -e /dev/${line}.eli && zpool detach vault ${line}.eli >/dev/null 2>&1 && geli detach ${line}.eli >/dev/null 2>&1
+        test -e /dev/${line}.eli && swapoff /dev/${line}.eli >/dev/null 2>&1
+        test -e /dev/${line}     && zpool detach boot$POOL ${line} >/dev/null 2>&1
+        test -e /dev/${line}     && zpool detach $POOL ${line} >/dev/null 2>&1
+        test -e /dev/${line}     && zpool detach tank ${line}  >/dev/null 2>&1
+        test -e /dev/${line}     && zpool detach vault ${line} >/dev/null 2>&1
+        test -e /dev/${line}     && swapoff /dev/${line} >/dev/null 2>&1
     done
     gpart destroy -F ${DISK}
     if [ "pool" = "$POOL" ]; then
