@@ -618,9 +618,9 @@ rm -r /tmp/bsdinstall* >/dev/null 2>&1
 
 ### If adding disk to pool
 if [ "${ADDTOPOOL}" ]; then
-    # bpoolreal=${ZFSBOOT_BOOT_POOL_NAME}
-    # bpooltmp=tmpbpool
-    # export ZFSBOOT_BOOT_POOL_NAME=${bpooltmp}
+    [ "$ZFSBOOT_BOOT_POOL" ] && bpoolreal=${ZFSBOOT_BOOT_POOL_NAME}
+    [ "$ZFSBOOT_BOOT_POOL" ] && bpooltmp=tmpbpool
+    [ "$ZFSBOOT_BOOT_POOL" ] && export ZFSBOOT_BOOT_POOL_NAME=${bpooltmp}
     rpoolreal=${ZFSBOOT_POOL_NAME}
     rpooltmp=tmprpool
     export ZFSBOOT_POOL_NAME=${rpooltmp}
@@ -632,16 +632,16 @@ bsdinstall zfsboot || exiterror $? "bsdinstall zfsboot"
 ### Do ADDTOPOOL stuff
 if [ "${ADDTOPOOL}" ]; then
     ### get existing disk
-    # bpoolrealdisk=`zpool status ${bpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+    [ "$ZFSBOOT_BOOT_POOL" ] && bpoolrealdisk=`zpool status ${bpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
     rpoolrealdisk=`zpool status ${rpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
     ### get new disk
-    # bpooltmpdisk=`zpool status ${bpooltmp} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
+    [ "$ZFSBOOT_BOOT_POOL" ] && bpooltmpdisk=`zpool status ${bpooltmp} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
     rpooltmpdisk=`zpool status ${rpooltmp} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
     ### destroy pool
-    # zpool destroy -f ${bpooltmp}
+    [ "$ZFSBOOT_BOOT_POOL" ] && zpool destroy -f ${bpooltmp}
     zpool destroy -f ${rpooltmp}
     ### attach bpool
-    # runorerror "zpool attach -f ${bpoolreal} ${bpoolrealdisk} ${bpooltmpdisk}"
+    [ "$ZFSBOOT_BOOT_POOL" ] && runorerror "zpool attach -f ${bpoolreal} ${bpoolrealdisk} ${bpooltmpdisk}"
     runorerror "zpool attach -f ${rpoolreal} ${rpoolrealdisk} ${rpooltmpdisk}"
     FZG_MNT=
     cat ${BSDINSTALL_TMPBOOT}/loader.conf.* | grep -v vfs.root.mountfrom | grep -v aesni_load \
