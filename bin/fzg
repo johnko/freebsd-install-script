@@ -456,7 +456,7 @@ if [ -z "${FZG_DATA_LOCK}" -a -z "${FZG_DATA_UNLOCK}" -a -z "${ADDTOPOOL}" ]; th
     if zpool status ${ZFSBOOT_POOL_NAME} >/dev/null 2>&1 ; then
         exiterror 5 "A pool named ${ZFSBOOT_POOL_NAME} already exists."
     fi
-    if [ -z "${FZG_DATA_INIT}" ]; then
+    if [ "$ZFSBOOT_BOOT_POOL" -a -z "${FZG_DATA_INIT}" ]; then
         if zpool status ${ZFSBOOT_BOOT_POOL_NAME} >/dev/null 2>&1 ; then
             exiterror 5 "A pool named ${ZFSBOOT_BOOT_POOL_NAME} already exists."
         fi
