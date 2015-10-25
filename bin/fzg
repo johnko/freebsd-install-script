@@ -5,11 +5,8 @@ sysctl vfs.zfs.min_auto_ashift=12
 
 ### Variables you can edit
 
-export ZFSBOOT_BOOT_POOL=1
-export ZFSBOOT_BOOT_POOL_NAME=bootpool
 export ZFSBOOT_BEROOT_NAME=ROOT
 export ZFSBOOT_BOOTFS_NAME=default
-export ZFSBOOT_BOOT_POOL_SIZE=2g
 export ZFSBOOT_GELI_KEY_FILE=/boot/encryption.key
 export ZFSBOOT_SWAP_SIZE=2g
 export ZFSBOOT_SWAP_ENCRYPTION=1
@@ -18,12 +15,18 @@ export ZFSBOOT_FORCE_4K_SECTORS=1
 export BSDINSTALL_TMPBOOT=/tmp/bsdinstall_boot
 export BSDINSTALL_TMPETC=/tmp/bsdinstall_etc
 
+### Passed as args
+
 #export ZFSBOOT_DISKS
 #export ZFSBOOT_POOL_NAME=pool
 #export ZFSBOOT_POOL_SIZE=5g
 #export BSDINSTALL_CHROOT=/mnt
 
-### Omit ZFSBOOT_GELI_ENCRYPTION=1 encryption so it doesn't prompt for password
+
+### Omit export ZFSBOOT_BOOT_POOL=1
+### Omit export ZFSBOOT_BOOT_POOL_NAME=bootpool
+### Omit export ZFSBOOT_BOOT_POOL_SIZE=2g
+### Omit export ZFSBOOT_GELI_ENCRYPTION=1 encryption so it doesn't prompt for password
 
 export DISTRIBUTIONS="MANIFEST kernel.txz base.txz lib32.txz doc.txz src.txz"
 export BSDINSTALL_DISTSITE_BASE="http://ftp.freebsd.org/pub/FreeBSD/releases"
@@ -160,11 +163,11 @@ EOF
     CONFIG_OPTIONS="
     #FILE                          SETTING
 
-    /boot/loader.conf              autoboot_delay=1
+    /boot/loader.conf              autoboot_delay=2
     /boot/loader.conf              hw.usb.no_shutdown_wait=1                #  allows USB not to stall poweroff
     /boot/loader.conf              kern.cam.boot_delay=10000
-    /boot/loader.conf              kern.geom.label.disk_ident.enable=0      #  I prefer no disk ID
-    /boot/loader.conf              kern.geom.label.gpt.enable=1             #  MUST BE ENABLED FOR LABELS
+    /boot/loader.conf              kern.geom.label.disk_ident.enable=0      #  MUST BE DISABLED
+    /boot/loader.conf              kern.geom.label.gpt.enable=0             #  MUST BE DISABLED
     /boot/loader.conf              kern.geom.label.gptid.enable=0           #  MUST BE DISABLED
     /boot/loader.conf              kern.maxfiles=65530                      #  Kernel max
     /boot/loader.conf              loader_logo=none                         #  should stop logo from showing, appears to be BROKEN
@@ -242,8 +245,8 @@ freebsdconfiglocal() {
     /boot/loader.conf.local     ahci_load=YES
     /boot/loader.conf.local     aio_load=YES
     /boot/loader.conf.local     geom_eli_load=YES
-    /boot/loader.conf.local     geom_label_load=YES
-    /boot/loader.conf.local     geom_mirror_load=YES
+    # /boot/loader.conf.local     geom_label_load=YES
+    # /boot/loader.conf.local     geom_mirror_load=YES
     /boot/loader.conf.local     hw.bge.allow_asf=0 # for my HP server to stop network disconnect
     /boot/loader.conf.local     if_lagg_load=YES
     /boot/loader.conf.local     kern.maxswzone=512M
@@ -742,24 +745,27 @@ chroot ${FZG_MNT} /usr/bin/newaliases > /dev/null 2>&1
 if ! grep "stat-all" ${FZG_MNT}/etc/motd >/dev/null 2>&1 ; then
     cat >${FZG_MNT}/etc/motd <<EOF
 
-    Update programs and scripts:            fres
+    To update the operating system:
+            env PAGER=cat freebsd-update -F fetch install
+            reboot
+    To update programs and scripts:         fres
+
     System information:                     stat-all
     Hard drive information:                 hddid
     zpool status + geli translation:        zss
-    Update operating system:
-                              env PAGER=cat freebsd-update -F fetch install
-                                            reboot
+
     PF firewall, regenerate new pf.conf:    gdf
                 block ssh spammers:         pf-sshinvaliduserip
                 blacklist sshban list:      pf-move-sshban-to-black
-                show tables:                pf-table show all
-                show anchor:                pf-anchor show all
+                show tables:                pf-table show
+                show anchor:                pf-anchor show
 EOF
 fi
 
-if ! grep "vfs.root.mountfrom" ${FZG_MNT}/boot/loader.conf.local >/dev/null 2>/dev/null ; then
-    sysrc -f ${FZG_MNT}/boot/loader.conf.local vfs.root.mountfrom=zfs:${ZFSBOOT_POOL_NAME}/${ZFSBOOT_BEROOT_NAME}/${ZFSBOOT_BOOTFS_NAME} >/dev/null
-fi
+### No need to set this if we are not using a bootpool + pool combo
+# if ! grep "vfs.root.mountfrom" ${FZG_MNT}/boot/loader.conf.local >/dev/null 2>/dev/null ; then
+#    sysrc -f ${FZG_MNT}/boot/loader.conf.local vfs.root.mountfrom=zfs:${ZFSBOOT_POOL_NAME}/${ZFSBOOT_BEROOT_NAME}/${ZFSBOOT_BOOTFS_NAME} >/dev/null
+# fi
 
 ### If .ssh/authorized_keys exists, copy that
 if [ -e /root/.ssh/authorized_keys ]; then
