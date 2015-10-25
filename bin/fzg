@@ -658,7 +658,7 @@ if [ ! -e ${BSDINSTALL_DISTDIR}/MANIFEST ]; then
     export BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${IOCRELEASE}
 else
     mkdirorerror ${FZG_MNT}/boot/../${IOCRELEASE} 755
-    tar -c -f - -C /boot/.. ${IOCRELEASE} | tar -C ${FZG_MNT}/boot/.. -x -f - || exiterror $? "tar -c -f - -C /boot/.. ${IOCRELEASE} _ tar -C ${FZG_MNT}/boot/.. -x -f -"
+    cp -r /boot/../${IOCRELEASE} ${FZG_MNT}/boot/../ || exiterror $? "cp -r /boot/../${IOCRELEASE} ${FZG_MNT}/boot/../ "
 fi
 mkdirorerror ${BSDINSTALL_DISTDIR} 755
 
@@ -771,14 +771,14 @@ fi
 if ls /root/bin | grep . >/dev/null 2>&1 ; then
     runorerror "chmod 700 /root/bin"
     mkdirorerror ${FZG_MNT}/root/bin 700
-    tar -c -f - -C /root bin | tar -C ${FZG_MNT}/root -x -f - || exiterror $? "tar -c -f - -C /root bin _ tar -C ${FZG_MNT}/root -x -f -"
+    cp -r /root/bin ${FZG_MNT}/root || exiterror $? "cp -r /root/bin ${FZG_MNT}/root "
     runorerror "chmod 700 ${FZG_MNT}/root/bin/*"
 fi
 ### If perm exists, and has files, copy that
 if ls /root/perm | grep . >/dev/null 2>&1 ; then
     runorerror "chmod 700 /root/perm"
     mkdirorerror ${FZG_MNT}/root/perm 700
-    tar -c -f - -C /root perm | tar -C ${FZG_MNT}/root -x -f - || exiterror $? "tar -c -f - -C /root perm _ tar -C ${FZG_MNT}/root -x -f -"
+    cp -r /root/perm ${FZG_MNT}/root || exiterror $? "cp -r /root/perm ${FZG_MNT}/root"
     runorerror "chmod 600 ${FZG_MNT}/root/perm/*"
 fi
 
@@ -801,7 +801,7 @@ done
 ### copy /var/ports/packages/All
 if [ -d /var/ports ]; then
     if [ -d ${FZG_MNT}/var ]; then
-        tar -c -f - -C /var ports | tar -C ${FZG_MNT}/var -x -f - || exiterror $? "tar -c -f - -C /var ports _ tar -C ${FZG_MNT}/var -x -f -"
+        cp -r /var/ports ${FZG_MNT}/var || exiterror $? "cp -r /var/ports ${FZG_MNT}/var"
     fi
 fi
 
