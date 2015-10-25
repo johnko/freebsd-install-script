@@ -28,6 +28,12 @@ runorerror() {
     $@ || exiterror $? $@
 }
 
+mkdirorerror() {
+    [ "x" != "x$1" ] && mkdir -p $1
+    [ "x" != "x$2" ] && runorerror "chmod $2 $1"
+    [ "x" != "x$3" ] && runorerror "chown $3 $1"
+}
+
 ### Decrypt function
 cryptdecode() {
     umask 077
