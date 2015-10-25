@@ -38,6 +38,7 @@ export BSDINSTALL_DISTDIR=/boot/../${IOCRELEASE}
 
 ### Variables you don't touch
 
+#FZG_GELI_ENCRYPTION=1
 TANKPART="4"
 align_big="-a 1m"
 FZG_TMP_CRYPT=/tmp/crypt
@@ -77,7 +78,7 @@ usage:  ${0##*/} -d disk
         ${0##*/} -u -d vdev
         ${0##*/} -l
 
-        -i          Initialize data partition with geli and create pool.
+        -i          Initialize data partition.
                     Automatically create partition 5 unless -x is set.
         -l          Export pool and lock data partition.
         -u          Unlock data partition and mount pool.
@@ -469,25 +470,27 @@ fi
 
 if [ "${FZG_DATA_INIT}" ]; then
     ### FZG_DATA_INIT
-    if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
-        umask 077
-        stty -echo
-        printf "Data GELI Partition Key:"
-        read PASSWORD
-        stty echo
-        printf "\n"
-        while [ ! -e ${FZG_DATA_CRYPT_KEY} ]; do
-            echo -n "Encrypting Password, "
-            echo ${PASSWORD} | openssl enc -aes-256-cbc -out ${FZG_DATA_CRYPT_KEY} -e -salt
-        done
-        unset PASSWORD
-        if [ -e ${FZG_MNT}/boot ]; then
-            runorerror "cp ${FZG_DATA_CRYPT_KEY} ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
-            runorerror             "chmod go-rwx ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
+    if [ "$FZG_GELI_ENCRYPTION" ]; then
+        if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
+            umask 077
+            stty -echo
+            printf "Data GELI Partition Key:"
+            read PASSWORD
+            stty echo
+            printf "\n"
+            while [ ! -e ${FZG_DATA_CRYPT_KEY} ]; do
+                echo -n "Encrypting Password, "
+                echo ${PASSWORD} | openssl enc -aes-256-cbc -out ${FZG_DATA_CRYPT_KEY} -e -salt
+            done
+            unset PASSWORD
+            if [ -e ${FZG_MNT}/boot ]; then
+                runorerror "cp ${FZG_DATA_CRYPT_KEY} ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
+                runorerror             "chmod go-rwx ${FZG_MNT}${FZG_DATA_CRYPT_KEY}"
+            fi
+            umask ${FZG_RESTORE_UMASK}
         fi
-        umask ${FZG_RESTORE_UMASK}
+        cryptdecode
     fi
-    cryptdecode
     ### now add disk partition
     if [ "${FZG_DATA_AUTO_SIZE}" ]; then
         echo -n "Creating data partitions ..."
@@ -521,17 +524,19 @@ if [ "${FZG_DATA_INIT}" ]; then
         done
         export ZFSBOOT_DISKS="${GPARTS}"
     fi
-    echo -n "Initializing geli partitions ..."
-    for disk in ${ZFSBOOT_DISKS}; do
-        echo -n " ${disk}"
-        runorerror "geli init -b -B /boot/$( safe_glabel_of_diskpart ${disk} ).eli -e AES-XTS -P -K ${TMPFILE} -l 256 -s 4096 $( glabel_of_diskpart ${disk} )"
-        [ -e ${FZG_MNT}/boot ] && runorerror "cp -a /boot/$( safe_glabel_of_diskpart ${disk} ).eli ${FZG_MNT}/boot/$( safe_glabel_of_diskpart ${disk} ).eli"
-        runorerror "geli attach -p -k ${TMPFILE} $( glabel_of_diskpart ${disk} )"
-        vdevs="${vdevs} $( glabel_of_diskpart ${disk} ).eli"
-    done
-    rm ${TMPFILE}
-    umount ${FZG_TMP_CRYPT}
-    echo " done"
+    if [ "$FZG_GELI_ENCRYPTION" ]; then
+        echo -n "Initializing geli partitions ..."
+        for disk in ${ZFSBOOT_DISKS}; do
+            echo -n " ${disk}"
+            runorerror "geli init -b -B /boot/$( safe_glabel_of_diskpart ${disk} ).eli -e AES-XTS -P -K ${TMPFILE} -l 256 -s 4096 $( glabel_of_diskpart ${disk} )"
+            [ -e ${FZG_MNT}/boot ] && runorerror "cp -a /boot/$( safe_glabel_of_diskpart ${disk} ).eli ${FZG_MNT}/boot/$( safe_glabel_of_diskpart ${disk} ).eli"
+            runorerror "geli attach -p -k ${TMPFILE} $( glabel_of_diskpart ${disk} )"
+            vdevs="${vdevs} $( glabel_of_diskpart ${disk} ).eli"
+        done
+        rm ${TMPFILE}
+        umount ${FZG_TMP_CRYPT}
+        echo " done"
+    fi
     if [ "${ADDTOPOOL}" ]; then
         rpoolrealdisk=`zpool status ${rpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`
         runorerror "zpool attach ${ZFSBOOT_POOL_NAME} ${rpoolrealdisk} ${vdevs}"
