@@ -503,7 +503,6 @@ if [ "${FZG_DATA_INIT}" ]; then
         fi
         # only try it 3 times, each time decrement by 1
         for i in 1 2 3 ; do
-            echo -n "."
             if [ ${PARTCREATED} -ne 1 ] && [ ${FZG_DATA_TRYSIZE} -gt 0 ]; then
                 ### we try to add in whole integer sizes of GB so that all disk partition sizes are equal
                 ### so that we can mirror them correctly without having to worry about MB of variations
