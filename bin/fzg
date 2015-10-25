@@ -318,7 +318,7 @@ glabel_of_diskpart()
 {
 	local disk_and_part="$1"
 	if [ -n "${disk_and_part}" ]; then
-		local gptid=$( glabel status -s ${disk_and_part} | cut -f1 -w )
+		local gptid=$( glabel status -s ${disk_and_part} | awk '{print $1}' )
 		if [ -n "${gptid}" ]; then
 			echo ${gptid}
 			return 0
@@ -336,7 +336,7 @@ safe_glabel_of_diskpart()
 {
 	local disk_and_part="$1"
 	if [ -n "${disk_and_part}" ]; then
-		local gptid=$( glabel status -s ${disk_and_part} | cut -f1 -w | tr / _ )
+		local gptid=$( glabel status -s ${disk_and_part} | awk '{print $1}' | tr / _ )
 		if [ -n "${gptid}" ]; then
 			echo ${gptid}
 			return 0
@@ -590,12 +590,12 @@ fi
 if [ ! -e ${zfsbootdl} ]; then
     env HTTP_PROXY= fetch -o ${zfsbootdl} https://raw.githubusercontent.com/johnko/freebsd/user/johnko/gptid-poolsize/usr.sbin/bsdinstall/scripts/zfsboot
 fi
-MD5CHECK=$( md5 -r ${zfsbootdl} | cut -f1 -w )
-SHA1CHECK=$( sha1 -r ${zfsbootdl} | cut -f1 -w )
-SHA512CHECK=$( sha512 -r ${zfsbootdl} | cut -f1 -w )
-if [ "${MD5CHECK}" != "66f49e0e16e5bedf5927831fb956a664" ] \
-    || [ "${SHA1CHECK}" != "2bbf8ecf4d5d1759721a29d0fa7dec53b63afdb3" ] \
-    || [ "${SHA512CHECK}" != "6af000a038c933f747a85fcd89750f4b03f0fedf8cad2b8d68e5145ebdd6022c1d3d378a93eea5b6b6509808f0b3c42a96bfce29ff2bcda2552c6d4cbcb8eea4" ] \
+MD5CHECK=$( md5 -r ${zfsbootdl} | awk '{print $1}' )
+SHA1CHECK=$( sha1 -r ${zfsbootdl} | awk '{print $1}' )
+SHA512CHECK=$( sha512 -r ${zfsbootdl} | awk '{print $1}' )
+if [ "${MD5CHECK}" != "a05991bbfb79095eadd96bf142de3111" ] \
+    || [ "${SHA1CHECK}" != "fca3c8fc0761f27979aba314929d8414727b8b19" ] \
+    || [ "${SHA512CHECK}" != "fe64eebeeaf4f9767606d293740d0ef6b6365e17c61c075db9b38a4f7557a7e67c06e64b153e47887c453f6b3dcc5673cc5a7ff28b40c330e13e0a97e560f209" ] \
     ; then
     rm ${zfsbootdl}
     exiterror 1 "ERROR: zfsboot HASHES don't match"
