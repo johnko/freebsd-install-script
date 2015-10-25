@@ -502,11 +502,11 @@ if [ "${FZG_DATA_INIT}" ]; then
                     if [ ${PARTCREATED} -ne 1 ]; then
                         ### we try to add in whole integer sizes of GB so that all disk partition sizes are equal
                         ### so that we can mirror them correctly without having to worry about MB of variations
-                        if gpart add -l data${uuid} -t freebsd-zfs ${align_big} -s ${GSIZE}G ${disk} >/dev/null 2>&1 ; then
+                        if gpart add -i ${TANKPART} -t freebsd-zfs ${align_big} -s ${GSIZE}G ${disk} >/dev/null 2>&1 ; then
                             echo " success adding partition sized ${GSIZE}G at ${disk}"
                             PARTCREATED=1
-                            runorerror  "dd if=/dev/zero of=/dev/$( glabel_of_diskpart ${disk}p${TANKPART} ) bs=512 count=560"
-                            runorerror "zpool labelclear -f /dev/$( glabel_of_diskpart ${disk}p${TANKPART} )"
+                            runorerror  "dd if=/dev/zero of=/dev/${disk}p${TANKPART} bs=512 count=560"
+                            runorerror "zpool labelclear -f /dev/${disk}p${TANKPART}"
                             GPARTS="${GPARTS} ${disk}p${TANKPART}"
                         else
                             ### we should actually use the next FZG_DATA_SIZES,
@@ -536,6 +536,8 @@ if [ "${FZG_DATA_INIT}" ]; then
         rm ${TMPFILE}
         umount ${FZG_TMP_CRYPT}
         echo " done"
+    else
+        vdevs="${ZFSBOOT_DISKS}"
     fi
     if [ "${ADDTOPOOL}" ]; then
         rpoolrealdisk=`zpool status ${rpoolreal} | grep -v state | grep ONLINE | tail -1 | awk '{print $1}'`

@@ -58,15 +58,15 @@ elif [ "x2" = "x$STEP" ]; then
         install -m 600 ~/perm/cshvars ~/local/cshvars
         vi ~/local/cshvars
     fi
+#    fzg-random-key
+#        fzg-unlock-on-boot
+#    or
+#        fzg-no-geli tank
+#    sortconf -f
+#    vi /boot/loader.conf.local
     cat <<EOF
 A reminder to run these commands to setup tank/iocage:
-    fzg-random-key
     fzg -i -t 4 -p tank -r mirror -d ada0 -d ada1 -d ada2
-        fzg-unlock-on-boot
-    or
-        fzg-no-geli tank
-    sortconf -f
-    vi /boot/loader.conf.local
     ioc-setup
 EOF
 fi
