@@ -2,14 +2,9 @@
 
 DISKTWO=${1}
 
-for i in $( glabel status | grep ${DISKTWO}p3 | awk '{print $1}' ) ; do
-    if [ "x" != "x${i}" ] && ! grep "${i}" /etc/fstab >/dev/null 2>&1 ; then
-        cat >>/etc/fstab <<EOF
-/dev/${i}.eli  none  swap  sw  0  0
+if [ "x" != "x${DISKTWO}" ] && ! grep "${DISKTWO}" /etc/fstab >/dev/null 2>&1 ; then
+    cat >>/etc/fstab <<EOF
+/dev/${DISKTWO}p3.eli  none  swap  sw  0  0
 EOF
-    fi
-done
-
-## don't run until all drives are transferred
-# swapoff -a
-# swapon -a
+    swapon /dev/${DISKTWO}p3.eli
+fi
