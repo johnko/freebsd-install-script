@@ -38,7 +38,7 @@ export BSDINSTALL_DISTDIR=/boot/../${IOCRELEASE}
 
 ### Variables you don't touch
 
-TANKPART="5"
+TANKPART="4"
 align_big="-a 1m"
 FZG_TMP_CRYPT=/tmp/crypt
 FZG_DATA_CRYPT_KEY=/boot/data.crypt.key
