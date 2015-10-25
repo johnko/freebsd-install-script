@@ -20,20 +20,19 @@ fi
 
 
 if [ "x" = "x$STEP" ]; then
-    glabel status | grep ${DISK}p | awk '{print $1,$3}' \
-    | while read line ; do
-        while [ -e /dev/${line}.eli ]; do
-            zpool detach $POOL ${line}.eli >/dev/null 2>&1
-            zpool detach tank ${line}.eli  >/dev/null 2>&1
-            zpool detach vault ${line}.eli >/dev/null 2>&1
-            swapoff /dev/${line}.eli >/dev/null 2>&1
-            geli detach ${line}.eli >/dev/null 2>&1
+    for devid in $( glabel status | grep ${DISK}p | awk '{print $1,$3}' ) ; do
+        while [ -e /dev/${devid}.eli ]; do
+            zpool detach $POOL ${devid}.eli >/dev/null 2>&1
+            zpool detach tank  ${devid}.eli >/dev/null 2>&1
+            zpool detach vault ${devid}.eli >/dev/null 2>&1
+            swapoff /dev/${devid}.eli >/dev/null 2>&1
+            geli detach ${devid}.eli >/dev/null 2>&1
         done
-        zpool detach boot$POOL ${line} >/dev/null 2>&1
-        zpool detach $POOL ${line} >/dev/null 2>&1
-        zpool detach tank ${line}  >/dev/null 2>&1
-        zpool detach vault ${line} >/dev/null 2>&1
-        swapoff /dev/${line} >/dev/null 2>&1
+        zpool detach boot$POOL ${devid} >/dev/null 2>&1
+        zpool detach $POOL ${devid} >/dev/null 2>&1
+        zpool detach tank  ${devid} >/dev/null 2>&1
+        zpool detach vault ${devid} >/dev/null 2>&1
+        swapoff /dev/${devid} >/dev/null 2>&1
     done
     gpart destroy -F ${DISK}
     if [ "pool" = "$POOL" ]; then
