@@ -543,7 +543,7 @@ if [ "${FZG_DATA_INIT}" ]; then
     fi
 elif [ "${FZG_DATA_LOCK}" ]; then
     ### FZG_DATA_LOCK
-    export ZFSBOOT_DISKS=`zpool status ${ZFSBOOT_POOL_NAME} | grep 'eli *ONLINE' | awk '{print $1}' | tr '\n' ' '`
+    export ZFSBOOT_DISKS=$( zpool list -H -v -o name ${ZFSBOOT_POOL_NAME} | egrep '\-.*\-.*\-.*\-.*\-.*\-' | awk '{ print $1 }' | grep -o '[a-z].*\.eli' )
     runorerror "zpool export -f ${ZFSBOOT_POOL_NAME}"
     runorerror "sync"
     echo -n "Detaching geli partitions ..."

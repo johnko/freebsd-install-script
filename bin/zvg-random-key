@@ -1,0 +1,37 @@
+#!/bin/sh
+
+# generates a random keyfile at /boot/data.crypt.key
+
+FZG_BSDINSTALL_TMP=/tmp/bsdinstall_boot
+TMPFILE=${FZG_BSDINSTALL_TMP}/zvolencryption.key
+FZG_DATA_CRYPT_KEY=/boot/zvol.crypt.key
+FZG_RESTORE_UMASK=`umask`
+
+runorerror() {
+    $@ || exiterror $? $@
+}
+
+mkdirorerror() {
+    [ "x" != "x$1" ] && mkdir -p $1
+    [ "x" != "x$2" ] && runorerror "chmod $2 $1"
+    [ "x" != "x$3" ] && runorerror "chown $3 $1"
+}
+
+mkdirorerror ${FZG_BSDINSTALL_TMP} 700
+umount ${FZG_BSDINSTALL_TMP} >/dev/null 2>&1
+runorerror "mount -t tmpfs tmpfs ${FZG_BSDINSTALL_TMP}"
+
+if [ ! -e ${TMPFILE} ]; then
+    umask 077
+    runorerror "dd if=/dev/random of=${TMPFILE} bs=4096 count=1"
+    runorerror "chmod go-rwx ${TMPFILE}"
+    umask $FZG_RESTORE_UMASK
+fi
+
+if [ -e ${TMPFILE} ]; then
+    if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
+        runorerror "openssl enc -aes-256-cbc -in ${TMPFILE} -out ${FZG_DATA_CRYPT_KEY} -e -salt"
+    fi
+fi
+
+umount ${FZG_BSDINSTALL_TMP} >/dev/null 2>&1

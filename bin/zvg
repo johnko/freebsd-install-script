@@ -1,0 +1,112 @@
+#!/bin/sh
+
+# ZFS vol geli
+
+FZG_TMP_CRYPT=/tmp/crypt
+FZG_DATA_CRYPT_KEY=/boot/zvol.crypt.key
+FZG_RESTORE_UMASK=`umask`
+
+usage() {
+    cat <<EOF
+    Usage:
+        `basename $0` -i|-l|-u -d lowerpool -p upperpool -z size
+EOF
+}
+
+### Exit function
+exiterror() {
+    exitcode=$1
+    shift
+    if [ "${exitcode}" != "0" ]; then
+        echo "ERROR: code ${exitcode}: $@"
+    fi
+    umount ${FZG_TMP_CRYPT} >/dev/null 2>&1
+    exit ${exitcode}
+}
+
+### Decrypt function
+cryptdecode() {
+    umask 077
+    #
+    mkdirorerror ${FZG_TMP_CRYPT} 700 root:wheel
+    umount                           ${FZG_TMP_CRYPT} >/dev/null 2>&1
+    runorerror "mount -t tmpfs tmpfs ${FZG_TMP_CRYPT}"
+    TMPFILE=`mktemp ${FZG_TMP_CRYPT}/crypt.XXXXXX`
+    echo -n "Decrypting Password, "
+    runorerror "openssl enc -aes-256-cbc -in ${FZG_DATA_CRYPT_KEY} -out ${TMPFILE} -d -salt"
+    umask ${FZG_RESTORE_UMASK}
+}
+
+### Options parsing
+### modified from https://github.com/mmatuska/mfsbsd
+if [ $# -eq 0 ]; then
+    usage ; exiterror 1
+fi
+while getopts d:p:z:iulh o; do
+    case "${o}" in
+        d) LOWER_POOL_NAME="${OPTARG}" ;;
+        p) UPPER_POOL_NAME="${OPTARG}" ;;
+        z) ZVG_DATA_SIZES="${OPTARG}" ;;
+        i) ZVG_DATA_INIT=1 ;;
+        u) ZVG_DATA_UNLOCK=1 ;;
+        l) ZVG_DATA_LOCK=1 ;;
+        h) usage ; exiterror 1 ;;
+        [?]) usage ; exiterror 1 ;;
+    esac
+done
+: ${LOWER_POOL_NAME:=tank}
+: ${UPPER_POOL_NAME:=vault}
+: ${ZVG_DATA_SIZES:=5}
+
+if [ "$ZVG_DATA_INIT" ]; then
+    ZVG_DISK="${LOWER_POOL_NAME}/zvols/${UPPER_POOL_NAME}/$( uuidgen | md5 | cut -c1-6 )"
+    if [ ! -e ${FZG_DATA_CRYPT_KEY} ]; then
+        zvg-random-key
+    fi
+    cryptdecode
+    zfs create -o compress=lz4 -o atime=off -o canmount=off ${LOWER_POOL_NAME}/zvols >/dev/null 2>&1
+    zfs create -o compress=lz4 -o atime=off -o canmount=off ${LOWER_POOL_NAME}/zvols/${UPPER_POOL_NAME} >/dev/null 2>&1
+    zfs create -s -o compress=off -V ${ZVG_DATA_SIZES}G ${ZVG_DISK} || exiterror 1 "zfs failed to create ${ZVG_DISK}"
+    geli init -b -e AES-XTS -P -K ${TMPFILE} -l 256 -s 4096 /dev/zvol/${ZVG_DISK} || exiterror 1 "geli init failed."
+    geli attach -p -k ${TMPFILE} /dev/zvol/${ZVG_DISK} || exiterror 1 "geli attach failed."
+    if zpool status ${UPPER_POOL_NAME} >/dev/null 2>&1 ; then
+        # Not mirror
+        zpool add ${UPPER_POOL_NAME} /dev/zvol/${ZVG_DISK}.eli || exiterror 1 "zpool add failed."
+    else
+        zpool create -O compression=lz4 -O atime=off ${UPPER_POOL_NAME} /dev/zvol/${ZVG_DISK}.eli || exiterror 1 "zpool create failed."
+    fi
+elif [ "$ZVG_DATA_LOCK" ]; then
+    ### FZG_DATA_LOCK
+    ZFSBOOT_DISKS=$( zpool list -H -v -o name ${UPPER_POOL_NAME} | tail +2 | awk '{ print $1 }' | grep -o '[a-z].*\.eli' )
+    runorerror "zpool export -f ${UPPER_POOL_NAME}"
+    runorerror "sync"
+    echo -n "Detaching geli partitions ..."
+    for disk in ${ZFSBOOT_DISKS}; do
+        if [ -e /dev/${disk} ]; then
+            echo -n " ${disk}"
+            if ! geli detach ${disk} >/dev/null 2>&1 ; then
+                sleep 1
+                if [ -e /dev/${disk} ]; then
+                    echo " error"
+                fi
+            fi
+        fi
+    done
+    echo " done"
+elif [ "$ZVG_DATA_UNLOCK" ]; then
+    ### FZG_DATA_UNLOCK
+    cryptdecode
+    echo -n "Attaching geli partitions ..."
+    for disk in $( zfs list -H -t volume -o name -r ${LOWER_POOL_NAME}/zvols/${UPPER_POOL_NAME} ) ; do
+        if [ ! -e /dev/${disk}.eli ]; then
+            echo -n " ${disk}"
+            geli attach -p -k ${TMPFILE} /dev/zvol/${disk} || exiterror 1 "geli attach failed."
+        fi
+    done
+    rm ${TMPFILE}
+    umount ${FZG_TMP_CRYPT}
+    echo " done"
+    zpool import -f ${ZFSBOOT_POOL_NAME} || exiterror 1 "zpool import failed."
+else
+    usage ; exiterror 1
+fi
