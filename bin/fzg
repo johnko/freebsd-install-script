@@ -509,7 +509,6 @@ if [ "${FZG_DATA_INIT}" ]; then
                 if gpart add -i ${TANKPART} -t freebsd-zfs ${align_big} -s ${FZG_DATA_TRYSIZE}G ${disk} >/dev/null 2>&1 ; then
                     echo " success adding a ${FZG_DATA_TRYSIZE}G partition on ${disk}"
                     PARTCREATED=1
-                    runorerror  "dd if=/dev/zero of=/dev/${disk}p${TANKPART} bs=512 count=560"
                     runorerror "zpool labelclear -f /dev/${disk}p${TANKPART}"
                     GPARTS="${GPARTS} ${disk}p${TANKPART}"
                 else
