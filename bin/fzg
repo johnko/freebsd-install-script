@@ -43,7 +43,6 @@ TANKPART="4"
 align_big="-a 1m"
 FZG_TMP_CRYPT=/tmp/crypt
 FZG_DATA_CRYPT_KEY=/boot/data.crypt.key
-FZG_DATA_SIZES="3730 3620 2800 2690 1860 1740 940 830" # Preferred descending order
 FZG_NTPDATE_HOSTS="pool.ntp.org"
 FZG_TMP_DNS="8.8.8.8"
 FZG_CHANGE_PASSWD=y
@@ -369,7 +368,7 @@ while getopts t:b:d:e:p:r:s:M:z:H:cCiulxnUh o; do
         r) export ZFSBOOT_VDEV_TYPE="${OPTARG}" ;;
         s) export ZFSBOOT_SWAP_SIZE="${OPTARG}" ;;
         M) FZG_MNT="${OPTARG}" ; export BSDINSTALL_CHROOT="${OPTARG}" ;;
-        z) export ZFSBOOT_POOL_SIZE="${OPTARG}" ; FZG_DATA_SIZES="${OPTARG}" ;;
+        z) export ZFSBOOT_POOL_SIZE="${OPTARG}" ; FZG_DATA_SIZES="${OPTARG}" ; unset FZG_DATA_AUTO_SIZE ;;
         H) FZG_HOSTNAME="${OPTARG}" ;;
         c) freebsdconfigglobal ; exit ;;
         C) freebsdconfigglobal ; freebsdconfiglocal ; exit ;;
@@ -492,38 +491,36 @@ if [ "${FZG_DATA_INIT}" ]; then
         cryptdecode
     fi
     ### now add disk partition
-    if [ "${FZG_DATA_AUTO_SIZE}" ]; then
-        echo -n "Creating data partitions ..."
-        for disk in ${ZFSBOOT_DISKS}; do
-            PARTCREATED=0
-            uuid=$( uuidgen | md5 | cut -c1-6 )
-            for GSIZE in ${FZG_DATA_SIZES} ; do
-                while [ ${PARTCREATED} -eq 0 ]; do
-                    if [ ${PARTCREATED} -ne 1 ]; then
-                        ### we try to add in whole integer sizes of GB so that all disk partition sizes are equal
-                        ### so that we can mirror them correctly without having to worry about MB of variations
-                        if gpart add -i ${TANKPART} -t freebsd-zfs ${align_big} -s ${GSIZE}G ${disk} >/dev/null 2>&1 ; then
-                            echo " success adding partition sized ${GSIZE}G at ${disk}"
-                            PARTCREATED=1
-                            runorerror  "dd if=/dev/zero of=/dev/${disk}p${TANKPART} bs=512 count=560"
-                            runorerror "zpool labelclear -f /dev/${disk}p${TANKPART}"
-                            GPARTS="${GPARTS} ${disk}p${TANKPART}"
-                        else
-                            ### we should actually use the next FZG_DATA_SIZES,
-                            ### but for now we'll decrement by 1
-                            GSIZE=$(( GSIZE - 1 ))
-                        fi
-                    fi
-                    if [ ${GSIZE} -lt 1 ]; then
-                        PARTCREATED=2
-                        echo " error adding partition at ${disk}"
-                    fi
-                done
-            done
-            [ ${PARTCREATED} -ne 1 ] && exiterror 6 " error adding partition at ${disk}"
+    echo "Creating data partitions ..."
+    for disk in ${ZFSBOOT_DISKS}; do
+        echo "${disk}"
+        PARTCREATED=0
+        if [ "${FZG_DATA_AUTO_SIZE}" ]; then
+            # estimate using gpart free
+            FZG_DATA_TRYSIZE=$( gpart show ${disk} | grep '\- free \-' | tail -1 | awk '{ printf "%.0f\n", $2 / 2097152 }' )
+        else
+            FZG_DATA_TRYSIZE=${FZG_DATA_SIZES}
+        fi
+        # only try it 3 times, each time decrement by 1
+        for i in 1 2 3 ; do
+            echo -n "."
+            if [ ${PARTCREATED} -ne 1 ] && [ ${FZG_DATA_TRYSIZE} -gt 0 ]; then
+                ### we try to add in whole integer sizes of GB so that all disk partition sizes are equal
+                ### so that we can mirror them correctly without having to worry about MB of variations
+                if gpart add -i ${TANKPART} -t freebsd-zfs ${align_big} -s ${FZG_DATA_TRYSIZE}G ${disk} >/dev/null 2>&1 ; then
+                    echo " success adding a ${FZG_DATA_TRYSIZE}G partition on ${disk}"
+                    PARTCREATED=1
+                    runorerror  "dd if=/dev/zero of=/dev/${disk}p${TANKPART} bs=512 count=560"
+                    runorerror "zpool labelclear -f /dev/${disk}p${TANKPART}"
+                    GPARTS="${GPARTS} ${disk}p${TANKPART}"
+                else
+                    FZG_DATA_TRYSIZE=$(( FZG_DATA_TRYSIZE - 1 ))
+                fi
+            fi
         done
-        export ZFSBOOT_DISKS="${GPARTS}"
-    fi
+        [ ${PARTCREATED} -ne 1 ] && exiterror 6 " error adding partition on ${disk}"
+    done
+    export ZFSBOOT_DISKS="${GPARTS}"
     if [ "$FZG_GELI_ENCRYPTION" ]; then
         echo -n "Initializing geli partitions ..."
         for disk in ${ZFSBOOT_DISKS}; do
@@ -590,7 +587,7 @@ if [ ! -f /usr/local/sbin/pkg-static ]; then
     pkg bootstrap
 fi
 
-### Patch zfsboot for POOL_SIZE and gptid or glabel uuid
+### Patch zfsboot for POOL_SIZE
 zfsbootpath=/usr/libexec/bsdinstall/zfsboot
 zfsbootdl=${HOME}/perm/zfsboot.dl
 zfsbootorig=${HOME}/perm/zfsboot.orig
