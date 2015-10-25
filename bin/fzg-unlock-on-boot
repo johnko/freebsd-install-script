@@ -28,9 +28,8 @@ if zpool status ${DATAPOOL} >/dev/null 2>/dev/null ; then
         fi
     fi
 
-    zpool status ${DATAPOOL} | grep -o '[a-z].*\.eli.*ONLINE' | grep -o '[a-z].*\.eli' \
-    | while read gelitarget ; do
-        gptidtarget=`echo $gelitarget | sed 's;\.eli;;'`
+    for gelitarget in $( zpool list -H -v -o name ${rpoolreal} | egrep '\-.*\-.*\-.*\-.*\-.*\-' | awk '{ print $1 }' | grep -o '[a-z].*\.eli' ) ; do
+        gptidtarget=${gelitarget%%.eli}
         safegptidtarget=`echo $gptidtarget | tr / _`
         sysrc -f /boot/loader.conf.local "geli_${safegptidtarget}_keyfile0_load=YES"
         sysrc -f /boot/loader.conf.local "geli_${safegptidtarget}_keyfile0_type=${gptidtarget}:geli_keyfile0"
