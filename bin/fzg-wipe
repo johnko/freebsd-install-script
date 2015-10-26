@@ -55,8 +55,7 @@ elif [ "x2" = "x$STEP" ]; then
     fi
     fzg-fstab-swapon ${DISKTWO}
     if [ ! -e ~/local/cshvars ] && [ -e ~/perm/cshvars ]; then
-        install -m 600 ~/perm/cshvars ~/local/cshvars
-        vi ~/local/cshvars
+        install -C -m 600 ~/perm/cshvars ~/local/cshvars
     fi
 #    fzg-random-key
 #        fzg-unlock-on-boot
