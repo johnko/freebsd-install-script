@@ -13,6 +13,8 @@ CONFIG_OPTIONS="
 /etc/periodic.conf  monthly_status_security_output=/var/log/monthly_status_security.log
 /etc/periodic.conf  security_status_chksetuid_enable=NO
 /etc/periodic.conf  security_status_neggrpperm_enable=NO
+/etc/periodic.conf  security_status_loginfail_enable=YES
+/etc/periodic.conf  security_status_chkuid0_enable=YES
 " ### END-QUOTE
 
 echo "$CONFIG_OPTIONS" \
