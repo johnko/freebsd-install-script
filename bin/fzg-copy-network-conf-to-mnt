@@ -1,4 +1,4 @@
 #!/bin/sh
 
-cat /etc/rc.conf.d/network >/mnt/etc/rc.conf.d/network
-cat /etc/rc.conf.d/routing >/mnt/etc/rc.conf.d/routing
+install -C /etc/rc.conf.d/network /mnt/etc/rc.conf.d/network
+install -C /etc/rc.conf.d/routing /mnt/etc/rc.conf.d/routing
