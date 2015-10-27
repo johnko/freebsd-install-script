@@ -7,7 +7,6 @@ POOL=$1
 NEWHOSTNAME=$2
 DISK=$3
 DISKTWO=$4
-STEP=$5
 
 if [ "x" = "x$POOL" ]; then
     cat <<EOF
@@ -19,7 +18,7 @@ fi
 
 
 
-if [ "x" = "x$STEP" ]; then
+if [ "x-" != "x$POOL" -a "x-" != "x$NEWHOSTNAME" ]; then
     for devid in ${DISK}p1 ${DISK}p2 ${DISK}p3 ${DISK}p4 ${DISK}p5 ${DISK}p6 \
         $( glabel status -s | grep ${DISK}p | awk '{print $1}' ) ; do
         while [ -e /dev/${devid}.eli ]; do
@@ -46,7 +45,7 @@ if [ "x" = "x$STEP" ]; then
 Please reboot then run:
     `basename $0` - - ${DISK} ${DISKTWO} 2
 EOF
-elif [ "x2" = "x$STEP" ]; then
+else
     gpart destroy -F ${DISKTWO}
     if zpool status usb >/dev/null 2>/dev/null ; then
         fzg -e ${DISK} -z 5g -d ${DISKTWO} -p usb
