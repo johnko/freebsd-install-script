@@ -81,7 +81,7 @@ if [ "$ZVG_DATA_INIT" ]; then
     zfs create -o compress=lz4 -o atime=off -o canmount=off ${LOWER_POOL_NAME}/zvols/${UPPER_POOL_NAME} >/dev/null 2>&1
     runorerror "zfs create -s -o compress=off -V ${ZVG_DATA_SIZES}G ${ZVG_DISK}"
     runorerror "geli init -b -e AES-XTS -P -K ${TMPFILE} -l 256 -s 4096 /dev/zvol/${ZVG_DISK}"
-    runorerror "geli attach -p -k ${TMPFILE} /dev/zvol/${ZVG_DISK}"
+    runorerror "geli attach -d -p -k ${TMPFILE} /dev/zvol/${ZVG_DISK}"
     if zpool status ${UPPER_POOL_NAME} >/dev/null 2>&1 ; then
         # Not mirror
         runorerror "zpool add ${UPPER_POOL_NAME} /dev/zvol/${ZVG_DISK}.eli"
@@ -113,7 +113,7 @@ elif [ "$ZVG_DATA_UNLOCK" ]; then
     for disk in $( zfs list -H -t volume -o name -r ${LOWER_POOL_NAME}/zvols/${UPPER_POOL_NAME} ) ; do
         if [ ! -e /dev/${disk}.eli ]; then
             echo -n " ${disk}"
-            runorerror "geli attach -p -k ${TMPFILE} /dev/zvol/${disk}"
+            runorerror "geli attach -d -p -k ${TMPFILE} /dev/zvol/${disk}"
         fi
     done
     rm ${TMPFILE}
