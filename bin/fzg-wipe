@@ -43,7 +43,7 @@ if [ "x-" != "x$POOL" -a "x-" != "x$NEWHOSTNAME" ]; then
     fzg-copy-network-conf-to-mnt
     cat <<EOF
 Please reboot then run:
-    `basename $0` - - ${DISK} ${DISKTWO} 2
+    `basename $0` - - ${DISK} ${DISKTWO}
 EOF
 else
     gpart destroy -F ${DISKTWO}
