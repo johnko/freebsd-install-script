@@ -174,9 +174,9 @@ EOF
     /boot/loader.conf              nullfs_load=YES
     /boot/loader.conf              tmpfs_load=YES                           #  for mfsroot /usr
 
-    /etc/rc.conf.d/abi             linux_enable=YES
+    # /etc/rc.conf.d/abi             linux_enable=YES
     /etc/rc.conf.d/auditd          auditd_enable=YES
-    /etc/rc.conf.d/ezjail          ezjail_enable=YES
+    # /etc/rc.conf.d/ezjail          ezjail_enable=YES
     /etc/rc.conf.d/ftp-proxy       ftpproxy_enable=YES
     /etc/rc.conf.d/mdnsd           mdnsd_enable=YES
     /etc/rc.conf.d/ntpdate         ntpdate_enable=YES
