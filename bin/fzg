@@ -782,7 +782,7 @@ fi
 ### create firstboot_sentinel
 touch ${FZG_MNT}/firstboot
 ### install the firstboot script
-runorerror "install -m 555 ${HOME}/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
+runorerror "install -m 755 ${HOME}/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
 
 while [ "${FZG_CHANGE_PASSWD}" = "y" -o "${FZG_CHANGE_PASSWD}" = "Y" ]; do
     ### Prompt to change root password of new install
