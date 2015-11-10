@@ -740,7 +740,9 @@ if ! grep "stat-all" ${FZG_MNT}/etc/motd >/dev/null 2>&1 ; then
     To update the operating system:
             env PAGER=cat freebsd-update -F fetch install
             reboot
-    To update programs and scripts:         fres
+    To update programs:                     pkg update
+                                            pkg upgrade
+    To update my scripts:                   fres
 
     System information:                     stat-all
     Hard drive information:                 hddid
