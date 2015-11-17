@@ -50,14 +50,9 @@ firstboot_realhost_run()
     echo "RUN: gdf"
                gdf
 
-    ## Setup $HOME/bin , $HOME/git and more
+    ## Setup $HOME/git and more
     echo "RUN: fres"
                fres
-    if [ -e ${HOME}/git/skel/bin/fres ]; then
-        echo "RUN: rm -r ${HOME}/bin/"
-                   rm -r ${HOME}/bin/
-        sh ${HOME}/git/skel/bin/fres
-    fi
 
     ## Create an ssh key
     if [ ! -e ${HOME}/.ssh/id_ed25519 ]; then
