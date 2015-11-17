@@ -290,7 +290,7 @@ freebsdconfiglocal() {
         cat >/tmp/network.lagg <<EOF
 ### To enable Link Aggregation: BEGIN
 cloned_interfaces="lo1 lagg0"
-# ifconfig_lagg0="DHCP laggproto loadbalance ${nics}"
+# ifconfig_lagg0="SYNCDHCP laggproto loadbalance ${nics}"
 # ifconfig_lagg0="inet 192.168.0.2/24 laggproto loadbalance ${nics}"
 ### To enable Link Aggregation: END
 EOF
@@ -724,7 +724,7 @@ freebsdconfiglocal
 ### Set ifconfig DHCP
 realnics \
 | while read line ; do
-    sysrc -f ${FZG_MNT}/etc/rc.conf.d/network ifconfig_${line}="DHCP"
+    sysrc -f ${FZG_MNT}/etc/rc.conf.d/network ifconfig_${line}="SYNCDHCP"
 done
 
 ### Change password of new system to blank
