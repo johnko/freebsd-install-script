@@ -587,8 +587,8 @@ fi
 
 ### Patch zfsboot for POOL_SIZE
 zfsbootpath=/usr/libexec/bsdinstall/zfsboot
-zfsbootdl=${HOME}/perm/zfsboot.dl
-zfsbootorig=${HOME}/perm/zfsboot.orig
+zfsbootdl=/root/perm/zfsboot.dl
+zfsbootorig=/root/perm/zfsboot.orig
 if [ ! -e ${zfsbootorig} ]; then
     cp ${zfsbootpath} ${zfsbootorig}
 fi
@@ -657,6 +657,12 @@ else
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf.local"
 fi
 
+### enable swap
+for i in $ZFSBOOT_DISKS ; do
+    TMPSWAPPART=$(gpart show ${i} | grep swap | awk '{print $3}')
+    swapon /dev/${i}p${TMPSWAPPART}.eli
+done
+
 ### Check if local distribution exists, if so copy to FZG_MNT
 ### this notation /boot/.. is in case /boot is a symlink
 if [ -e ${BSDINSTALL_DISTDIR}/MANIFEST ]; then
@@ -675,7 +681,6 @@ fi
 
 ### permissions
 mkdirorerror ${FZG_MNT}/root/.ssh 700
-mkdirorerror ${FZG_MNT}/root/bin  700
 
 ### Extract ditribution
 export DISTRIBUTIONS="kernel.txz base.txz lib32.txz doc.txz src.txz"
@@ -766,13 +771,6 @@ if [ -e /root/.ssh/authorized_keys ]; then
     runorerror "cp /root/.ssh/authorized_keys ${FZG_MNT}/root/.ssh/authorized_keys"
     runorerror "chmod 600 ${FZG_MNT}/root/.ssh/authorized_keys"
 fi
-### If bin exists, and has files, copy that
-if ls /root/bin | grep . >/dev/null 2>&1 ; then
-    runorerror "chmod 700 /root/bin"
-    mkdirorerror ${FZG_MNT}/root/bin 700
-    cp -r /root/bin ${FZG_MNT}/root || exiterror $? "cp -r /root/bin ${FZG_MNT}/root "
-    runorerror "chmod 700 ${FZG_MNT}/root/bin/*"
-fi
 ### If perm exists, and has files, copy that
 if ls /root/perm | grep . >/dev/null 2>&1 ; then
     runorerror "chmod 700 /root/perm"
@@ -784,7 +782,7 @@ fi
 ### create firstboot_sentinel
 touch ${FZG_MNT}/firstboot
 ### install the firstboot script
-runorerror "install -m 755 ${HOME}/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
+runorerror "install -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
 
 while [ "${FZG_CHANGE_PASSWD}" = "y" -o "${FZG_CHANGE_PASSWD}" = "Y" ]; do
     ### Prompt to change root password of new install
