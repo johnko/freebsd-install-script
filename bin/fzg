@@ -783,6 +783,11 @@ fi
 touch ${FZG_MNT}/firstboot
 ### install the firstboot script
 runorerror "install -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
+install -d -m 755 -o root -g wheel ${FZG_MNT}/usr/local/bin
+### install some scripts for firstboot
+for i in setproxy gdf fres ssh-makeprivkey-ed25519 ; do
+    which $i >/dev/null 2>&1 && cp $(which $i) ${FZG_MNT}/usr/local/bin/
+done
 
 while [ "${FZG_CHANGE_PASSWD}" = "y" -o "${FZG_CHANGE_PASSWD}" = "Y" ]; do
     ### Prompt to change root password of new install
