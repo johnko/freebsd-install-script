@@ -64,6 +64,7 @@ else
 #    vi /boot/loader.conf.local
     cat <<EOF
 A reminder to run these commands to setup tank/iocage:
+    fzg -i -t 1 -p key -d da0
     kgt -t 4 -p tank -r mirror -d ada0 -d ada1 -d ada2
     ioc-setup
 Or create and allow tank/urep with:
