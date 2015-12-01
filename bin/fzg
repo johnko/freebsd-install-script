@@ -838,3 +838,5 @@ EOF
     test -e ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub     && ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub
     test -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub && ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
 fi
+
+zfs snap -r ${ZFSBOOT_POOL_NAME}@1_initial_install
