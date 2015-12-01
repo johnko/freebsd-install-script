@@ -12,7 +12,7 @@ align_big="-a 1m"
 KGT_DATA_AUTO_SIZE=1
 KGT_SECTOR_SIZE=4096
 KGT_NEW_POOL_NAME="tank"
-KGT_VDEV_TYPE="mirror"
+KGT_VDEV_TYPE="stripe"
 
 usage() {
     cat <<EOF
@@ -136,6 +136,10 @@ EOF
     vdevs="${vdevs} ${disk}.eli"
 done
 
+count=$( echo "${vdevs}" | wc -w | awk '{ print $1 }' )
+if [ "${count}" -gt 2 -a "${KGT_VDEV_TYPE}" != "mirror" ]; then
+    KGT_VDEV_TYPE="mirror"
+fi
 # create new pool
 runorerror "zpool create -O compress=lz4 -O atime=off $KGT_NEW_POOL_NAME $KGT_VDEV_TYPE $vdevs"
 
