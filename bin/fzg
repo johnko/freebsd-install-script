@@ -375,9 +375,6 @@ while getopts t:b:d:e:p:r:s:M:z:H:cCiulxnUh o; do
         H) FZG_HOSTNAME="${OPTARG}" ;;
         c) freebsdconfigglobal ; exit ;;
         C) freebsdconfigglobal ; freebsdconfiglocal ; exit ;;
-        i) FZG_DATA_INIT=1 ; FZG_DATA_AUTO_SIZE=1 ;;
-        u) FZG_DATA_UNLOCK=1 ;;
-        l) FZG_DATA_LOCK=1 ;;
         x) unset FZG_DATA_AUTO_SIZE ;;
         n) FZG_CHANGE_PASSWD=n ;;
         U) FZG_SKIP_UPDATE=1 ;;
