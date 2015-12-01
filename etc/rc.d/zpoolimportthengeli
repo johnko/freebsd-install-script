@@ -34,6 +34,8 @@ zpoolimportthengeli_run()
     # geli flags should be configured in rc.conf
     service geli start
     service geli2 start
+    # zfs start to mount
+    service zfs start
 
     if checkyesno zpoolimportthengeli_export && zpool list ${zpoolimportthengeli_zpool} >/dev/null 2>&1 ; then
         # export the pool on the USB thumbdrive
