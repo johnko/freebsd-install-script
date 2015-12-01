@@ -114,6 +114,9 @@ for disk in ${KGT_DISKS}; do
     done
     [ ${PARTCREATED} -ne 1 ] && echo " error adding partition on ${disk}."
 done
+cat >>/etc/rc.conf.d/geli <<EOF
+geli_devices="${GPARTS}"
+EOF
 
 # geli init all vdevs with passphrase
 echo -n "Initializing geli partitions ..."
