@@ -3,7 +3,7 @@
 # $FreeBSD$
 # KEYWORD: firstboot
 # PROVIDE: firstboot_realhost
-# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN dhclient
+# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON dhclient
 # BEFORE: LOGIN
 
 ## Modified from cperciva's sysutils/firstboot-pkgs
