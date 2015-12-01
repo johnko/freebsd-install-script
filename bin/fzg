@@ -352,7 +352,7 @@ safe_glabel_of_diskpart()
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
-while getopts t:b:d:e:p:r:s:M:z:H:cCiulxnUh o; do
+while getopts t:b:d:e:p:r:s:M:z:H:cCixnUh o; do
     case "${o}" in
         t) TANKPART="${OPTARG}" ;;
         b) export ZFSBOOT_BOOT_POOL_SIZE="${OPTARG}" ;;

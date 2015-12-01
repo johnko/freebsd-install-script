@@ -1,0 +1,139 @@
+#!/bin/sh
+
+# Key Geli Tank
+
+. /usr/local/bin/loadmyvars.sh
+
+# 4096 block to futureproof hdd upgrade of zpool
+sysctl vfs.zfs.min_auto_ashift=12
+
+TANKPART="4"
+align_big="-a 1m"
+KGT_DATA_AUTO_SIZE=1
+KGT_SECTOR_SIZE=4096
+KGT_NEW_POOL_NAME="tank"
+KGT_VDEV_TYPE="mirror"
+
+usage() {
+    cat <<EOF
+usage:  ${0##*/} -d disk
+
+        -f keypool  Key pool name.
+        -d disk     Disk to use.
+        -h          Help.
+        -p name     ZFS pool name, must be unique.
+        -r          Select ZFS raid mode if multiple -d given.
+        -t part     GPT slice that should be used (eg. 5 or 6)
+        -z size     ZFS pool size.
+
+EOF
+}
+
+exiterror() {
+    exitcode=$1
+    shift
+    if [ "${exitcode}" != "0" ]; then
+        echo "ERROR: code ${exitcode}: $@"
+    fi
+    umount ${FZG_TMP_CRYPT} >/dev/null 2>&1
+    umount ${BSDINSTALL_TMPBOOT} >/dev/null 2>&1
+    exit ${exitcode}
+}
+
+runorerror() {
+    $@ || exiterror $? $@
+}
+
+
+if [ $# -eq 0 ]; then
+    usage ; exiterror 1
+fi
+while getopts t:f:d:p:r:z:h o; do
+    case "${o}" in
+        t) TANKPART="${OPTARG}" ;;
+        f) KGT_KEY_POOL_NAME="${OPTARG}" ;;
+        d) KGT_DISKS="${KGT_DISKS} ${OPTARG##/dev/}" ;;
+        p) KGT_NEW_POOL_NAME="${OPTARG}" ;;
+        r) KGT_VDEV_TYPE="${OPTARG}" ;;
+        z) KGT_DATA_SIZES="${OPTARG}" ; unset KGT_DATA_AUTO_SIZE ;;
+        h) usage ; exiterror 1 ;;
+        [?]) usage ; exiterror 1 ;;
+    esac
+done
+
+# Check that a pool named "key" exists
+if [ "x" = "x$KGT_KEY_POOL_NAME" ]; then
+    KGT_KEY_POOL_NAME="key"
+fi
+if ! zpool list $KGT_KEY_POOL_NAME >/dev/null 2>&1 ; then
+    exiterror 1 "Pool $KGT_KEY_POOL_NAME doesn't exist."
+fi
+ismounted=$( zfs list -H -o mounted $KGT_KEY_POOL_NAME )
+if [ "yes" != "$ismounted" ]; then
+    exiterror 1 "Pool $KGT_KEY_POOL_NAME is not mounted."
+fi
+
+# Prompt for geli passphrase
+stty -echo
+printf "GELI Encryption Passphrase:"
+read PASSWORD
+
+# write passphrase to "/key_mountpoint/geli_password.txt"
+mountdir=$( zfs list -H -o mountpoint $KGT_KEY_POOL_NAME )
+NEWPASSFILE=${mountdir}/geli_password.txt
+echo $PASSWORD >$NEWPASSFILE
+if [ ! -e $NEWPASSFILE ]; then
+    exiterror 1 "Failed to save passphrase to $NEWPASSFILE."
+fi
+
+# add data partitions to disks
+echo "Creating data partitions ..."
+for disk in ${KGT_DISKS}; do
+    echo "${disk}"
+    PARTCREATED=0
+    if [ "${KGT_DATA_AUTO_SIZE}" ]; then
+        # estimate using gpart free
+        KGT_DATA_TRYSIZE=$( gpart show ${disk} | grep '\- free \-' | tail -1 | awk '{ printf "%.0f\n", $2 / 2097152 }' )
+    else
+        KGT_DATA_TRYSIZE=${FZG_DATA_SIZES}
+    fi
+    # only try it 3 times, each time decrement by 1
+    for i in 1 2 3 ; do
+        if [ ${PARTCREATED} -ne 1 ] && [ ${KGT_DATA_TRYSIZE} -gt 0 ]; then
+            ### we try to add in whole integer sizes of GB so that all disk partition sizes are equal
+            ### so that we can mirror them correctly without having to worry about MB of variations
+            if gpart add -i ${TANKPART} -t freebsd-zfs ${align_big} -s ${KGT_DATA_TRYSIZE}G ${disk} >/dev/null 2>&1 ; then
+                echo " success adding a ${KGT_DATA_TRYSIZE}G partition on ${disk}"
+                PARTCREATED=1
+                runorerror "zpool labelclear -f /dev/${disk}p${TANKPART}"
+                GPARTS="${GPARTS} ${disk}p${TANKPART}"
+            else
+                KGT_DATA_TRYSIZE=$(( KGT_DATA_TRYSIZE - 1 ))
+            fi
+        fi
+    done
+    [ ${PARTCREATED} -ne 1 ] && echo " error adding partition on ${disk}."
+done
+
+# geli init all vdevs with passphrase
+echo -n "Initializing geli partitions ..."
+vdevs=""
+for disk in ${GPARTS}; do
+    echo -n " ${disk}"
+    runorerror "geli init -b -e AES-XTS -J $NEWPASSFILE -s $KGT_SECTOR_SIZE ${disk}"
+    runorerror "geli attach -j $NEWPASSFILE ${disk}"
+    # write geli_${provider_}_flags to rc.conf.d/geli
+    cat >>/etc/rc.conf.d/geli <<EOF
+geli_${disk}_flags="-j $NEWPASSFILE"
+EOF
+    vdevs="${vdevs} ${disk}.eli"
+done
+
+# create new pool
+runorerror "zpool create -O compress=lz4 -O atime=off $KGT_NEW_POOL_NAME $KGT_VDEV_TYPE $vdevs"
+
+# enable zpoolimportthengeli in rc.conf
+runorerror "sysrc -f /etc/rc.conf.d/zpoolimportthengeli zpoolimportthengeli_enable=YES"
+runorerror "sysrc -f /etc/rc.conf.d/zpoolimportthengeli zpoolimportthengeli_zpool=$KGT_KEY_POOL_NAME"
+
+echo "Reboot to test."
