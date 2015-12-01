@@ -64,25 +64,21 @@ usage:  ${0##*/} -d disk
         -C          Same as -c plus loader.conf.local and rc.conf.local.
         -d disk     Disk to install on (eg. da0).
         -e disk     Attach to this existing disk that is part of -p pool.
-        -H hostname Hostname.
+        -H hostname Set hostname of new installation.
         -h          Help.
         -M mount    Mountpoint, if not using /mnt.
         -n          Don't prompt to change password.
         -p name     ZFS pool name, must be unique.
         -r          Select ZFS raid mode if multiple -d given.
         -s size     Swap partition size.
-        -v          Version.
+        -U          Skip freebsd-update.
         -z size     ZFS pool size.
 
         ${0##*/} -i -d vdev
         ${0##*/} -i -e vdev -d vdev
-        ${0##*/} -u -d vdev
-        ${0##*/} -l
 
         -i          Initialize data partition.
                     Automatically create partition 5 unless -x is set.
-        -l          Export pool and lock data partition.
-        -u          Unlock data partition and mount pool.
         -x          Explicit -d device, don't create partition 5 automatically.
         -d vdev     Virtual device to grab gptid label from (eg. da0p5)
         -t part     GPT slice that should be used (eg. 5 or 6)
@@ -102,11 +98,6 @@ other examples:
 
     Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
         ${0##*/} -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 5g -r mirror
-    Make a bootable ZFS USB, which loads as mfs:
-    Note we change the pool name so they don't conflict.
-        ${0##*/} -d da0 -m -p usb
-    Minimal mirror mfs server:
-        ${0##*/} -d ada0 -d ada1 -z 5g -m -p mini
     Create data pool with these devices, no auto partition creation:
         ${0##*/} -i -d ada0p5 -d ada1p5 -p data -x
 EOF
