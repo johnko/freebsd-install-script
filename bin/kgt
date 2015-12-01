@@ -120,7 +120,7 @@ echo -n "Initializing geli partitions ..."
 vdevs=""
 for disk in ${GPARTS}; do
     echo -n " ${disk}"
-    runorerror "geli init -b -e AES-XTS -J $NEWPASSFILE -s $KGT_SECTOR_SIZE ${disk}"
+    runorerror "geli init -e AES-XTS -J $NEWPASSFILE -s $KGT_SECTOR_SIZE ${disk}"
     runorerror "geli attach -j $NEWPASSFILE ${disk}"
     # write geli_${provider_}_flags to rc.conf.d/geli
     cat >>/etc/rc.conf.d/geli <<EOF
