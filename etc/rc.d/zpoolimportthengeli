@@ -1,0 +1,46 @@
+#!/bin/sh
+
+# $FreeBSD$
+# PROVIDE: zpoolimportthengeli
+# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN
+
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf to enable this:
+#
+# zpoolimportthengeli_enable="YES"
+#
+# A different pool name can be set with
+#
+# zpoolimportthengeli_zpool="key"
+
+. /etc/rc.subr
+
+: ${zpoolimportthengeli_enable:="NO"}
+: ${zpoolimportthengeli_zpool:="key"}
+: ${zpoolimportthengeli_export:="YES"}
+
+name="zpoolimportthengeli"
+rcvar=zpoolimportthengeli_enable
+start_cmd="zpoolimportthengeli_run"
+stop_cmd=":"
+
+zpoolimportthengeli_run()
+{
+
+    if ! zpool list ${zpoolimportthengeli_zpool} >/dev/null 2>&1 ; then
+        # if not already exist, import the pool on the USB thumbdrive
+        zpool import ${zpoolimportthengeli_zpool}
+    fi
+
+    # geli flags should be configured in rc.conf
+    service geli start
+    service geli2 start
+
+    if checkyesno zpoolimportthengeli_export && zpool list ${zpoolimportthengeli_zpool} >/dev/null 2>&1 ; then
+        # export the pool on the USB thumbdrive
+        zpool export ${zpoolimportthengeli_zpool}
+    fi
+
+}
+
+load_rc_config $name
+run_rc_command "$1"

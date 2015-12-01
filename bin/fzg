@@ -193,6 +193,7 @@ EOF
     /etc/rc.conf.d/sshd            sshd_rsa1_enable=NO
     /etc/rc.conf.d/sshd            sshd_dsa_enable=NO
     /etc/rc.conf.d/sshd            sshd_ecdsa_enable=NO
+    /etc/rc.conf.d/zpoolimportthengeli  zpoolimportthengeli_enable=YES
 
     /etc/rc.conf.local             zfs_enable=YES
 
@@ -781,13 +782,16 @@ if ls /root/perm | grep . >/dev/null 2>&1 ; then
     runorerror "chmod 600 ${FZG_MNT}/root/perm/*"
 fi
 
+### install the rc.d script
+runorerror "install -m 755 /root/git/freebsd-install-script/etc/rc.d/zpoolimportthengeli ${FZG_MNT}/etc/rc.d/zpoolimportthengeli"
+
 ### create firstboot_sentinel
 touch ${FZG_MNT}/firstboot
 ### install the firstboot script
 runorerror "install -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
 install -d -m 755 -o root -g wheel ${FZG_MNT}/usr/local/bin
 ### install some scripts for firstboot
-for i in setproxy gdf fres ssh-makeprivkey-ed25519 ; do
+for i in setproxy noproxy gdf fres ssh-makeprivkey-ed25519 ; do
     which $i >/dev/null 2>&1 && cp $(which $i) ${FZG_MNT}/usr/local/bin/
 done
 
