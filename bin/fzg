@@ -691,22 +691,8 @@ fi
 if [ -z "${FZG_SKIP_UPDATE}" ]; then
     ### Allow for update using freebsd-update
     cat /etc/resolv.conf >${FZG_MNT}/etc/resolv.conf
-    echo "Running: chroot ${FZG_MNT} freebsd-update fetch"
-    chroot ${FZG_MNT} freebsd-update fetch | cat >/tmp/fuf.log
-    if ! cat /tmp/fuf.log | grep 'No updates needed to update system' >/dev/null 2>&1 ; then
-        echo "Running: chroot ${FZG_MNT} freebsd-update install"
-        chroot ${FZG_MNT} freebsd-update install | cat >/tmp/fui.log
-        if ! cat /tmp/fui.log | grep 'Installing....*done' >/dev/null 2>&1 ; then
-            cat /tmp/fuf.log
-            cat /tmp/fui.log
-            cat <<EOF
-Please connect another session and check that the system updated successfully:
-    chroot ${FZG_MNT} freebsd-update -F fetch install
-EOF
-            echo -n "Then here, press ENTER to continue "
-            read CONTINUENOW
-        fi
-    fi
+    echo "Running: chroot ${FZG_MNT} env PAGER=cat freebsd-update -F fetch install"
+                   chroot ${FZG_MNT} env PAGER=cat freebsd-update -F fetch install
     rm ${FZG_MNT}/etc/resolv.conf
 fi ### end of if [ -z "${FZG_SKIP_UPDATE}" ]; then
 
