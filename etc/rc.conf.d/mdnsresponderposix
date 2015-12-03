@@ -1,0 +1,3 @@
+mdnsresponderposix_enable="YES"
+mdnsresponderposix_flags="-n `hostname -s` -t _ssh._tcp. -p 22"
+# mdnsresponderposix_flags="-f /usr/local/etc/mdnsresponder.conf"

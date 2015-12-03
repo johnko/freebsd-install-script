@@ -203,6 +203,10 @@ EOF
         sysrc -f ${FZG_MNT}${file} "${options}" >/dev/null
     done
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf"
+    ### enable mDNS/Bonjour resolving
+    runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/nsswitch.conf ${FZG_MNT}/etc/nsswitch.conf"
+    ### enable mDNS/Bonjour braodcast
+    runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.conf.d/mdnsresponderposix ${FZG_MNT}/etc/rc.conf.d/mdnsresponderposix"
     ### Set some rc.conf options that may contain spaces
     sysrc -f  ${FZG_MNT}/etc/rc.conf.d/ntpdate  ntpdate_hosts="${FZG_NTPDATE_HOSTS}" >/dev/null
     sysrc -f  ${FZG_MNT}/etc/rc.conf.d/syslogd  syslogd_flags="-s -b127.0.0.1" >/dev/null
@@ -772,12 +776,12 @@ if ls /root/perm | grep . >/dev/null 2>&1 ; then
 fi
 
 ### install the rc.d script
-runorerror "install -m 755 /root/git/freebsd-install-script/etc/rc.d/zpoolimportthengeli ${FZG_MNT}/etc/rc.d/zpoolimportthengeli"
+runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/zpoolimportthengeli ${FZG_MNT}/etc/rc.d/zpoolimportthengeli"
 
 ### create firstboot_sentinel
 touch ${FZG_MNT}/firstboot
 ### install the firstboot script
-runorerror "install -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
+runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
 install -d -m 755 -o root -g wheel ${FZG_MNT}/usr/local/bin
 ### install some scripts for firstboot
 for i in setproxy noproxy gdf fres ssh-makeprivkey-ed25519 ; do
