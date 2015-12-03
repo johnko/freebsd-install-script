@@ -691,8 +691,8 @@ fi
 if [ -z "${FZG_SKIP_UPDATE}" ]; then
     ### Allow for update using freebsd-update
     cat /etc/resolv.conf >${FZG_MNT}/etc/resolv.conf
-    echo "Running: chroot ${FZG_MNT} env PAGER=cat freebsd-update -F fetch install"
-                   chroot ${FZG_MNT} env PAGER=cat freebsd-update -F fetch install
+    echo "Running: chroot ${FZG_MNT} env PAGER=cat freebsd-update --not-running-from-cron fetch install"
+                   chroot ${FZG_MNT} env PAGER=cat freebsd-update --not-running-from-cron fetch install
     rm ${FZG_MNT}/etc/resolv.conf
 fi ### end of if [ -z "${FZG_SKIP_UPDATE}" ]; then
 

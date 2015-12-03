@@ -50,6 +50,9 @@ firstboot_realhost_run()
     echo "RUN: gdf"
                gdf
 
+    echo "RUN: env PAGER=cat freebsd-update --not-running-from-cron fetch install"
+               env PAGER=cat freebsd-update --not-running-from-cron fetch install
+
     ## Setup $HOME/git and more
     echo "RUN: fres"
                fres
