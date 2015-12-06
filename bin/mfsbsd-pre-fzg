@@ -2,6 +2,8 @@
 
 # on mfsbsd, before fzg
 
+# fetch --no-verify-peer https://raw.githubusercontent.com/johnko/freebsd-install-script/master/bin/master-pre-fzg
+
 mkdir -p /var/db/pkg
 mount -t tmpfs tmpfs /var/db/pkg
 mkdir -p /var/cache/pkg
