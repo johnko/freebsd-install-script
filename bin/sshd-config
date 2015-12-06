@@ -60,14 +60,3 @@ grep '^HostKey' "${FZG_MNT}/etc/ssh/sshd_config" \
 HostKey /etc/ssh/ssh_host_rsa_key
 HostKey /etc/ssh/ssh_host_ed25519_key
 EOF
-### stronger private keys
-if [ ! -e ${FZG_MNT}/etc/ssh/ssh_host_rsa_key ] \
-|| [ `ls -l ${FZG_MNT}/etc/ssh/ssh_host_rsa_key | awk '{print $5}'` -lt 3243 ]; then
-    ssh-keygen -q -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key -t rsa -b 4096 -N ""
-    ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub
-fi
-if [ ! -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key ] \
-|| [ `ls -l ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key | awk '{print $5}'` -lt 399 ]; then
-    ssh-keygen -q -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key -t ed25519 -N ""
-    ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
-fi

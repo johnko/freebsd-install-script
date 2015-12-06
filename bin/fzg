@@ -742,6 +742,23 @@ if ! grep "stat-all" ${FZG_MNT}/etc/motd >/dev/null 2>&1 ; then
 EOF
 fi
 
+### install the rc.d script
+runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/zpoolimportthengeli ${FZG_MNT}/etc/rc.d/zpoolimportthengeli"
+
+### install the firstboot script
+runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
+
+install -d -m 755 -o root -g wheel ${FZG_MNT}/usr/local/bin
+### install some scripts for firstboot
+for i in setproxy noproxy gdf fres ssh-makeprivkey-ed25519 ; do
+    which $i >/dev/null 2>&1 && cp $(which $i) ${FZG_MNT}/usr/local/bin/
+done
+
+zfs snap -r ${ZFSBOOT_POOL_NAME}@0_clean_install_safetoclone
+
+### create firstboot_sentinel
+touch ${FZG_MNT}/firstboot
+
 ### No need to set this if we are not using a bootpool + pool combo
 # if ! grep "vfs.root.mountfrom" ${FZG_MNT}/boot/loader.conf.local >/dev/null 2>/dev/null ; then
 #    sysrc -f ${FZG_MNT}/boot/loader.conf.local vfs.root.mountfrom=zfs:${ZFSBOOT_POOL_NAME}/${ZFSBOOT_BEROOT_NAME}/${ZFSBOOT_BOOTFS_NAME} >/dev/null
@@ -752,6 +769,7 @@ if [ -e /root/.ssh/authorized_keys ]; then
     runorerror "cp /root/.ssh/authorized_keys ${FZG_MNT}/root/.ssh/authorized_keys"
     runorerror "chmod 600 ${FZG_MNT}/root/.ssh/authorized_keys"
 fi
+
 ### If perm exists, and has files, copy that
 if ls /root/perm | grep . >/dev/null 2>&1 ; then
     runorerror "chmod 700 /root/perm"
@@ -759,19 +777,6 @@ if ls /root/perm | grep . >/dev/null 2>&1 ; then
     cp -r /root/perm ${FZG_MNT}/root || exiterror $? "cp -r /root/perm ${FZG_MNT}/root"
     runorerror "chmod 600 ${FZG_MNT}/root/perm/*"
 fi
-
-### install the rc.d script
-runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/zpoolimportthengeli ${FZG_MNT}/etc/rc.d/zpoolimportthengeli"
-
-### create firstboot_sentinel
-touch ${FZG_MNT}/firstboot
-### install the firstboot script
-runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
-install -d -m 755 -o root -g wheel ${FZG_MNT}/usr/local/bin
-### install some scripts for firstboot
-for i in setproxy noproxy gdf fres ssh-makeprivkey-ed25519 ; do
-    which $i >/dev/null 2>&1 && cp $(which $i) ${FZG_MNT}/usr/local/bin/
-done
 
 while [ "${FZG_CHANGE_PASSWD}" = "y" -o "${FZG_CHANGE_PASSWD}" = "Y" ]; do
     ### Prompt to change root password of new install
@@ -813,6 +818,18 @@ or
 Don't export the ZFS pools!
 EOF
 
+### stronger private keys
+if [ ! -e ${FZG_MNT}/etc/ssh/ssh_host_rsa_key ] \
+|| [ `ls -l ${FZG_MNT}/etc/ssh/ssh_host_rsa_key | awk '{print $5}'` -lt 3243 ]; then
+    ssh-keygen -q -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key -t rsa -b 4096 -N ""
+    ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub
+fi
+if [ ! -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key ] \
+|| [ `ls -l ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key | awk '{print $5}'` -lt 399 ]; then
+    ssh-keygen -q -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key -t ed25519 -N ""
+    ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
+fi
+
 if [ -e ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub -o -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub ]; then
     cat <<EOF
 New sshd pubkeys are:
@@ -821,4 +838,4 @@ EOF
     test -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub && ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
 fi
 
-zfs snap -r ${ZFSBOOT_POOL_NAME}@1_initial_install
+zfs snap -r ${ZFSBOOT_POOL_NAME}@1_customized_install
