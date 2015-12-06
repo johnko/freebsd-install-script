@@ -681,6 +681,8 @@ mkdirorerror ${FZG_MNT}/root/.ssh 700
 export DISTRIBUTIONS="kernel.txz base.txz lib32.txz doc.txz src.txz"
 bsdinstall distextract || exiterror $? "bsdinstall distextract"
 
+zfs snap -r ${ZFSBOOT_POOL_NAME}@0_clean_install_safetoclone
+
 ### combine fstab to new fstab
 if [ -e ${BSDINSTALL_TMPETC}/fstab ]; then
     FSTABFILE=${FZG_MNT}/etc/fstab
@@ -754,8 +756,6 @@ for i in setproxy noproxy gdf fres ssh-makeprivkey-ed25519 ; do
     which $i >/dev/null 2>&1 && cp $(which $i) ${FZG_MNT}/usr/local/bin/
 done
 
-zfs snap -r ${ZFSBOOT_POOL_NAME}@0_clean_install_safetoclone
-
 ### create firstboot_sentinel
 touch ${FZG_MNT}/firstboot
 
@@ -818,18 +818,6 @@ or
 Don't export the ZFS pools!
 EOF
 
-### stronger private keys
-if [ ! -e ${FZG_MNT}/etc/ssh/ssh_host_rsa_key ] \
-|| [ `ls -l ${FZG_MNT}/etc/ssh/ssh_host_rsa_key | awk '{print $5}'` -lt 3243 ]; then
-    ssh-keygen -q -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key -t rsa -b 4096 -N ""
-    ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub
-fi
-if [ ! -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key ] \
-|| [ `ls -l ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key | awk '{print $5}'` -lt 399 ]; then
-    ssh-keygen -q -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key -t ed25519 -N ""
-    ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
-fi
-
 if [ -e ${FZG_MNT}/etc/ssh/ssh_host_rsa_key.pub -o -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub ]; then
     cat <<EOF
 New sshd pubkeys are:
@@ -838,4 +826,4 @@ EOF
     test -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub && ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
 fi
 
-zfs snap -r ${ZFSBOOT_POOL_NAME}@1_customized_install
+zfs snap -r ${ZFSBOOT_POOL_NAME}@1_customized

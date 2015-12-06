@@ -66,7 +66,7 @@ firstboot_realhost_run()
     # Count rc.d scripts again
     nscriptsn=`ls /usr/local/etc/rc.d | wc -l`
 
-    zfs snap -r pool@2_firstboot_done
+    zfs list pool && zfs snap -r pool@2_firstboot_done
 
     # If we have more scripts, request a reboot
     if [ $nscriptsn -ne $nscriptso ]; then
