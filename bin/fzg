@@ -72,6 +72,7 @@ usage:  ${0##*/} -d disk
         -s size     Swap partition size.
         -U          Skip freebsd-update.
         -z size     ZFS pool size.
+        -Z host     Use ZFS send/recv from host.
 
         ${0##*/} -i -d vdev
         ${0##*/} -i -e vdev -d vdev
@@ -355,7 +356,7 @@ safe_glabel_of_diskpart()
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
-while getopts t:b:d:e:p:r:s:M:z:H:cCixnUh o; do
+while getopts t:b:d:e:p:r:s:M:z:H:Z:cCixnUh o; do
     case "${o}" in
         t) TANKPART="${OPTARG}" ;;
         b) export ZFSBOOT_BOOT_POOL_SIZE="${OPTARG}" ;;
@@ -367,6 +368,7 @@ while getopts t:b:d:e:p:r:s:M:z:H:cCixnUh o; do
         M) FZG_MNT="${OPTARG}" ; export BSDINSTALL_CHROOT="${OPTARG}" ;;
         z) export ZFSBOOT_POOL_SIZE="${OPTARG}" ; FZG_DATA_SIZES="${OPTARG}" ; unset FZG_DATA_AUTO_SIZE ;;
         H) FZG_HOSTNAME="${OPTARG}" ;;
+        Z) FZG_ZFS_SEND_RECV="${OPTARG}" ;;
         c) freebsdconfigglobal ; exit ;;
         C) freebsdconfigglobal ; freebsdconfiglocal ; exit ;;
         i) FZG_DATA_INIT=1 ; FZG_DATA_AUTO_SIZE=1 ;;
@@ -658,30 +660,40 @@ for i in $ZFSBOOT_DISKS ; do
     swapon /dev/${i}p${TMPSWAPPART}.eli
 done
 
-### Check if local distribution exists, if so copy to FZG_MNT
-### this notation /boot/.. is in case /boot is a symlink
-if [ -e ${BSDINSTALL_DISTDIR}/MANIFEST ]; then
-    mkdirorerror ${FZG_MNT}/boot/../${IOCRELEASE} 755
-    cp -r /boot/../${IOCRELEASE} ${FZG_MNT}/boot/../ || exiterror $? "cp -r /boot/../${IOCRELEASE} ${FZG_MNT}/boot/../ "
+if [ -z "$FZG_ZFS_SEND_RECV" ]; then
+    ### Check if local distribution exists, if so copy to FZG_MNT
+    ### this notation /boot/.. is in case /boot is a symlink
+    if [ -e ${BSDINSTALL_DISTDIR}/MANIFEST ]; then
+        mkdirorerror ${FZG_MNT}/boot/../${IOCRELEASE} 755
+        cp -r /boot/../${IOCRELEASE} ${FZG_MNT}/boot/../ || exiterror $? "cp -r /boot/../${IOCRELEASE} ${FZG_MNT}/boot/../ "
+    fi
+    export BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${IOCRELEASE}
+    mkdirorerror ${BSDINSTALL_DISTDIR} 755
+
+    ### Checksum distribution
+    if [ ! -e ${BSDINSTALL_DISTDIR}/MANIFEST ] || ! bsdinstall checksum ; then
+        ### Fetch distribution if no local copy exists
+        bsdinstall distfetch || exiterror $? "bsdinstall distfetch"
+        bsdinstall checksum || exiterror $? "bsdinstall checksum"
+    fi
+
+    ### permissions
+    mkdirorerror ${FZG_MNT}/root/.ssh 700
+
+    ### Extract ditribution
+    export DISTRIBUTIONS="kernel.txz base.txz lib32.txz doc.txz src.txz"
+    bsdinstall distextract || exiterror $? "bsdinstall distextract"
+
+    zfs snap -r ${ZFSBOOT_POOL_NAME}@0_clean_install_safetoclone
+else
+    # unmount pool
+    for i in $( zfs list -H -o name,mounted -r ${ZFSBOOT_POOL_NAME} | awk '$2~/yes/ {print $1}' | sort -r ) ; do
+        zfs unmount -f $i
+    done
+    # Install by using zfs send/recv
+    ssh -p22 $FZG_ZFS_SEND_RECV zfs send -pvR ${ZFSBOOT_POOL_NAME}@0_clean_install_safetoclone | zfs recv -vdF ${ZFSBOOT_POOL_NAME}
+    zfs mount -a
 fi
-export BSDINSTALL_DISTDIR=${FZG_MNT}/boot/../${IOCRELEASE}
-mkdirorerror ${BSDINSTALL_DISTDIR} 755
-
-### Checksum distribution
-if [ ! -e ${BSDINSTALL_DISTDIR}/MANIFEST ] || ! bsdinstall checksum ; then
-    ### Fetch distribution if no local copy exists
-    bsdinstall distfetch || exiterror $? "bsdinstall distfetch"
-    bsdinstall checksum || exiterror $? "bsdinstall checksum"
-fi
-
-### permissions
-mkdirorerror ${FZG_MNT}/root/.ssh 700
-
-### Extract ditribution
-export DISTRIBUTIONS="kernel.txz base.txz lib32.txz doc.txz src.txz"
-bsdinstall distextract || exiterror $? "bsdinstall distextract"
-
-zfs snap -r ${ZFSBOOT_POOL_NAME}@0_clean_install_safetoclone
 
 ### combine fstab to new fstab
 if [ -e ${BSDINSTALL_TMPETC}/fstab ]; then
