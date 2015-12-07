@@ -1,0 +1,14 @@
+#!/bin/sh
+
+DISK=$1
+NEWHOSTNAME=$2
+
+if [ "x" = "x$NEWHOSTNAME" ]; then
+    cat <<EOF
+Usage:
+    $( basename $0 ) disk1 NEWHOSTNAME
+EOF
+    exit 1
+fi
+
+fzg -d ${DISK} -z 100g -G -n -H $NEWHOSTNAME

@@ -23,3 +23,6 @@ chmod +x fres
 fetch --no-verify-peer https://raw.githubusercontent.com/johnko/freebsd-install-script/master/bin/fzg
 chmod +x fzg
 fres
+
+# on a vps
+# fzg -d ${DISK} -z 5g -H $NEWHOSTNAME
