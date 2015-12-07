@@ -25,11 +25,6 @@ export BSDINSTALL_TMPETC=/tmp/bsdinstall_etc
 #export BSDINSTALL_CHROOT=/mnt
 
 
-### Omit export ZFSBOOT_BOOT_POOL=1
-### Omit export ZFSBOOT_BOOT_POOL_NAME=bootpool
-### Omit export ZFSBOOT_BOOT_POOL_SIZE=2g
-### Omit export ZFSBOOT_GELI_ENCRYPTION=1 encryption so it doesn't prompt for password
-
 export DISTRIBUTIONS="MANIFEST kernel.txz base.txz lib32.txz doc.txz src.txz"
 export BSDINSTALL_DISTSITE_BASE="http://ftp.freebsd.org/pub/FreeBSD/releases"
 if [ "x" = "x${IOCRELEASE}" ]; then
@@ -63,6 +58,7 @@ usage:  ${0##*/} -d disk
         -C          Same as -c plus loader.conf.local and rc.conf.local.
         -d disk     Disk to install on (eg. da0).
         -e disk     Attach to this existing disk that is part of -p pool.
+        -G          geli(8).
         -H hostname Set hostname of new installation.
         -h          Help.
         -M mount    Mountpoint, if not using /mnt.
@@ -356,7 +352,7 @@ safe_glabel_of_diskpart()
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
-while getopts t:b:d:e:p:r:s:M:z:H:Z:cCixnUh o; do
+while getopts t:b:d:e:p:r:s:M:z:H:Z:cCixnUGh o; do
     case "${o}" in
         t) TANKPART="${OPTARG}" ;;
         b) export ZFSBOOT_BOOT_POOL_SIZE="${OPTARG}" ;;
@@ -375,6 +371,7 @@ while getopts t:b:d:e:p:r:s:M:z:H:Z:cCixnUh o; do
         x) unset FZG_DATA_AUTO_SIZE ;;
         n) FZG_CHANGE_PASSWD=n ;;
         U) FZG_SKIP_UPDATE=1 ;;
+        G) export ZFSBOOT_BOOT_POOL=1 ; export ZFSBOOT_BOOT_POOL_NAME=bootpool ; export ZFSBOOT_BOOT_POOL_SIZE=2g ; export ZFSBOOT_GELI_ENCRYPTION=1 ;;
         h) usage ; exiterror 1 ;;
         [?]) usage ; exiterror 1 ;;
     esac
@@ -684,7 +681,8 @@ if [ -z "$FZG_ZFS_SEND_RECV" ]; then
     export DISTRIBUTIONS="kernel.txz base.txz lib32.txz doc.txz src.txz"
     bsdinstall distextract || exiterror $? "bsdinstall distextract"
 
-    zfs snap -r ${ZFSBOOT_POOL_NAME}@0_clean_install_safetoclone
+    zfs snap -r ${ZFSBOOT_BOOT_POOL_NAME}@0_clean_install_safetoclone >/dev/null 2>&1
+    zfs snap -r      ${ZFSBOOT_POOL_NAME}@0_clean_install_safetoclone >/dev/null 2>&1
 else
     # unmount pool
     for i in $( zfs list -H -o name,mounted -r ${ZFSBOOT_POOL_NAME} | awk '$2~/yes/ {print $1}' | sort -r ) ; do
@@ -838,4 +836,5 @@ EOF
     test -e ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub && ssh-keygen -l -f ${FZG_MNT}/etc/ssh/ssh_host_ed25519_key.pub
 fi
 
-zfs snap -r ${ZFSBOOT_POOL_NAME}@1_customized
+zfs snap -r ${ZFSBOOT_BOOT_POOL_NAME}@1_customized >/dev/null 2>&1
+zfs snap -r      ${ZFSBOOT_POOL_NAME}@1_customized >/dev/null 2>&1
