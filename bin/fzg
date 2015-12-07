@@ -204,7 +204,7 @@ EOF
     done
     runorerror "chmod 600 ${FZG_MNT}/boot/loader.conf"
     ### enable mDNS/Bonjour resolving
-    runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/nsswitch.conf ${FZG_MNT}/etc/nsswitch.conf"
+    runorerror "install -C -m 644 /root/git/freebsd-install-script/etc/nsswitch.conf ${FZG_MNT}/etc/nsswitch.conf"
     ### enable mDNS/Bonjour braodcast
     runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.conf.d/mdnsresponderposix ${FZG_MNT}/etc/rc.conf.d/mdnsresponderposix"
     ### Set some rc.conf options that may contain spaces
