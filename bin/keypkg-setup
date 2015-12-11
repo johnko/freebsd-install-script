@@ -13,6 +13,8 @@ KGT_DATA_AUTO_SIZE=1
 KGT_SECTOR_SIZE=4096
 KGT_NEW_POOL_NAME="tank"
 KGT_VDEV_TYPE=""
+KGT_TMPFS=/tmp/tmpfs
+NEWPASSFILE=${KGT_TMPFS}/geli_password.txt
 
 usage() {
     cat <<EOF
@@ -44,6 +46,13 @@ runorerror() {
     $@ || exiterror $? $@
 }
 
+mount_tmpfsdir() {
+    mkdir -p $KGT_TMPFS
+    chmod 700 $KGT_TMPFS
+    mount -t tmpfs tmpfs $KGT_TMPFS
+    touch $NEWPASSFILE
+    chmod 600 $NEWPASSFILE
+}
 
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
@@ -73,18 +82,32 @@ if [ "yes" != "$ismounted" ]; then
     exiterror 1 "Pool $KGT_KEY_POOL_NAME is not mounted."
 fi
 
-# Prompt for geli passphrase
-stty -echo
-printf "GELI Encryption Passphrase:"
-read PASSWORD
-
-# write passphrase to "/key_mountpoint/geli_password.txt"
 mountdir=$( zfs list -H -o mountpoint $KGT_KEY_POOL_NAME )
-NEWPASSFILE=${mountdir}/geli_password.txt
-echo $PASSWORD >$NEWPASSFILE
-if [ ! -e $NEWPASSFILE ]; then
-    exiterror 1 "Failed to save passphrase to $NEWPASSFILE."
+ENCPASSFILE=${mountdir}/keypkg_$(hostname -s).asc
+
+if [ ! -e $ENCPASSFILE ]; then
+    # Prompt for geli passphrase
+    stty -echo
+    printf "GELI Encryption Passphrase:"
+    read PASSWORD
+
+    # write passphrase to "$KGT_TMPFS/geli_password.txt" to be encrypted
+    mount_tmpfsdir
+    echo $PASSWORD >$NEWPASSFILE
+    if [ ! -e $NEWPASSFILE ]; then
+        exiterror 1 "Failed to save passphrase to $NEWPASSFILE."
+    fi
+    # encrypt $NEWPASSFILE to $ENCPASSFILE
+    # TODO
+
+    # unmount
+    umount -f $KGT_TMPFS
 fi
+
+# Decrypt ENCPASSFILE to KGT_TMPFS
+mount_tmpfsdir
+# TODO DECRYPT
+
 
 # add data partitions to disks
 echo "Creating data partitions ..."
@@ -135,6 +158,8 @@ geli_${disk}_flags="-j $NEWPASSFILE"
 EOF
     vdevs="${vdevs} ${disk}.eli"
 done
+
+umount -f $KGT_TMPFS
 
 count=$( echo "${vdevs}" | wc -w | awk '{ print $1 }' )
 if [ "${count}" -gt "2" -a "${KGT_VDEV_TYPE}" != "mirror" ]; then
