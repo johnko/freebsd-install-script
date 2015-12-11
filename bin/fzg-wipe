@@ -36,7 +36,7 @@ if [ "x-" != "x$POOL" -a "x-" != "x$NEWHOSTNAME" ]; then
     done
     gpart destroy -F ${DISK}
     if [ "pool" = "$POOL" ]; then
-        fzg -d ${DISK} -z 5g -n -H usb.local -p usb
+        fzg -d ${DISK} -z 5g -n -H $NEWHOSTNAME -p usb
     elif [ "usb" = "$POOL" ]; then
         fzg -d ${DISK} -z 5g -n -H $NEWHOSTNAME
     fi
