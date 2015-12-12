@@ -175,7 +175,7 @@ vdevs=""
 for disk in ${GPARTS}; do
     echo -n " ${disk}"
     # init
-    runorerror "geli init -e AES-XTS -J $NEWPASSFILE -s $KGT_SECTOR_SIZE ${disk}"
+    runorerror "geli init -e AES-XTS -l 256 -J $NEWPASSFILE -s $KGT_SECTOR_SIZE ${disk}"
     # remove boot flag
     runorerror "geli configure -B ${disk}"
     # attach
