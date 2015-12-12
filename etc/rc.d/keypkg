@@ -24,6 +24,8 @@
 : ${keypkg_export:="YES"}
 : ${keypkg_tmpfsdir:="/tmp/tmpfs"}
 : ${keypkg_file:=keypkg_$(hostname -s).smime}
+: ${keypkg_key:="/etc/keypkg/key.pem"}
+: ${keypkg_cert:="/etc/keypkg/cert.pem"}
 
 name="keypkg"
 rcvar=keypkg_enable
@@ -32,14 +34,11 @@ stop_cmd=":"
 
 keypkg_run()
 {
+    # DEBUG ON
+    set -x
 
     # restrictive mask for new files
     umask 077
-
-    if ! zpool list ${keypkg_zpool} >/dev/null 2>&1 ; then
-        # if not already exist, import the pool on the USB thumbdrive
-        zpool import ${keypkg_zpool}
-    fi
 
     # mount tmpfs to keep the passfile in ram
     mkdir -p $keypkg_tmpfsdir
@@ -48,9 +47,12 @@ keypkg_run()
 
     # Fetch keypkg_hostname.smime from usb key zpool or ssh
     if [ -n "$keypkg_zpool" ]; then
-        zpool import $keypkg_zpool
-        if zfs get mountpoint $keypkg_zpool ; then
-            keypkg_zpool_mountpoint=$( zfs get mountpoint $keypkg_zpool )
+        if ! zpool list ${keypkg_zpool} >/dev/null 2>&1 ; then
+            # if not already exist, import the pool on the USB thumbdrive
+            zpool import ${keypkg_zpool}
+        fi
+        if zfs list -H -o mountpoint $keypkg_zpool >/dev/null 2>&1 ; then
+            keypkg_zpool_mountpoint=$( zfs list -H -o mountpoint $keypkg_zpool )
             if [ -e ${keypkg_zpool_mountpoint}/${keypkg_file} ]; then
                 # copy to standard location in tmpfs
                 cat ${keypkg_zpool_mountpoint}/${keypkg_file} > ${keypkg_tmpfsdir}/${keypkg_file}
@@ -77,10 +79,10 @@ keypkg_run()
     fi
 
     # Decrypt then verify
-    if [ -e ${keypkg_tmpfsdir}/${keypkg_zfs_file} ]; then
-        openssl smime -decrypt -binary -nointern -recip $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
-            -in ${keypkg_tmpfsdir}/${keypkg_zfs_file} \
-                | openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
+    if [ -e ${keypkg_tmpfsdir}/${keypkg_file} ]; then
+        openssl smime -decrypt -binary -nointern -recip $keypkg_cert -inkey $keypkg_key \
+            -in ${keypkg_tmpfsdir}/${keypkg_file} \
+                | openssl smime -verify -CAfile $keypkg_cert -certfile $keypkg_cert \
                     -out ${keypkg_tmpfsdir}/geli_password.txt 2>/dev/null
         chmod 600 ${keypkg_tmpfsdir}/geli_password.txt
     fi
