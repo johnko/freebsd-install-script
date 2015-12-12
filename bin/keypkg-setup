@@ -196,7 +196,8 @@ fi
 # create new pool
 runorerror "zpool create -O compress=lz4 -O atime=off $KGT_NEW_POOL_NAME $KGT_VDEV_TYPE $vdevs"
 
-# enable zpoolimportthengeli in rc.conf
+# enable keypkg in rc.conf
+runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/keypkg ${FZG_MNT}/etc/rc.d/keypkg"
 runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_enable=YES"
 runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_zpool=$KGT_KEY_POOL_NAME"
 runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_file=keypkg_$(hostname -s).smime"

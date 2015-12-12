@@ -180,7 +180,6 @@ EOF
     /etc/rc.conf.d/sshd            sshd_rsa1_enable=NO
     /etc/rc.conf.d/sshd            sshd_dsa_enable=NO
     /etc/rc.conf.d/sshd            sshd_ecdsa_enable=NO
-    /etc/rc.conf.d/zpoolimportthengeli  zpoolimportthengeli_enable=YES
 
     /etc/rc.conf.local             zfs_enable=YES
 
@@ -755,7 +754,7 @@ EOF
 fi
 
 ### install the rc.d script
-runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/zpoolimportthengeli ${FZG_MNT}/etc/rc.d/zpoolimportthengeli"
+runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/keypkg ${FZG_MNT}/etc/rc.d/keypkg"
 
 ### install the firstboot script
 runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"
