@@ -1,0 +1,107 @@
+#!/bin/sh
+
+# $FreeBSD$
+# PROVIDE: keypkg
+# REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN
+# BEFORE: iocage
+
+# Add the following lines to /etc/rc.conf.local or /etc/rc.conf to enable this:
+#
+# keypkg_enable="YES"
+#
+# If you use a USB key with ZFS, the zpool name can be set with
+#
+# keypkg_zpool="key"
+#
+# If you use ssh keyservers:
+#
+# keypkg_ssh="one two three"
+# keypkg_ssh_flags="-F /etc/keypkg/ssh_config"
+
+. /etc/rc.subr
+
+: ${keypkg_enable:="NO"}
+: ${keypkg_export:="YES"}
+: ${keypkg_tmpfsdir:="/tmp/tmpfs"}
+: ${keypkg_file:=keypkg_$(hostname -s).smime}
+
+name="keypkg"
+rcvar=keypkg_enable
+start_cmd="keypkg_run"
+stop_cmd=":"
+
+keypkg_run()
+{
+
+    # restrictive mask for new files
+    umask 077
+
+    if ! zpool list ${keypkg_zpool} >/dev/null 2>&1 ; then
+        # if not already exist, import the pool on the USB thumbdrive
+        zpool import ${keypkg_zpool}
+    fi
+
+    # mount tmpfs to keep the passfile in ram
+    mkdir -p $keypkg_tmpfsdir
+    chmod 700 $keypkg_tmpfsdir
+    mount -t tmpfs tmpfs $keypkg_tmpfsdir
+
+    # Fetch keypkg_hostname.smime from usb key zpool or ssh
+    if [ -n "$keypkg_zpool" ]; then
+        zpool import $keypkg_zpool
+        if zfs get mountpoint $keypkg_zpool ; then
+            keypkg_zpool_mountpoint=$( zfs get mountpoint $keypkg_zpool )
+            if [ -e ${keypkg_zpool_mountpoint}/${keypkg_file} ]; then
+                # copy to standard location in tmpfs
+                cat ${keypkg_zpool_mountpoint}/${keypkg_file} > ${keypkg_tmpfsdir}/${keypkg_file}
+            fi
+        fi
+        if checkyesno keypkg_export && zpool list ${keypkg_zpool} >/dev/null 2>&1 ; then
+            # export the pool on the USB thumbdrive
+            zpool export ${keypkg_zpool}
+        fi
+    fi
+    if [ -n "$keypkg_ssh" ]; then
+        for i in $keypkg_ssh ; do
+            if [ ! -e ${keypkg_tmpfsdir}/${keypkg_file} ]; then
+                # copy to standard location in tmpfs
+                if ! ssh $keypkg_ssh_flags $i keypkg get > ${keypkg_tmpfsdir}/${keypkg_file} ; then
+                    if [ -e ${keypkg_tmpfsdir}/${keypkg_file} ]; then
+                        # exit code != 0, so this shouldn't exist
+                        rm ${keypkg_tmpfsdir}/${keypkg_file}
+                    fi
+                    sleep 5
+                fi
+            fi
+        done
+    fi
+
+    # Decrypt then verify
+    if [ -e ${keypkg_tmpfsdir}/${keypkg_zfs_file} ]; then
+        openssl smime -decrypt -binary -nointern -recip $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
+            -in ${keypkg_tmpfsdir}/${keypkg_zfs_file} \
+                | openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
+                    -out ${keypkg_tmpfsdir}/geli_password.txt 2>/dev/null
+        chmod 600 ${keypkg_tmpfsdir}/geli_password.txt
+    fi
+
+    # geli flags should be configured in rc.conf
+    service geli start
+    service geli2 start
+
+    # unmount tmpfs so we get rid of the memory
+    umount -f $keypkg_tmpfsdir
+
+    # zfs start to mount
+    service zfs start
+
+    # reload sshd in case we unlocked alternate config
+    service sshd restart
+
+    # start jails
+    service iocage start
+
+}
+
+load_rc_config $name
+run_rc_command "$1"

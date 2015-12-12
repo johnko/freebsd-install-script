@@ -15,6 +15,12 @@ KGT_NEW_POOL_NAME="tank"
 KGT_VDEV_TYPE=""
 KGT_TMPFS=/tmp/tmpfs
 NEWPASSFILE=${KGT_TMPFS}/geli_password.txt
+KGT_KEYPKGDIR=/etc/keypkg
+KGT_KEYPKGKEY=${KGT_KEYPKGDIR}/key.pem
+KGT_KEYPKGPUBCERT=${KGT_KEYPKGDIR}/cert.pem
+KGT_KEYSIZE=8192
+KGT_KEYTYPE=rsa
+keypkg_ssh_config="/etc/keypkg/ssh_config"
 
 usage() {
     cat <<EOF
@@ -83,13 +89,29 @@ if [ "yes" != "$ismounted" ]; then
 fi
 
 mountdir=$( zfs list -H -o mountpoint $KGT_KEY_POOL_NAME )
-ENCPASSFILE=${mountdir}/keypkg_$(hostname -s).asc
+ENCPASSFILE=${mountdir}/keypkg_$(hostname -s).smime
+
+# create /etc/keypkg
+install -d -m 0700 -o root -g wheel $KGT_KEYPKGDIR
+chmod 0700 $KGT_KEYPKGDIR
+chown root:wheel $KGT_KEYPKGDIR
+# generate key if not exist
+if [ ! -e $KGT_KEYPKGPUBCERT ]; then
+    echo "Generating a $KGT_KEYSIZE bit $KGT_KEYTYPE private key. Please wait..."
+    yes '' | openssl req -x509 -nodes -days 36500 -newkey $KGT_KEYTYPE:$KGT_KEYSIZE \
+        -keyout $KGT_KEYPKGKEY -out $KGT_KEYPKGPUBCERT 2>/dev/null
+    chmod 400 $KGT_KEYPKGKEY
+    chmod 400 $KGT_KEYPKGPUBCERT
+fi
 
 if [ ! -e $ENCPASSFILE ]; then
     # Prompt for geli passphrase
     stty -echo
     printf "GELI Encryption Passphrase:"
     read PASSWORD
+
+    # newline
+    echo
 
     # write passphrase to "$KGT_TMPFS/geli_password.txt" to be encrypted
     mount_tmpfsdir
@@ -98,16 +120,22 @@ if [ ! -e $ENCPASSFILE ]; then
         exiterror 1 "Failed to save passphrase to $NEWPASSFILE."
     fi
     # encrypt $NEWPASSFILE to $ENCPASSFILE
-    # TODO
-
-    # unmount
+    openssl smime -sign -binary -nodetach -nocerts \
+        -in $NEWPASSFILE -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
+            | openssl smime -encrypt -out $ENCPASSFILE \
+                -aes-256-cbc $KGT_KEYPKGPUBCERT
+    chmod 600 $ENCPASSFILE
+    # unmount so we lose "$KGT_TMPFS/geli_password.txt"
     umount -f $KGT_TMPFS
 fi
 
-# Decrypt ENCPASSFILE to KGT_TMPFS
+# Decrypt ENCPASSFILE to KGT_TMPFS to make sure it works
 mount_tmpfsdir
-# TODO DECRYPT
-
+openssl smime -decrypt -binary -nointern -recip $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
+    -in $ENCPASSFILE \
+        | openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
+            -out $NEWPASSFILE 2>/dev/null
+chmod 600 $NEWPASSFILE
 
 # add data partitions to disks
 echo "Creating data partitions ..."
@@ -169,7 +197,26 @@ fi
 runorerror "zpool create -O compress=lz4 -O atime=off $KGT_NEW_POOL_NAME $KGT_VDEV_TYPE $vdevs"
 
 # enable zpoolimportthengeli in rc.conf
-runorerror "sysrc -f /etc/rc.conf.d/zpoolimportthengeli zpoolimportthengeli_enable=YES"
-runorerror "sysrc -f /etc/rc.conf.d/zpoolimportthengeli zpoolimportthengeli_zpool=$KGT_KEY_POOL_NAME"
+runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_enable=YES"
+runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_zpool=$KGT_KEY_POOL_NAME"
+runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_file=keypkg_$(hostname -s).smime"
+cat >>/etc/rc.conf.d/keypkg <<EOF
+# keypkg_ssh="one two three"
+keypkg_ssh_flags="-i /etc/keypkg/id_rsa -F $keypkg_ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts"
+EOF
+cat >>$keypkg_ssh_config <<EOF
+Host one
+    Hostname keyserver1
+    Port 6371
+    User $(hostname -s)
+Host two
+    Hostname keyserver2
+    Port 6371
+    User $(hostname -s)
+Host three
+    Hostname headnode
+    Port 6371
+    User $(hostname -s)
+EOF
 
 echo "Reboot to test."
