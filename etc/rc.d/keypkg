@@ -34,8 +34,6 @@ stop_cmd=":"
 
 keypkg_run()
 {
-    # DEBUG ON
-    set -x
 
     # restrictive mask for new files
     umask 077
