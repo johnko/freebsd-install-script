@@ -11,4 +11,4 @@ EOF
     exit 1
 fi
 
-fzg -d ${DISK} -z 100g -G -n -H $NEWHOSTNAME
+fzg -d ${DISK} -z 20g -G -n -H $NEWHOSTNAME

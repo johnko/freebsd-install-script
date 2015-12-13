@@ -1,0 +1,71 @@
+#!/bin/sh
+
+set -x
+
+DISK=$1
+
+if [ "x" = "x$DISK" ]; then
+    echo "Usage: $0 adaX"
+    exit 1
+fi
+if [ ! -e /dev/${DISK} ]; then
+    echo "Usage: $0 adaX"
+    exit 1
+fi
+
+do_fzg_rotate() {
+    if [ "ada0" = "$DISK" ]; then
+        fzg-rotate - - ada1 $DISK
+    else
+        fzg-rotate - - ada0 $DISK
+    fi
+}
+
+do_desktop_fzg_rotate() {
+    if [ "ada0" = "$DISK" ]; then
+        fzg -e ada1 -z 20g -G -d ${DISK} -p pool
+    else
+        fzg -e ada0 -z 20g -G -d ${DISK} -p pool
+    fi
+}
+
+do_detach(){
+    if zpool list bootpool >/dev/null 2>&1 ; then
+        zpool detach bootpool ${DISK}p2
+        swapoff /dev/${DISK}p3.eli
+        zpool detach pool ${DISK}p4.eli
+        geli detach ${DISK}p4
+    else
+        swapoff /dev/${DISK}p2.eli
+        zpool detach pool ${DISK}p3
+    fi
+}
+
+
+pv /dev/urandom | dd of=/dev/$DISK bs=1m count=120000
+onetb=953800
+twotb=$( echo "$onetb * 2" | bc )
+threetb=$( echo "$onetb * 3" | bc )
+fourtb=$( echo "$onetb * 4" | bc )
+pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$fourtb \
+|| pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$threetb \
+|| pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$twotb \
+|| pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$onetb
+
+if zpool list bootpool >/dev/null 2>&1 ; then
+    # desktop
+    do_desktop_fzg_rotate
+    echo "When zpool status shows resilver is complete, press ENTER:"
+    read
+    do_detach
+    pv /dev/urandom | dd of=/dev/${DISK}p4 bs=1m
+    do_desktop_fzg_rotate
+else
+    # server
+    do_fzg_rotate
+    echo "When zpool status shows resilver is complete, press ENTER:"
+    read
+    do_detach
+    pv /dev/urandom | dd of=/dev/${DISK}p3 bs=1m
+    do_fzg_rotate
+fi
