@@ -56,6 +56,9 @@ mount_tmpfsdir() {
     mkdir -p $KGT_TMPFS
     chmod 700 $KGT_TMPFS
     mount -t tmpfs tmpfs $KGT_TMPFS
+    if ! mount | grep 'tmpfs on /tmp/tmpfs (tmpfs' >/dev/null 2>&1 ; then
+        exit 1
+    fi
     touch $NEWPASSFILE
     chmod 600 $NEWPASSFILE
 }
@@ -121,18 +124,28 @@ if [ ! -e $ENCPASSFILE ]; then
     fi
     # encrypt $NEWPASSFILE to $ENCPASSFILE
     openssl smime -sign -binary -nodetach -nocerts \
-        -in $NEWPASSFILE -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
-            | openssl smime -encrypt -out $ENCPASSFILE \
-                -aes-256-cbc $KGT_KEYPKGPUBCERT
+        -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
+        -in $NEWPASSFILE \
+            | openssl smime -encrypt -aes-256-cbc $KGT_KEYPKGPUBCERT \
+            | openssl smime -sign -binary -nodetach -nocerts \
+                -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
+                -out $ENCPASSFILE
     chmod 600 $ENCPASSFILE
     # unmount so we lose "$KGT_TMPFS/geli_password.txt"
     umount -f $KGT_TMPFS
 fi
 
+# Verify package was for self
+if ! openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
+        -in $ENCPASSFILE >/dev/null 2>/dev/null ; then
+    echo "Verification of $ENCPASSFILE failed."
+    exit 1
+fi
 # Decrypt ENCPASSFILE to KGT_TMPFS to make sure it works
 mount_tmpfsdir
-openssl smime -decrypt -binary -nointern -recip $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
-    -in $ENCPASSFILE \
+openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
+    -in $ENCPASSFILE 2>/dev/null \
+        | openssl smime -decrypt -binary -nointern -recip $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
         | openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
             -out $NEWPASSFILE 2>/dev/null
 chmod 600 $NEWPASSFILE

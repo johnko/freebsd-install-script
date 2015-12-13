@@ -42,6 +42,9 @@ keypkg_run()
     mkdir -p $keypkg_tmpfsdir
     chmod 700 $keypkg_tmpfsdir
     mount -t tmpfs tmpfs $keypkg_tmpfsdir
+    if ! mount | grep 'tmpfs on /tmp/tmpfs (tmpfs' >/dev/null 2>&1 ; then
+        exit 1
+    fi
 
     # Fetch keypkg_hostname.smime from usb key zpool or ssh
     if [ -n "$keypkg_zpool" ]; then
@@ -76,10 +79,17 @@ keypkg_run()
         done
     fi
 
-    # Decrypt then verify
+    # Verify, then Decrypt then verify
     if [ -e ${keypkg_tmpfsdir}/${keypkg_file} ]; then
-        openssl smime -decrypt -binary -nointern -recip $keypkg_cert -inkey $keypkg_key \
-            -in ${keypkg_tmpfsdir}/${keypkg_file} \
+        # Verify package was for self
+        if ! openssl smime -verify -CAfile $keypkg_cert -certfile $keypkg_cert \
+                -in ${keypkg_tmpfsdir}/${keypkg_file} >/dev/null 2>/dev/null ; then
+            echo "Verification of ${keypkg_tmpfsdir}/${keypkg_file} failed."
+            exit 1
+        fi
+        openssl smime -verify -CAfile $keypkg_cert -certfile $keypkg_cert \
+            -in ${keypkg_tmpfsdir}/${keypkg_file} 2>/dev/null \
+                | openssl smime -decrypt -binary -nointern -recip $keypkg_cert -inkey $keypkg_key \
                 | openssl smime -verify -CAfile $keypkg_cert -certfile $keypkg_cert \
                     -out ${keypkg_tmpfsdir}/geli_password.txt 2>/dev/null
         chmod 600 ${keypkg_tmpfsdir}/geli_password.txt
