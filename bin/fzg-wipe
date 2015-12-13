@@ -42,15 +42,15 @@ do_detach(){
 }
 
 do_detach
-pv /dev/urandom | dd of=/dev/$DISK bs=1m count=120000
+pv /dev/urandom | dd of=/dev/$DISK bs=1m count=12000
 onetb=953800
 twotb=$( echo "$onetb * 2" | bc )
 threetb=$( echo "$onetb * 3" | bc )
 fourtb=$( echo "$onetb * 4" | bc )
-pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$fourtb count=5000
-pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$threetb count=5000
-pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$twotb count=5000
-pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$onetb count=5000
+pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$fourtb count=6000
+pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$threetb count=6000
+pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$twotb count=6000
+pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$onetb count=6000
 
 if zpool list bootpool >/dev/null 2>&1 ; then
     # desktop
@@ -58,6 +58,9 @@ if zpool list bootpool >/dev/null 2>&1 ; then
     echo "When zpool status shows resilver is complete, press ENTER:"
     read
     do_detach
+    pv /dev/urandom | dd of=/dev/${DISK}p1 bs=1m
+    pv /dev/urandom | dd of=/dev/${DISK}p2 bs=1m
+    pv /dev/urandom | dd of=/dev/${DISK}p3 bs=1m
     pv /dev/urandom | dd of=/dev/${DISK}p4 bs=1m
     do_desktop_fzg_rotate
 else
@@ -66,6 +69,8 @@ else
     echo "When zpool status shows resilver is complete, press ENTER:"
     read
     do_detach
+    pv /dev/urandom | dd of=/dev/${DISK}p1 bs=1m
+    pv /dev/urandom | dd of=/dev/${DISK}p2 bs=1m
     pv /dev/urandom | dd of=/dev/${DISK}p3 bs=1m
     do_fzg_rotate
 fi
