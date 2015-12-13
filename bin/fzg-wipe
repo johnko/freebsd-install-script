@@ -55,8 +55,6 @@ pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$onetb count=6000
 if zpool list bootpool >/dev/null 2>&1 ; then
     # desktop
     do_desktop_fzg_rotate
-    echo "When zpool status shows resilver is complete, press ENTER:"
-    read
     do_detach
     pv /dev/urandom | dd of=/dev/${DISK}p1 bs=1m
     pv /dev/urandom | dd of=/dev/${DISK}p2 bs=1m
@@ -66,8 +64,6 @@ if zpool list bootpool >/dev/null 2>&1 ; then
 else
     # server
     do_fzg_rotate
-    echo "When zpool status shows resilver is complete, press ENTER:"
-    read
     do_detach
     pv /dev/urandom | dd of=/dev/${DISK}p1 bs=1m
     pv /dev/urandom | dd of=/dev/${DISK}p2 bs=1m
