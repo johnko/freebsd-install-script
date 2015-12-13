@@ -41,7 +41,7 @@ do_detach(){
     fi
 }
 
-
+do_detach
 pv /dev/urandom | dd of=/dev/$DISK bs=1m count=120000
 onetb=953800
 twotb=$( echo "$onetb * 2" | bc )
