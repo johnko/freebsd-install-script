@@ -47,10 +47,10 @@ onetb=953800
 twotb=$( echo "$onetb * 2" | bc )
 threetb=$( echo "$onetb * 3" | bc )
 fourtb=$( echo "$onetb * 4" | bc )
-pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$fourtb \
-|| pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$threetb \
-|| pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$twotb \
-|| pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$onetb
+pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$fourtb count=500
+pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$threetb count=500
+pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$twotb count=500
+pv /dev/urandom | dd of=/dev/$DISK bs=1m seek=$onetb count=500
 
 if zpool list bootpool >/dev/null 2>&1 ; then
     # desktop
