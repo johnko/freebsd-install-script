@@ -60,7 +60,17 @@ if zpool list bootpool >/dev/null 2>&1 ; then
     pv /dev/urandom | dd of=/dev/${DISK}p2 bs=1m
     pv /dev/urandom | dd of=/dev/${DISK}p3 bs=1m
     pv /dev/urandom | dd of=/dev/${DISK}p4 bs=1m
+    gpart destroy -F ${DISK}
     do_desktop_fzg_rotate
+    zpool detach pool ${DISK}p4.eli
+    geli detach ${DISK}p4
+    geli restore /boot/${DISK}p4.eli /dev/${DISK}p4
+    geli attach -k /boot/encryption.key ${DISK}p4
+    if [ "ada0" = "$DISK" ]; then
+        zpool attach pool ada1p4.eli ${DISK}p4.eli
+    else
+        zpool attach pool ada0p4.eli ${DISK}p4.eli
+    fi
 else
     # server
     do_fzg_rotate
