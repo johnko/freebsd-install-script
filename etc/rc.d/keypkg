@@ -59,10 +59,6 @@ keypkg_run()
                 cat ${keypkg_zpool_mountpoint}/${keypkg_file} > ${keypkg_tmpfsdir}/${keypkg_file}
             fi
         fi
-        if checkyesno keypkg_export && zpool list ${keypkg_zpool} >/dev/null 2>&1 ; then
-            # export the pool on the USB thumbdrive
-            zpool export ${keypkg_zpool}
-        fi
     fi
     if [ -n "$keypkg_ssh" ]; then
         for i in $keypkg_ssh ; do
@@ -101,6 +97,11 @@ keypkg_run()
 
     # unmount tmpfs so we get rid of the memory
     umount -f $keypkg_tmpfsdir
+
+    if checkyesno keypkg_export && zpool list ${keypkg_zpool} >/dev/null 2>&1 ; then
+        # export the pool on the USB thumbdrive
+        zpool export ${keypkg_zpool}
+    fi
 
     # zfs start to mount
     service zfs start
