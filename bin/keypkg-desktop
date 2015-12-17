@@ -1,0 +1,51 @@
+#!/bin/sh
+
+# Desktop tank, where pool is encrypted
+
+KEYPOOL=key
+KEYZVOL=KEY
+KEYFILE=/${KEYPOOL}/tank.key
+GELIPROV="da0p5 da0p6 \
+ada0p5 \
+ada1p5 ada1p6 \
+ada2p5 ada2p6 \
+ada3p5 ada3p6"
+
+# Create key
+zfs create -V 64M pool/$KEYZVOL
+zpool create -O compress=lz4 -O atime=off $KEYPOOL /dev/zvol/pool/$KEYZVOL
+
+# Enable keypkg
+sysrc -f /etc/rc.conf.d/keypkg keypkg_enable=YES
+sysrc -f /etc/rc.conf.d/keypkg keypkg_zpool=$KEYPOOL
+
+# Create tank.key
+dd if=/dev/random of=$KEYFILE bs=4096 count=1
+
+cat >>/etc/rc.conf.d/geli <<EOF
+geli_devices="$GELIPROV"
+EOF
+
+TANKPROV=""
+
+# init geli
+for i in $GELIPROV ; do
+    geli detach $i
+done
+
+# init geli
+for i in $GELIPROV ; do
+    geli init -B none -e AES-XTS -P -K $KEYFILE -l 256 -s 4096 /dev/$i
+    geli configure -B /dev/$i
+    cat >>/etc/rc.conf.d/geli <<EOF
+geli_${i}_flags="-p -k $KEYFILE"
+EOF
+    TANKPROV="$TANKPROV ${i}.eli"
+done
+
+# test it out
+service geli start
+
+zpool create -f -O compress=lz4 -O atime=off tank \
+mirror da0p5.eli ada0p5.eli ada1p5.eli ada2p5.eli ada3p5.eli \
+mirror da0p6.eli ada1p6.eli ada2p6.eli ada3p6.eli
