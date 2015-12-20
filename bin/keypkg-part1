@@ -89,3 +89,27 @@ if [ ! -e $ENCPASSFILE ]; then
     echo "You can now upload this file: $ENCPASSFILE"
     ls -l $ENCPASSFILE
 fi
+
+# enable keypkg in rc.conf
+runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/keypkg ${FZG_MNT}/etc/rc.d/keypkg"
+runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_enable=YES"
+runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_file=keypkg_$(hostname -s).smime"
+cat >>/etc/rc.conf.d/keypkg <<EOF
+# keypkg_zpool=$KGT_KEY_POOL_NAME
+# keypkg_ssh="one two three"
+keypkg_ssh_flags="-F $keypkg_ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts -i /etc/keypkg/id_rsa"
+EOF
+cat >>$keypkg_ssh_config <<EOF
+Host one
+    Hostname keyserver1
+    Port 6371
+    User $(hostname -s)
+Host two
+    Hostname keyserver2
+    Port 6371
+    User $(hostname -s)
+Host three
+    Hostname headnode
+    Port 6371
+    User $(hostname -s)
+EOF
