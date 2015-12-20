@@ -103,7 +103,8 @@ cat >>/etc/rc.conf.d/keypkg <<EOF
 # keypkg_ssh="one two three"
 keypkg_ssh_flags="-F $keypkg_ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts -i /etc/keypkg/id_rsa"
 EOF
-cat >>$keypkg_ssh_config <<EOF
+if [ ! -e $keypkg_ssh_config ]; then
+    cat >>$keypkg_ssh_config <<EOF
 Host one
     Hostname keyserver1
     Port 6371
@@ -117,6 +118,7 @@ Host three
     Port 6371
     User $(hostname -s)
 EOF
+fi
 
 # Generate ssh keys
 if [ ! -e /etc/keypkg/id_rsa ]; then
