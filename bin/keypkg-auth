@@ -1,0 +1,24 @@
+#!/bin/sh
+
+name=$1
+
+if [ "x" = "x" ]; then
+    echo "Usage: ${0##*/} newuser"
+    exit 1
+fi
+
+authfile=/usr/home/$name/.ssh/authorized_keys2
+
+echo "$name:::::::/usr/home/$name:/bin/sh:" | adduser -w no -f -
+
+install -d -m 700 -o $name -g $name /usr/home/$name/.ssh
+
+touch $authfile
+chmod 600 $authfile
+chown storm:storm $authfile
+
+cat >>$authfile <<EOF
+command="keypkg-shell $SSH_ORIGINAL_COMMAND" ssh-rsa...
+EOF
+
+vi $authfile
