@@ -46,6 +46,10 @@ mount_tmpfsdir() {
     chmod 600 $NEWPASSFILE
 }
 
+if [ "x" = "x$KGT_KEY_POOL_NAME" ]; then
+    KGT_KEY_POOL_NAME="key"
+fi
+
 ENCPASSFILE=${KGT_TMPFS}/keypkg_$(hostname -s).smime
 
 # create /etc/keypkg
@@ -112,4 +116,19 @@ Host three
     Hostname headnode
     Port 6371
     User $(hostname -s)
+EOF
+
+# Generate ssh keys
+if [ ! -e /etc/keypkg/id_rsa ]; then
+    ssh-keygen -N '' -t rsa -b 4096 -f /etc/keypkg/id_rsa
+fi
+
+cat <<EOF
+Add the /etc/keypkg/id_rsa.pub to the server as user `hostname -s`/.ssh/authorized_keys2:
+command="keypkg $SSH_ORIGINAL_COMMAND" ssh-rsa...
+
+Edit the Hostname in /etc/keypkg/ssh_config
+
+Then upload the key to the server:
+cat $ENCPASSFILE | ssh -F /etc/keypkg/ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts -i /etc/keypkg/id_rsa three keypkg put
 EOF

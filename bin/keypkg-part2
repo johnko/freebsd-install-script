@@ -75,6 +75,10 @@ while getopts t:d:p:r:z:h o; do
     esac
 done
 
+if [ "x" = "x$KGT_KEY_POOL_NAME" ]; then
+    KGT_KEY_POOL_NAME="key"
+fi
+
 ENCPASSFILE=${KGT_TMPFS}/keypkg_$(hostname -s).smime
 
 # Verify package was for self
@@ -173,5 +177,10 @@ Host three
     Port 6371
     User $(hostname -s)
 EOF
+
+# Generate ssh keys
+if [ ! -e /etc/keypkg/id_rsa ]; then
+    ssh-keygen -N '' -t rsa -b 4096 -f /etc/keypkg/id_rsa
+fi
 
 echo "Reboot to test."

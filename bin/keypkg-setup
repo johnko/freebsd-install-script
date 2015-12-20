@@ -77,10 +77,10 @@ while getopts t:f:d:p:r:z:h o; do
     esac
 done
 
-# Check that a pool named "key" exists
 if [ "x" = "x$KGT_KEY_POOL_NAME" ]; then
     KGT_KEY_POOL_NAME="key"
 fi
+# Check that a pool named "key" exists
 if ! zpool list $KGT_KEY_POOL_NAME >/dev/null 2>&1 ; then
     exiterror 1 "Pool $KGT_KEY_POOL_NAME doesn't exist."
 fi
@@ -214,7 +214,7 @@ runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_zpool=$KGT_KEY_POOL_NAME"
 runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_file=keypkg_$(hostname -s).smime"
 cat >>/etc/rc.conf.d/keypkg <<EOF
 # keypkg_ssh="one two three"
-keypkg_ssh_flags="-i /etc/keypkg/id_rsa -F $keypkg_ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts"
+keypkg_ssh_flags="-F $keypkg_ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts -i /etc/keypkg/id_rsa"
 EOF
 cat >>$keypkg_ssh_config <<EOF
 Host one
@@ -230,5 +230,10 @@ Host three
     Port 6371
     User $(hostname -s)
 EOF
+
+# Generate ssh keys
+if [ ! -e /etc/keypkg/id_rsa ]; then
+    ssh-keygen -N '' -t rsa -b 4096 -f /etc/keypkg/id_rsa
+fi
 
 echo "Reboot to test."
