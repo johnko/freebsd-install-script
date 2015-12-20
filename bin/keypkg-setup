@@ -30,6 +30,7 @@ usage:  ${0##*/} -d disk
         -p name     ZFS pool name, must be unique.
         -r          Select ZFS raid mode if multiple -d given.
         -t part     GPT slice that should be used (eg. 5 or 6)
+        -x          Skip creating GPT partitions.
         -z size     ZFS pool size.
 
 EOF
@@ -38,12 +39,12 @@ EOF
 exiterror() {
     exitcode=$1
     shift
-    if [ "${exitcode}" != "0" ]; then
+    if [ "$exitcode" != "0" ]; then
         echo "ERROR: code ${exitcode}: $@"
     fi
-    umount ${FZG_TMP_CRYPT} >/dev/null 2>&1
-    umount ${BSDINSTALL_TMPBOOT} >/dev/null 2>&1
-    exit ${exitcode}
+    umount $FZG_TMP_CRYPT >/dev/null 2>&1
+    umount $BSDINSTALL_TMPBOOT >/dev/null 2>&1
+    exit $exitcode
 }
 
 runorerror() {
@@ -64,14 +65,15 @@ mount_tmpfsdir() {
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
-while getopts t:f:d:p:r:z:h o; do
-    case "${o}" in
-        t) TANKPART="${OPTARG}" ;;
-        f) KGT_KEY_POOL_NAME="${OPTARG}" ;;
-        d) KGT_DISKS="${KGT_DISKS} ${OPTARG##/dev/}" ;;
-        p) KGT_NEW_POOL_NAME="${OPTARG}" ;;
-        r) KGT_VDEV_TYPE="${OPTARG}" ;;
-        z) KGT_DATA_SIZES="${OPTARG}" ; unset KGT_DATA_AUTO_SIZE ;;
+while getopts t:f:d:p:r:z:xh o; do
+    case "$o" in
+        t) TANKPART="$OPTARG" ;;
+        f) KGT_KEY_POOL_NAME="$OPTARG" ;;
+        d) KGT_DISKS="$KGT_DISKS ${OPTARG##/dev/}" ;;
+        p) KGT_NEW_POOL_NAME="$OPTARG" ;;
+        r) KGT_VDEV_TYPE="$OPTARG" ;;
+        z) KGT_DATA_SIZES="$OPTARG" ; unset KGT_DATA_AUTO_SIZE ;;
+        x) KGT_SKIP_GPART=1 ;;
         h) usage ; exiterror 1 ;;
         [?]) usage ; exiterror 1 ;;
     esac
@@ -148,60 +150,64 @@ openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
             -out $NEWPASSFILE 2>/dev/null
 chmod 600 $NEWPASSFILE
 
-# add data partitions to disks
-echo "Creating data partitions ..."
-for disk in ${KGT_DISKS}; do
-    echo "${disk}"
-    PARTCREATED=0
-    if [ "${KGT_DATA_AUTO_SIZE}" ]; then
-        # estimate using gpart free
-        KGT_DATA_TRYSIZE=$( gpart show ${disk} | grep '\- free \-' | tail -1 | awk '{ printf "%.0f\n", $2 / 2097152 }' )
-    else
-        KGT_DATA_TRYSIZE=${KGT_DATA_SIZES}
-    fi
-    # only try it 3 times, each time decrement by 1
-    for i in 1 2 3 ; do
-        if [ ${PARTCREATED} -ne 1 ] && [ ${KGT_DATA_TRYSIZE} -gt 0 ]; then
-            ### we try to add in whole integer sizes of GB so that all disk partition sizes are equal
-            ### so that we can mirror them correctly without having to worry about MB of variations
-            if gpart add -i ${TANKPART} -t freebsd-zfs ${align_big} -s ${KGT_DATA_TRYSIZE}G ${disk} >/dev/null 2>&1 ; then
-                echo " success adding a ${KGT_DATA_TRYSIZE}G partition on ${disk}"
-                PARTCREATED=1
-                runorerror "zpool labelclear -f /dev/${disk}p${TANKPART}"
-                GPARTS="${GPARTS} ${disk}p${TANKPART}"
-            else
-                KGT_DATA_TRYSIZE=$(( KGT_DATA_TRYSIZE - 1 ))
-            fi
+if [ -z "$KGT_SKIP_GPART" ]; then
+    GPARTS="$KGT_DISKS"
+else
+    # add data partitions to disks
+    echo "Creating data partitions ..."
+    for disk in $KGT_DISKS ; do
+        echo "$disk"
+        PARTCREATED=0
+        if [ "$KGT_DATA_AUTO_SIZE" ]; then
+            # estimate using gpart free
+            KGT_DATA_TRYSIZE=$( gpart show $disk | grep '\- free \-' | tail -1 | awk '{ printf "%.0f\n", $2 / 2097152 }' )
+        else
+            KGT_DATA_TRYSIZE=$KGT_DATA_SIZES
         fi
+        # only try it 3 times, each time decrement by 1
+        for i in 1 2 3 ; do
+            if [ $PARTCREATED -ne 1 ] && [ $KGT_DATA_TRYSIZE -gt 0 ]; then
+                ### we try to add in whole integer sizes of GB so that all disk partition sizes are equal
+                ### so that we can mirror them correctly without having to worry about MB of variations
+                if gpart add -i $TANKPART -t freebsd-zfs $align_big -s ${KGT_DATA_TRYSIZE}G $disk >/dev/null 2>&1 ; then
+                    echo " success adding a ${KGT_DATA_TRYSIZE}G partition on $disk"
+                    PARTCREATED=1
+                    runorerror "zpool labelclear -f /dev/${disk}p${TANKPART}"
+                    GPARTS="$GPARTS ${disk}p${TANKPART}"
+                else
+                    KGT_DATA_TRYSIZE=$(( KGT_DATA_TRYSIZE - 1 ))
+                fi
+            fi
+        done
+        [ $PARTCREATED -ne 1 ] && echo " error adding partition on ${disk}."
     done
-    [ ${PARTCREATED} -ne 1 ] && echo " error adding partition on ${disk}."
-done
+fi
 cat >>/etc/rc.conf.d/geli <<EOF
-geli_devices="${GPARTS}"
+geli_devices="$GPARTS"
 EOF
 
 # geli init all vdevs with passphrase
 echo -n "Initializing geli partitions ..."
 vdevs=""
-for disk in ${GPARTS}; do
-    echo -n " ${disk}"
+for disk in $GPARTS ; do
+    echo -n " $disk"
     # init
-    runorerror "geli init -e AES-XTS -l 256 -J $NEWPASSFILE -s $KGT_SECTOR_SIZE ${disk}"
+    runorerror "geli init -e AES-XTS -l 256 -J $NEWPASSFILE -s $KGT_SECTOR_SIZE $disk"
     # remove boot flag
-    runorerror "geli configure -B ${disk}"
+    runorerror "geli configure -B $disk"
     # attach
-    runorerror "geli attach -j $NEWPASSFILE ${disk}"
+    runorerror "geli attach -j $NEWPASSFILE $disk"
     # write geli_${provider_}_flags to rc.conf.d/geli
     cat >>/etc/rc.conf.d/geli <<EOF
 geli_${disk}_flags="-j $NEWPASSFILE"
 EOF
-    vdevs="${vdevs} ${disk}.eli"
+    vdevs="$vdevs ${disk}.eli"
 done
 
 umount -f $KGT_TMPFS
 
-count=$( echo "${vdevs}" | wc -w | awk '{ print $1 }' )
-if [ "${count}" -gt "2" -a "${KGT_VDEV_TYPE}" != "mirror" ]; then
+count=$( echo "$vdevs" | wc -w | awk '{ print $1 }' )
+if [ $count -gt 2 -a "$KGT_VDEV_TYPE" != "mirror" ]; then
     KGT_VDEV_TYPE="mirror"
 fi
 # create new pool
