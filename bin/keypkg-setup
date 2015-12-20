@@ -157,7 +157,7 @@ for disk in ${KGT_DISKS}; do
         # estimate using gpart free
         KGT_DATA_TRYSIZE=$( gpart show ${disk} | grep '\- free \-' | tail -1 | awk '{ printf "%.0f\n", $2 / 2097152 }' )
     else
-        KGT_DATA_TRYSIZE=${FZG_DATA_SIZES}
+        KGT_DATA_TRYSIZE=${KGT_DATA_SIZES}
     fi
     # only try it 3 times, each time decrement by 1
     for i in 1 2 3 ; do
