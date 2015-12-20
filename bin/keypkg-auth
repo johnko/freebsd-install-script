@@ -18,7 +18,7 @@ chmod 600 $authfile
 chown storm:storm $authfile
 
 cat >>$authfile <<EOF
-command="keypkg-shell $SSH_ORIGINAL_COMMAND" ssh-rsa...
+command="keypkg-shell \$SSH_ORIGINAL_COMMAND" ssh-rsa...
 EOF
 
 vi $authfile
