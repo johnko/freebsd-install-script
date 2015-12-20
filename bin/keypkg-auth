@@ -15,7 +15,7 @@ install -d -m 700 -o $name -g $name /usr/home/$name/.ssh
 
 touch $authfile
 chmod 600 $authfile
-chown storm:storm $authfile
+chown ${name}:${name} $authfile
 
 cat >>$authfile <<EOF
 command="keypkg-shell \$SSH_ORIGINAL_COMMAND" ssh-rsa...
