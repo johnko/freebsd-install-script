@@ -131,4 +131,7 @@ Edit the Hostname in /etc/keypkg/ssh_config
 
 Then upload the key to the server:
 cat $ENCPASSFILE | ssh -F /etc/keypkg/ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts -i /etc/keypkg/id_rsa three keypkg put
+
+Then proceed to part2:
+keypkg-part2 -t 4 -p tank -r mirror -z 924 -d ada0 -d ada1 -d ada2
 EOF
