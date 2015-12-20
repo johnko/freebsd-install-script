@@ -1,0 +1,18 @@
+#!/bin/sh
+
+# set the command of a pubkey to keypkg-shell to only allow keypkg put/get
+
+if [ "x" != "x$DEBUG" ]; then
+    echo "${SSH_CONNECTION} SSH_ORIGINAL_COMMAND: ${SSH_ORIGINAL_COMMAND}" >>${HOME}/history-keypkg-remote
+    if [ "x" != "x$*" ]; then
+        echo "${SSH_CONNECTION}                 args: $*" >>${HOME}/history-keypkg-remote
+    fi
+fi
+
+if echo "${SSH_ORIGINAL_COMMAND}" | grep '^keypkg get' >/dev/null 2>&1 ; then
+    cat ${HOME}/keypkg.smime
+
+elif echo "${SSH_ORIGINAL_COMMAND}" | grep '^keypkg put' >/dev/null 2>&1 ; then
+    cat > ${HOME}/keypkg.smime
+
+fi

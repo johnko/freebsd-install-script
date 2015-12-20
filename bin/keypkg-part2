@@ -24,7 +24,6 @@ usage() {
     cat <<EOF
 usage:  ${0##*/} -d disk
 
-        -f keypool  Key pool name.
         -d disk     Disk to use.
         -h          Help.
         -p name     ZFS pool name, must be unique.
@@ -64,10 +63,9 @@ mount_tmpfsdir() {
 if [ $# -eq 0 ]; then
     usage ; exiterror 1
 fi
-while getopts t:f:d:p:r:z:h o; do
+while getopts t:d:p:r:z:h o; do
     case "${o}" in
         t) TANKPART="${OPTARG}" ;;
-        f) KGT_KEY_POOL_NAME="${OPTARG}" ;;
         d) KGT_DISKS="${KGT_DISKS} ${OPTARG##/dev/}" ;;
         p) KGT_NEW_POOL_NAME="${OPTARG}" ;;
         r) KGT_VDEV_TYPE="${OPTARG}" ;;
@@ -77,61 +75,7 @@ while getopts t:f:d:p:r:z:h o; do
     esac
 done
 
-# Check that a pool named "key" exists
-if [ "x" = "x$KGT_KEY_POOL_NAME" ]; then
-    KGT_KEY_POOL_NAME="key"
-fi
-if ! zpool list $KGT_KEY_POOL_NAME >/dev/null 2>&1 ; then
-    exiterror 1 "Pool $KGT_KEY_POOL_NAME doesn't exist."
-fi
-ismounted=$( zfs list -H -o mounted $KGT_KEY_POOL_NAME )
-if [ "yes" != "$ismounted" ]; then
-    exiterror 1 "Pool $KGT_KEY_POOL_NAME is not mounted."
-fi
-
-mountdir=$( zfs list -H -o mountpoint $KGT_KEY_POOL_NAME )
-ENCPASSFILE=${mountdir}/keypkg_$(hostname -s).smime
-
-# create /etc/keypkg
-install -d -m 0700 -o root -g wheel $KGT_KEYPKGDIR
-chmod 0700 $KGT_KEYPKGDIR
-chown root:wheel $KGT_KEYPKGDIR
-# generate key if not exist
-if [ ! -e $KGT_KEYPKGPUBCERT ]; then
-    echo "Generating a $KGT_KEYSIZE bit $KGT_KEYTYPE private key. Please wait..."
-    yes '' | openssl req -x509 -nodes -days 36500 -newkey $KGT_KEYTYPE:$KGT_KEYSIZE \
-        -keyout $KGT_KEYPKGKEY -out $KGT_KEYPKGPUBCERT 2>/dev/null
-    chmod 400 $KGT_KEYPKGKEY
-    chmod 400 $KGT_KEYPKGPUBCERT
-fi
-
-if [ ! -e $ENCPASSFILE ]; then
-    # Prompt for geli passphrase
-    stty -echo
-    printf "GELI Encryption Passphrase:"
-    read PASSWORD
-
-    # newline
-    echo
-
-    # write passphrase to "$KGT_TMPFS/geli_password.txt" to be encrypted
-    mount_tmpfsdir
-    echo $PASSWORD >$NEWPASSFILE
-    if [ ! -e $NEWPASSFILE ]; then
-        exiterror 1 "Failed to save passphrase to $NEWPASSFILE."
-    fi
-    # encrypt $NEWPASSFILE to $ENCPASSFILE
-    openssl smime -sign -binary -nodetach -nocerts \
-        -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
-        -in $NEWPASSFILE \
-            | openssl smime -encrypt -aes-256-cbc $KGT_KEYPKGPUBCERT \
-            | openssl smime -sign -binary -nodetach -nocerts \
-                -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
-                -out $ENCPASSFILE
-    chmod 600 $ENCPASSFILE
-    # unmount so we lose "$KGT_TMPFS/geli_password.txt"
-    umount -f $KGT_TMPFS
-fi
+ENCPASSFILE=${KGT_TMPFS}/keypkg_$(hostname -s).smime
 
 # Verify package was for self
 if ! openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
@@ -210,11 +154,11 @@ runorerror "zpool create -O compress=lz4 -O atime=off $KGT_NEW_POOL_NAME $KGT_VD
 # enable keypkg in rc.conf
 runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/keypkg ${FZG_MNT}/etc/rc.d/keypkg"
 runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_enable=YES"
-runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_zpool=$KGT_KEY_POOL_NAME"
 runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_file=keypkg_$(hostname -s).smime"
 cat >>/etc/rc.conf.d/keypkg <<EOF
+# keypkg_zpool=$KGT_KEY_POOL_NAME
 # keypkg_ssh="one two three"
-keypkg_ssh_flags="-i /etc/keypkg/id_rsa -F $keypkg_ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts"
+keypkg_ssh_flags="-F $keypkg_ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts -i /etc/keypkg/id_rsa"
 EOF
 cat >>$keypkg_ssh_config <<EOF
 Host one

@@ -1,0 +1,91 @@
+#!/bin/sh
+
+. /usr/local/bin/loadmyvars.sh
+
+# 4096 block to futureproof hdd upgrade of zpool
+sysctl vfs.zfs.min_auto_ashift=12
+
+TANKPART="4"
+align_big="-a 1m"
+KGT_DATA_AUTO_SIZE=1
+KGT_SECTOR_SIZE=4096
+KGT_NEW_POOL_NAME="tank"
+KGT_VDEV_TYPE=""
+KGT_TMPFS=/tmp/tmpfs
+NEWPASSFILE=${KGT_TMPFS}/geli_password.txt
+KGT_KEYPKGDIR=/etc/keypkg
+KGT_KEYPKGKEY=${KGT_KEYPKGDIR}/key.pem
+KGT_KEYPKGPUBCERT=${KGT_KEYPKGDIR}/cert.pem
+KGT_KEYSIZE=8192
+KGT_KEYTYPE=rsa
+keypkg_ssh_config="/etc/keypkg/ssh_config"
+
+exiterror() {
+    exitcode=$1
+    shift
+    if [ "${exitcode}" != "0" ]; then
+        echo "ERROR: code ${exitcode}: $@"
+    fi
+    umount ${FZG_TMP_CRYPT} >/dev/null 2>&1
+    umount ${BSDINSTALL_TMPBOOT} >/dev/null 2>&1
+    exit ${exitcode}
+}
+
+runorerror() {
+    $@ || exiterror $? $@
+}
+
+mount_tmpfsdir() {
+    mkdir -p $KGT_TMPFS
+    chmod 700 $KGT_TMPFS
+    mount -t tmpfs tmpfs $KGT_TMPFS
+    if ! mount | grep 'tmpfs on /tmp/tmpfs (tmpfs' >/dev/null 2>&1 ; then
+        exit 1
+    fi
+    touch $NEWPASSFILE
+    chmod 600 $NEWPASSFILE
+}
+
+ENCPASSFILE=${KGT_TMPFS}/keypkg_$(hostname -s).smime
+
+# create /etc/keypkg
+install -d -m 0700 -o root -g wheel $KGT_KEYPKGDIR
+chmod 0700 $KGT_KEYPKGDIR
+chown root:wheel $KGT_KEYPKGDIR
+# generate key if not exist
+if [ ! -e $KGT_KEYPKGPUBCERT ]; then
+    echo "Generating a $KGT_KEYSIZE bit $KGT_KEYTYPE private key. Please wait..."
+    yes '' | openssl req -x509 -nodes -days 36500 -newkey $KGT_KEYTYPE:$KGT_KEYSIZE \
+        -keyout $KGT_KEYPKGKEY -out $KGT_KEYPKGPUBCERT 2>/dev/null
+    chmod 400 $KGT_KEYPKGKEY
+    chmod 400 $KGT_KEYPKGPUBCERT
+fi
+
+if [ ! -e $ENCPASSFILE ]; then
+    # Prompt for geli passphrase
+    stty -echo
+    printf "GELI Encryption Passphrase:"
+    read PASSWORD
+
+    # newline
+    echo
+
+    # write passphrase to "$KGT_TMPFS/geli_password.txt" to be encrypted
+    mount_tmpfsdir
+    echo $PASSWORD >$NEWPASSFILE
+    if [ ! -e $NEWPASSFILE ]; then
+        exiterror 1 "Failed to save passphrase to $NEWPASSFILE."
+    fi
+    # encrypt $NEWPASSFILE to $ENCPASSFILE
+    openssl smime -sign -binary -nodetach -nocerts \
+        -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
+        -in $NEWPASSFILE \
+            | openssl smime -encrypt -aes-256-cbc $KGT_KEYPKGPUBCERT \
+            | openssl smime -sign -binary -nodetach -nocerts \
+                -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
+                -out $ENCPASSFILE
+    chmod 600 $ENCPASSFILE
+    rm $NEWPASSFILE
+    echo "You can now upload this file: $ENCPASSFILE"
+    ls -l $ENCPASSFILE
+fi
