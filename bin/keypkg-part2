@@ -84,7 +84,6 @@ if ! openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCE
     exit 1
 fi
 # Decrypt ENCPASSFILE to KGT_TMPFS to make sure it works
-mount_tmpfsdir
 openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
     -in $ENCPASSFILE 2>/dev/null \
         | openssl smime -decrypt -binary -nointern -recip $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
