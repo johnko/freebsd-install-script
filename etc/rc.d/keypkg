@@ -16,7 +16,7 @@
 # If you use ssh keyservers:
 #
 # keypkg_ssh="one two three"
-# keypkg_ssh_flags="-F /etc/keypkg/ssh_config"
+# keypkg_ssh_flags="-F $keypkg_ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts -i /etc/keypkg/id_rsa"
 
 . /etc/rc.subr
 
@@ -98,9 +98,11 @@ keypkg_run()
     # unmount tmpfs so we get rid of the memory
     umount -f $keypkg_tmpfsdir
 
-    if checkyesno keypkg_export && zpool list ${keypkg_zpool} >/dev/null 2>&1 ; then
-        # export the pool on the USB thumbdrive
-        zpool export ${keypkg_zpool}
+    if [ -n "$keypkg_zpool" ]; then
+        if checkyesno keypkg_export && zpool list ${keypkg_zpool} >/dev/null 2>&1 ; then
+            # export the pool on the USB thumbdrive
+            zpool export ${keypkg_zpool}
+        fi
     fi
 
     # zfs start to mount
