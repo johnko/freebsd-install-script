@@ -150,7 +150,7 @@ openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
             -out $NEWPASSFILE 2>/dev/null
 chmod 600 $NEWPASSFILE
 
-if [ -z "$KGT_SKIP_GPART" ]; then
+if [ "1" = "$KGT_SKIP_GPART" ]; then
     GPARTS="$KGT_DISKS"
 else
     # add data partitions to disks
