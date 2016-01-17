@@ -244,4 +244,10 @@ if [ ! -e /etc/keypkg/id_rsa ]; then
     ssh-keygen -N '' -t rsa -b 4096 -f /etc/keypkg/id_rsa
 fi
 
-echo "Reboot to test."
+cat <<EOF
+You may want to:
+
+    vi /etc/rc.conf.d/{geli,keypkg}
+
+And reboot to test.
+EOF
