@@ -244,6 +244,7 @@ freebsdconfiglocal() {
     /boot/loader.conf.local     if_lagg_load=YES
     /boot/loader.conf.local     kern.maxswzone=512M
     /boot/loader.conf.local     kern.racct.enable=1 # 10.2 resource limit jails
+    /boot/loader.conf.local     kern.vty=vt
     /boot/loader.conf.local     vfs.zfs.arc_max=256M # limit arc usage on low RAM systems
     /boot/loader.conf.local     zfs_load=YES
 
