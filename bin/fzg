@@ -808,6 +808,7 @@ done
 if [ -d /var/ports ]; then
     if [ -d ${FZG_MNT}/var ]; then
         tar -cf - --exclude usr /var/ports | tar -xf - -C ${FZG_MNT}/ || exiterror $? "tar -cvf - --exclude usr /var/ports ... tar -xvf - -C ${FZG_MNT}/"
+        mv ${FZG_MNT}/var/ports ${FZG_MNT}/var/ports2
     fi
 fi
 
