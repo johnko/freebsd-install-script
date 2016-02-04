@@ -127,7 +127,7 @@ fi
 
 cat <<EOF
 Add the /etc/keypkg/id_rsa.pub to the server as user `hostname -s`/.ssh/authorized_keys2:
-command="keypkg $SSH_ORIGINAL_COMMAND" ssh-rsa...
+command="keypkg-shell $SSH_ORIGINAL_COMMAND" ssh-rsa...
 
 Edit the keypkg_ssh in /etc/rc.conf.d/keypkg
 Edit the Hostname in /etc/keypkg/ssh_config
