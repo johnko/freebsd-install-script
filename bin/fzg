@@ -244,6 +244,7 @@ freebsdconfiglocal() {
     /boot/loader.conf.local     if_lagg_load=YES
     /boot/loader.conf.local     kern.maxswzone=512M
     /boot/loader.conf.local     kern.racct.enable=1 # 10.2 resource limit jails
+    /boot/loader.conf.local     kern.vty=vt
     /boot/loader.conf.local     vfs.zfs.arc_max=256M # limit arc usage on low RAM systems
     /boot/loader.conf.local     zfs_load=YES
 
@@ -787,6 +788,11 @@ if ls /root/perm | grep . >/dev/null 2>&1 ; then
     runorerror "chmod 600 ${FZG_MNT}/root/perm/*"
 fi
 
+### if .gitconfig exists
+if [ -e /root/.gitconfig ]; then
+    cp /root/.gitconfig ${FZG_MNT}/root/.gitconfig || exiterror $? "cp /root/.gitconfig ${FZG_MNT}/root/.gitconfig"
+fi
+
 while [ "${FZG_CHANGE_PASSWD}" = "y" -o "${FZG_CHANGE_PASSWD}" = "Y" ]; do
     ### Prompt to change root password of new install
     echo -n "Change root password of new installation? [y/N] "
@@ -801,7 +807,8 @@ done
 ### copy /var/ports/packages/All
 if [ -d /var/ports ]; then
     if [ -d ${FZG_MNT}/var ]; then
-        cp -r /var/ports ${FZG_MNT}/var || exiterror $? "cp -r /var/ports ${FZG_MNT}/var"
+        tar -cf - --exclude usr /var/ports | tar -xf - -C ${FZG_MNT}/ || exiterror $? "tar -cvf - --exclude usr /var/ports ... tar -xvf - -C ${FZG_MNT}/"
+        mv ${FZG_MNT}/var/ports ${FZG_MNT}/var/ports2
     fi
 fi
 

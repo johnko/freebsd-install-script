@@ -24,14 +24,12 @@ if [ "x-" != "x$POOL" -a "x-" != "x$NEWHOSTNAME" ]; then
         while [ -e /dev/${devid}.eli ]; do
             zpool detach $POOL ${devid}.eli >/dev/null 2>&1
             zpool detach tank  ${devid}.eli >/dev/null 2>&1
-            zpool detach vault ${devid}.eli >/dev/null 2>&1
             swapoff /dev/${devid}.eli >/dev/null 2>&1
             geli detach ${devid}.eli >/dev/null 2>&1
         done
         zpool detach boot$POOL ${devid} >/dev/null 2>&1
         zpool detach $POOL ${devid} >/dev/null 2>&1
         zpool detach tank  ${devid} >/dev/null 2>&1
-        zpool detach vault ${devid} >/dev/null 2>&1
         swapoff /dev/${devid} >/dev/null 2>&1
     done
     gpart destroy -F ${DISK}
