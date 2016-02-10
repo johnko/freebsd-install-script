@@ -178,7 +178,7 @@ configure_keypkg() {
     runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_enable=YES"
     runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_file=keypkg_$(hostname -s).smime"
     cat >>/etc/rc.conf.d/keypkg <<EOF
-# keypkg_zpool=$KGT_KEY_POOL_NAME
+# keypkg_zpool="$KGT_KEY_POOL_NAME"
 # keypkg_ssh="one two three"
 keypkg_ssh_flags="-F $keypkg_ssh_config -l$(hostname -s)"
 EOF
