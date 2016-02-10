@@ -81,7 +81,7 @@ usage:  ${0##*/} -d disk
 
 examples:
 
-    Install on disk 0, pool name mini with size 2 GB:
+    Install on disk 0, pool name mini with size 5 GB:
         ${0##*/} -d ada0 -z 5g -p mini
     Add disk 1 as mirror to existing pool mini that contains disk ada0:
         ${0##*/} -e ada0 -d ada1 -z 5g -p mini
@@ -92,7 +92,7 @@ examples:
 
 other examples:
 
-    Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 2 GB:
+    Install on 3 mirror disks, a boot pool 1 GB, swap 1 GB, ZFS root pool 5 GB:
         ${0##*/} -d ada0 -d ada1 -d ada2 -b 1g -s 1g -z 5g -r mirror
     Create data pool with these devices, no auto partition creation:
         ${0##*/} -i -d ada0p5 -d ada1p5 -p data -x
