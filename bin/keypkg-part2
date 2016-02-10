@@ -38,12 +38,12 @@ EOF
 exiterror() {
     exitcode=$1
     shift
-    if [ "$exitcode" != "0" ]; then
+    if [ "${exitcode}" != "0" ]; then
         echo "ERROR: code ${exitcode}: $@"
     fi
-    umount $FZG_TMP_CRYPT >/dev/null 2>&1
-    umount $BSDINSTALL_TMPBOOT >/dev/null 2>&1
-    exit $exitcode
+    umount ${FZG_TMP_CRYPT} >/dev/null 2>&1
+    umount ${BSDINSTALL_TMPBOOT} >/dev/null 2>&1
+    exit ${exitcode}
 }
 
 runorerror() {
