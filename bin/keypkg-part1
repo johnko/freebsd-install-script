@@ -79,8 +79,8 @@ Edit the keypkg_ssh with: vi /etc/rc.conf.d/keypkg
 Edit the Hostname with:   vi /etc/keypkg/ssh_config
 
 Then upload the key to the server:
-cat $ENCPASSFILE | ssh -F /etc/keypkg/ssh_config one keypkg put
+cat $ENCPASSFILE | ssh -F /etc/keypkg/ssh_config -l$(hostname -s) one keypkg put
 
 Then proceed to part2:
-keypkg-part2 -t 4 -p tank -r mirror -z 924 -d ada0 -d ada1 -d ada2
+keypkg-part2 -t 4 -p tank -r mirror -d ada0 -d ada1 -d ada2
 EOF
