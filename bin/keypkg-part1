@@ -101,22 +101,22 @@ runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_file=keypkg_$(hostname -s).smi
 cat >>/etc/rc.conf.d/keypkg <<EOF
 # keypkg_zpool=$KGT_KEY_POOL_NAME
 # keypkg_ssh="one two three"
-keypkg_ssh_flags="-F $keypkg_ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts -i /etc/keypkg/id_rsa"
+keypkg_ssh_flags="-F $keypkg_ssh_config -l$(hostname -s)"
 EOF
 if [ ! -e $keypkg_ssh_config ]; then
     cat >>$keypkg_ssh_config <<EOF
+UserKnownHostsFile /etc/keypkg/known_hosts
+IdentityFile /etc/keypkg/id_rsa
+ConnectTimeout 15
 Host one
     Hostname keyserver1
     Port 6371
-    User $(hostname -s)
 Host two
     Hostname keyserver2
     Port 6371
-    User $(hostname -s)
 Host three
     Hostname headnode
     Port 6371
-    User $(hostname -s)
 EOF
 fi
 
