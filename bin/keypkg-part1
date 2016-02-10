@@ -2,138 +2,84 @@
 
 . /usr/local/bin/loadmyvars.sh
 
-# 4096 block to futureproof hdd upgrade of zpool
-sysctl vfs.zfs.min_auto_ashift=12
+. /usr/local/bin/keypkg-functions
 
-TANKPART="4"
-align_big="-a 1m"
-KGT_DATA_AUTO_SIZE=1
-KGT_SECTOR_SIZE=4096
-KGT_NEW_POOL_NAME="tank"
-KGT_VDEV_TYPE=""
-KGT_TMPFS=/tmp/tmpfs
-NEWPASSFILE=${KGT_TMPFS}/geli_password.txt
-KGT_KEYPKGDIR=/etc/keypkg
-KGT_KEYPKGKEY=${KGT_KEYPKGDIR}/key.pem
-KGT_KEYPKGPUBCERT=${KGT_KEYPKGDIR}/cert.pem
-KGT_KEYSIZE=8192
-KGT_KEYTYPE=rsa
-keypkg_ssh_config="/etc/keypkg/ssh_config"
 
-exiterror() {
-    exitcode=$1
-    shift
-    if [ "${exitcode}" != "0" ]; then
-        echo "ERROR: code ${exitcode}: $@"
-    fi
-    umount ${FZG_TMP_CRYPT} >/dev/null 2>&1
-    umount ${BSDINSTALL_TMPBOOT} >/dev/null 2>&1
-    exit ${exitcode}
-}
 
-runorerror() {
-    $@ || exiterror $? $@
-}
 
-mount_tmpfsdir() {
-    mkdir -p $KGT_TMPFS
-    chmod 700 $KGT_TMPFS
-    mount -t tmpfs tmpfs $KGT_TMPFS
-    if ! mount | grep 'tmpfs on /tmp/tmpfs (tmpfs' >/dev/null 2>&1 ; then
-        exit 1
-    fi
-    touch $NEWPASSFILE
-    chmod 600 $NEWPASSFILE
-}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 if [ "x" = "x$KGT_KEY_POOL_NAME" ]; then
     KGT_KEY_POOL_NAME="key"
 fi
 
+
+
+
+
+
+
+
+
+
 ENCPASSFILE=${KGT_TMPFS}/keypkg_$(hostname -s).smime
 
-# create /etc/keypkg
-install -d -m 0700 -o root -g wheel $KGT_KEYPKGDIR
-chmod 0700 $KGT_KEYPKGDIR
-chown root:wheel $KGT_KEYPKGDIR
-# generate key if not exist
-if [ ! -e $KGT_KEYPKGPUBCERT ]; then
-    echo "Generating a $KGT_KEYSIZE bit $KGT_KEYTYPE private key. Please wait..."
-    yes '' | openssl req -x509 -nodes -days 36500 -newkey $KGT_KEYTYPE:$KGT_KEYSIZE \
-        -keyout $KGT_KEYPKGKEY -out $KGT_KEYPKGPUBCERT 2>/dev/null
-    chmod 400 $KGT_KEYPKGKEY
-    chmod 400 $KGT_KEYPKGPUBCERT
-fi
+create_etckeypkg
 
-if [ ! -e $ENCPASSFILE ]; then
-    # Prompt for geli passphrase
-    stty -echo
-    printf "GELI Encryption Passphrase:"
-    read PASSWORD
+create_encpassfile
 
-    # newline
-    echo
 
-    # write passphrase to "$KGT_TMPFS/geli_password.txt" to be encrypted
-    mount_tmpfsdir
-    echo $PASSWORD >$NEWPASSFILE
-    if [ ! -e $NEWPASSFILE ]; then
-        exiterror 1 "Failed to save passphrase to $NEWPASSFILE."
-    fi
-    # encrypt $NEWPASSFILE to $ENCPASSFILE
-    openssl smime -sign -binary -nodetach -nocerts \
-        -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
-        -in $NEWPASSFILE \
-            | openssl smime -encrypt -aes-256-cbc $KGT_KEYPKGPUBCERT \
-            | openssl smime -sign -binary -nodetach -nocerts \
-                -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
-                -out $ENCPASSFILE
-    chmod 600 $ENCPASSFILE
-    rm $NEWPASSFILE
+
+
+
+
+
+if [ -e $ENCPASSFILE ]; then
     echo "You can now upload this file: $ENCPASSFILE"
     ls -l $ENCPASSFILE
 fi
 
-# enable keypkg in rc.conf
-runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/keypkg ${FZG_MNT}/etc/rc.d/keypkg"
-runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_enable=YES"
-runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_file=keypkg_$(hostname -s).smime"
-cat >>/etc/rc.conf.d/keypkg <<EOF
-# keypkg_zpool=$KGT_KEY_POOL_NAME
-# keypkg_ssh="one two three"
-keypkg_ssh_flags="-F $keypkg_ssh_config -l$(hostname -s)"
-EOF
-if [ ! -e $keypkg_ssh_config ]; then
-    cat >>$keypkg_ssh_config <<EOF
-UserKnownHostsFile /etc/keypkg/known_hosts
-IdentityFile /etc/keypkg/id_rsa
-ConnectTimeout 15
-Host one
-    Hostname keyserver1
-    Port 6371
-Host two
-    Hostname keyserver2
-    Port 6371
-Host three
-    Hostname headnode
-    Port 6371
-EOF
-fi
 
-# Generate ssh keys
-if [ ! -e /etc/keypkg/id_rsa ]; then
-    ssh-keygen -N '' -t rsa -b 4096 -f /etc/keypkg/id_rsa
-fi
+
+configure_keypkg
 
 cat <<EOF
 Add the /etc/keypkg/id_rsa.pub to the server as user `hostname -s`/.ssh/authorized_keys2:
-command="keypkg-shell $SSH_ORIGINAL_COMMAND" ssh-rsa...
+keypkg-auth `hostname -s`
 
-Edit the keypkg_ssh in /etc/rc.conf.d/keypkg
-Edit the Hostname in /etc/keypkg/ssh_config
+Edit the keypkg_ssh with: vi /etc/rc.conf.d/keypkg
+Edit the Hostname with:   vi /etc/keypkg/ssh_config
 
 Then upload the key to the server:
-cat $ENCPASSFILE | ssh -F /etc/keypkg/ssh_config -o UserKnownHostsFile=/etc/keypkg/known_hosts -i /etc/keypkg/id_rsa three keypkg put
+cat $ENCPASSFILE | ssh -F /etc/keypkg/ssh_config one keypkg put
 
 Then proceed to part2:
 keypkg-part2 -t 4 -p tank -r mirror -z 924 -d ada0 -d ada1 -d ada2
