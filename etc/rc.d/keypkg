@@ -50,7 +50,7 @@ keypkg_run()
     if [ -n "$keypkg_zpool" ]; then
         if ! zpool list ${keypkg_zpool} >/dev/null 2>&1 ; then
             # if not already exist, import the pool on the USB thumbdrive
-            zpool import ${keypkg_zpool}
+            zpool import ${keypkg_zpool_import_flags} ${keypkg_zpool}
         fi
         if zfs list -H -o mountpoint $keypkg_zpool >/dev/null 2>&1 ; then
             keypkg_zpool_mountpoint=$( zfs list -H -o mountpoint $keypkg_zpool )
