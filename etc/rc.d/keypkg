@@ -114,6 +114,10 @@ keypkg_run()
     # start jails
     service iocage start
 
+    # restart nfsd and mountd
+    service nfsd restart
+    service mountd restart
+
 }
 
 load_rc_config $name
