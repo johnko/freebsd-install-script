@@ -38,20 +38,19 @@ getip()
     ping -c 1 ${query} | grep PING | awk '{print $3}' | tr -d '[):(]'
 }
 
-addmdnstoetchosts()
+ipexports()
 {
-    if [            ! -e /etc/hosts.original ]; then
-        cp -a /etc/hosts /etc/hosts.original
-    fi
-    if [             -e /etc/exports ]; then
-        for i in $( cat /etc/exports | grep '\.local' | awk '{print $NF}' | sort -u ); do
-            cat /etc/hosts | grep -v $i > /tmp/etchosts
-            cat >>/tmp/etchosts <<EOF
-$i `getip $i`
-EOF
-            cat /tmp/etchosts > /etc/hosts
-            rm /tmp/etchosts
+    exfile=/etc/exports
+    if [       -e ${exfile} ]; then
+        if [ ! -e ${exfile}.orig ]; then
+            cp -a ${exfile} ${exfile}.orig
+        fi
+        for i in $( cat ${exfile} | grep '\.local' | awk '{print $NF}' | sort -u ); do
+            resolvedip=$( getip $i )
+            sed -i '' "s;$i;$resolvedip;g" ${exfile}
         done
+        service mountd restart
+        cp -a ${exfile}.orig ${exfile}
     fi
 }
 
@@ -133,8 +132,7 @@ keypkg_run()
 
     # restart nfsd and mountd
     service nfsd restart
-    addmdnstoetchosts
-    service mountd restart
+    ipexports
 
 }
 
