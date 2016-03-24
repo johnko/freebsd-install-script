@@ -38,6 +38,12 @@ sleepandrestartmountd()
     service mountd restart
 }
 
+sleepandrestartsshd()
+{
+    sleep 10
+    service sshd restart
+}
+
 keypkg_run()
 {
 
@@ -114,15 +120,15 @@ keypkg_run()
     # zfs start to mount
     service zfs start
 
-    # reload sshd in case we unlocked alternate config
-    service sshd restart
-
-    # start jails
-    service iocage start
-
     # restart nfsd and mountd
     service nfsd restart
     sleepandrestartmountd &
+
+    # reload sshd in case we unlocked alternate config
+    sleepandrestartsshd &
+
+    # start jails
+    service iocage start
 
 }
 
