@@ -36,14 +36,14 @@ sleepandrestartmountd()
 {
     if [ -e /etc/exports ]; then
         count=0
-        while [ $count -lt 5 ]; do
+        while [ $count -lt 99 ]; do
             complete=1
-            for i in $( cat /etc/exports | grep -v '^#' | awk '{print $NF}' | sort -u ); do
-                ping -c 1 $i || complete=0
+            for i in $( /bin/cat /etc/exports | /usr/bin/grep -v '^#' | /usr/bin/awk '{print $NF}' | /usr/bin/sort -u ); do
+                /sbin/ping -c 1 $i || complete=0
             done
             # exit early if complete=1
             if [ $complete -eq 1 ]; then
-                count=5
+                count=99
             fi
             count=$(( count + 1 ))
             sleep 1
@@ -136,7 +136,7 @@ keypkg_run()
 
     # restart nfsd and mountd
     service nfsd restart
-    sleepandrestartmountd &
+    sleepandrestartmountd
 
     # reload sshd in case we unlocked alternate config
     sleepandrestartsshd &
