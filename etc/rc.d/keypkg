@@ -32,6 +32,12 @@ rcvar=keypkg_enable
 start_cmd="keypkg_run"
 stop_cmd=":"
 
+sleepandrestartmountd()
+{
+    sleep 10
+    service mountd restart
+}
+
 keypkg_run()
 {
 
@@ -116,7 +122,7 @@ keypkg_run()
 
     # restart nfsd and mountd
     service nfsd restart
-    service mountd restart
+    sleepandrestartmountd &
 
 }
 
