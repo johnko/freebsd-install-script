@@ -32,6 +32,29 @@ rcvar=keypkg_enable
 start_cmd="keypkg_run"
 stop_cmd=":"
 
+getip()
+{
+    query=$1
+    ping -c 1 ${query} | grep PING | awk '{print $3}' | tr -d '[):(]'
+}
+
+addmdnstoetchosts()
+{
+    if [            ! -e /etc/hosts.original ]; then
+        cp -a /etc/hosts /etc/hosts.original
+    fi
+    if [             -e /etc/exports ]; then
+        for i in $( cat /etc/exports | grep '\.local' | awk '{print $NF}' | sort -u ); do
+            cat /etc/hosts | grep -v $i > /tmp/etchosts
+            cat >>/tmp/etchosts <<EOF
+$i `getip $i`
+EOF
+            cat /tmp/etchosts > /etc/hosts
+            rm /tmp/etchosts
+        done
+    fi
+}
+
 keypkg_run()
 {
 
@@ -110,6 +133,7 @@ keypkg_run()
 
     # restart nfsd and mountd
     service nfsd restart
+    addmdnstoetchosts
     service mountd restart
 
 }
