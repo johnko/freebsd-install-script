@@ -36,7 +36,7 @@ sleepandrestartmountd()
 {
     if [ -e /etc/exports ]; then
         count=0
-        while [ $count -lt 5 ]; then
+        while [ $count -lt 5 ]; do
             for i in $( cat /etc/exports | grep -v '^#' | awk '{print $NF}' | sort -u ); do
                 ping -c 1 $i || complete=0
             done
