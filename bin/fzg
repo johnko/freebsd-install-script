@@ -296,6 +296,7 @@ EOF
     cat >>${FZG_MNT}/etc/rc.conf.d/netwait <<EOF
 # netwait_enable="YES"
 # netwait_ip="${router}"
+# netwait_if="lagg0"
 EOF
     ### set defaultrouter
     cat >>${FZG_MNT}/etc/rc.conf.d/routing <<EOF
