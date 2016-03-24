@@ -34,13 +34,22 @@ stop_cmd=":"
 
 sleepandrestartmountd()
 {
-    sleep 10
-    service mountd restart
+    if [ -e /etc/exports ]; then
+        count=0
+        while [ $count -lt 5 ]; then
+            for i in $( cat /etc/exports | grep -v '^#' | awk '{print $NF}' | sort -u ); do
+                ping -c 1 $i || complete=0
+            done
+            count=$(( count + 1 ))
+            sleep 2
+        done
+        service mountd restart
+    fi
 }
 
 sleepandrestartsshd()
 {
-    sleep 10
+    sleep 20
     service sshd restart
 }
 
