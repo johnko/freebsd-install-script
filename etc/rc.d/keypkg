@@ -37,11 +37,16 @@ sleepandrestartmountd()
     if [ -e /etc/exports ]; then
         count=0
         while [ $count -lt 5 ]; do
+            complete=1
             for i in $( cat /etc/exports | grep -v '^#' | awk '{print $NF}' | sort -u ); do
                 ping -c 1 $i || complete=0
             done
+            # exit early if complete=1
+            if [ $complete -eq 1 ]; then
+                count=5
+            fi
             count=$(( count + 1 ))
-            sleep 2
+            sleep 1
         done
         service mountd restart
     fi
