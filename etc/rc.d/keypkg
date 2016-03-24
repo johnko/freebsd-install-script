@@ -3,7 +3,7 @@
 # $FreeBSD$
 # PROVIDE: keypkg
 # REQUIRE: FILESYSTEMS NETWORKING SERVERS DAEMON LOGIN
-# BEFORE: iocage
+# BEFORE: sshd iocage
 
 # Add the following lines to /etc/rc.conf.local or /etc/rc.conf to enable this:
 #
@@ -31,32 +31,6 @@ name="keypkg"
 rcvar=keypkg_enable
 start_cmd="keypkg_run"
 stop_cmd=":"
-
-sleepandrestartmountd()
-{
-    if [ -e /etc/exports ]; then
-        count=0
-        while [ $count -lt 99 ]; do
-            complete=1
-            for i in $( /bin/cat /etc/exports | /usr/bin/grep -v '^#' | /usr/bin/awk '{print $NF}' | /usr/bin/sort -u ); do
-                /sbin/ping -c 1 $i || complete=0
-            done
-            # exit early if complete=1
-            if [ $complete -eq 1 ]; then
-                count=99
-            fi
-            count=$(( count + 1 ))
-            sleep 1
-        done
-        service mountd restart
-    fi
-}
-
-sleepandrestartsshd()
-{
-    sleep 20
-    service sshd restart
-}
 
 keypkg_run()
 {
@@ -136,13 +110,7 @@ keypkg_run()
 
     # restart nfsd and mountd
     service nfsd restart
-    sleepandrestartmountd
-
-    # reload sshd in case we unlocked alternate config
-    sleepandrestartsshd &
-
-    # start jails
-    service iocage start
+    service mountd restart
 
 }
 
