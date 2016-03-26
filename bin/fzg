@@ -737,7 +737,7 @@ if ! grep "stat-all" ${FZG_MNT}/etc/motd >/dev/null 2>&1 ; then
     cat >${FZG_MNT}/etc/motd <<EOF
 
     To update the operating system:
-            env PAGER=cat freebsd-update -F fetch install
+            env PAGER=cat freebsd-update -F -s update4.freebsd.org fetch install
             reboot
     To update programs:                     pkg update
                                             pkg upgrade
