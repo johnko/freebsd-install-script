@@ -61,11 +61,15 @@ else
 #    sortconf -f
 #    vi /boot/loader.conf.local
     cat <<EOF
-A reminder to run these commands to setup tank/iocage:
+A reminder to run these commands to setup keygeli with USB key:
     fzg -i -t 1 -p key -d da0
     zfs set copies=3 key
+Or with file based key:
+    keygeli-localkeypool
+Then setup zpool tank with something like:
     keygeli-setup -t 4 -p tank -r mirror -d ada0 -d ada1 -d ada2
-    ioc-setup
+And setup iocage with:
+    ioc-setup ; fres
 Or create and allow tank/urep with:
     zfs-allow-urep
 EOF
