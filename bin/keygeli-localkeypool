@@ -1,0 +1,10 @@
+#!/bin/sh
+
+install -d -m 700 /root/dev
+truncate -s 64M /root/dev/key.zfsdisk
+zpool create key /root/dev/key.zfsdisk
+
+cat >>/etc/rc.conf.d/keygeli <<EOF
+keygeli_zpool_import_flags="-d /root/dev"
+EOF
+
