@@ -1,0 +1,62 @@
+#!/bin/sh
+
+. /etc/rc.conf.d/keygeli
+
+: ${keygeli_tmpfsdir:="/tmp/tmpfs"}
+: ${keygeli_file:=keygeli_$(hostname -s).smime}
+: ${keygeli_key:="/etc/keygeli/key.pem"}
+: ${keygeli_cert:="/etc/keygeli/cert.pem"}
+
+# restrictive mask for new files
+umask 077
+
+# mount tmpfs to keep the passfile in ram
+mkdir -p $keygeli_tmpfsdir
+chmod 700 $keygeli_tmpfsdir
+mount -t tmpfs tmpfs $keygeli_tmpfsdir
+if ! mount | grep 'tmpfs on /tmp/tmpfs (tmpfs' >/dev/null 2>&1 ; then
+    exit 1
+fi
+
+# Fetch keygeli_hostname.smime from usb key zpool or ssh
+if [ -n "$keygeli_zpool" ]; then
+    if ! zpool list ${keygeli_zpool} >/dev/null 2>&1 ; then
+        # if not already exist, import the pool on the USB thumbdrive
+        zpool import ${keygeli_zpool_import_flags} ${keygeli_zpool}
+    fi
+    if zfs list -H -o mountpoint $keygeli_zpool >/dev/null 2>&1 ; then
+        keygeli_zpool_mountpoint=$( zfs list -H -o mountpoint $keygeli_zpool )
+        if [ -e ${keygeli_zpool_mountpoint}/${keygeli_file} ]; then
+            # copy to standard location in tmpfs
+            cat ${keygeli_zpool_mountpoint}/${keygeli_file} > ${keygeli_tmpfsdir}/${keygeli_file}
+        fi
+    fi
+fi
+if [ -n "$keygeli_ssh" ]; then
+    for i in $keygeli_ssh ; do
+        if [ ! -e ${keygeli_tmpfsdir}/${keygeli_file} ]; then
+            # copy to standard location in tmpfs
+            if ! ssh $keygeli_ssh_flags $i keygeli get > ${keygeli_tmpfsdir}/${keygeli_file} ; then
+                if [ -e ${keygeli_tmpfsdir}/${keygeli_file} ]; then
+                    # exit code != 0, so this shouldn't exist
+                    rm ${keygeli_tmpfsdir}/${keygeli_file}
+                fi
+                sleep 5
+            fi
+        fi
+    done
+fi
+
+# Verify, then Decrypt then verify
+if [ -e ${keygeli_tmpfsdir}/${keygeli_file} ]; then
+    # Verify package was for self
+    if ! openssl smime -verify -CAfile $keygeli_cert -certfile $keygeli_cert \
+            -in ${keygeli_tmpfsdir}/${keygeli_file} >/dev/null 2>/dev/null ; then
+        echo "Verification of ${keygeli_tmpfsdir}/${keygeli_file} failed."
+        exit 1
+    fi
+    openssl smime -verify -CAfile $keygeli_cert -certfile $keygeli_cert \
+        -in ${keygeli_tmpfsdir}/${keygeli_file} 2>/dev/null \
+            | openssl smime -decrypt -binary -nointern -recip $keygeli_cert -inkey $keygeli_key \
+            | openssl smime -verify -CAfile $keygeli_cert -certfile $keygeli_cert 2>/dev/null
+fi
