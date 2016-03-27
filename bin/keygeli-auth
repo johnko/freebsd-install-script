@@ -18,7 +18,7 @@ chmod 600 $authfile
 chown ${name}:${name} $authfile
 
 cat >>$authfile <<EOF
-command="keypkg-shell \$SSH_ORIGINAL_COMMAND" ssh-rsa...
+command="keygeli-shell \$SSH_ORIGINAL_COMMAND" ssh-rsa...
 EOF
 
 vi $authfile

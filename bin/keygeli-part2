@@ -2,7 +2,7 @@
 
 . /usr/local/bin/loadmyvars.sh
 
-. /usr/local/bin/keypkg-functions
+. /usr/local/bin/keygeli-functions
 
 usage() {
     cat <<EOF
@@ -50,17 +50,17 @@ fi
 
 
 
-ENCPASSFILE=${KGT_TMPFS}/keypkg_$(hostname -s).smime
+ENCPASSFILE=${KGT_TMPFS}/keygeli_$(hostname -s).smime
 
 
 
 
 
-verify_keypkg
+verify_keygeli
 
 
 
-decrypt_keypkg
+decrypt_keygeli
 
 
 
@@ -69,12 +69,12 @@ decrypt_keypkg
 
 create_gelizpool
 
-configure_keypkg
+configure_keygeli
 
 cat <<EOF
 You may want to:
 
-    vi /etc/rc.conf.d/{geli,keypkg}
+    vi /etc/rc.conf.d/{geli,keygeli}
 
 And reboot to test.
 EOF

@@ -8,12 +8,12 @@ KGT_NEW_POOL_NAME="tank"
 KGT_VDEV_TYPE=""
 KGT_TMPFS=/tmp/tmpfs
 NEWPASSFILE=${KGT_TMPFS}/geli_password.txt
-KGT_KEYPKGDIR=/etc/keypkg
-KGT_KEYPKGKEY=${KGT_KEYPKGDIR}/key.pem
-KGT_KEYPKGPUBCERT=${KGT_KEYPKGDIR}/cert.pem
+KGT_KEYGELIDIR=/etc/keygeli
+KGT_KEYGELIKEY=${KGT_KEYGELIDIR}/key.pem
+KGT_KEYGELIPUBCERT=${KGT_KEYGELIDIR}/cert.pem
 KGT_KEYSIZE=8192
 KGT_KEYTYPE=rsa
-keypkg_ssh_config="/etc/keypkg/ssh_config"
+keygeli_ssh_config="/etc/keygeli/ssh_config"
 
 # 4096 block to futureproof hdd upgrade of zpool
 sysctl vfs.zfs.min_auto_ashift=12
@@ -44,18 +44,18 @@ mount_tmpfsdir() {
     chmod 600 $NEWPASSFILE
 }
 
-create_etckeypkg() {
-    # create /etc/keypkg
-    install -d -m 0700 -o root -g wheel $KGT_KEYPKGDIR
-    chmod 0700 $KGT_KEYPKGDIR
-    chown root:wheel $KGT_KEYPKGDIR
+create_etckeygeli() {
+    # create /etc/keygeli
+    install -d -m 0700 -o root -g wheel $KGT_KEYGELIDIR
+    chmod 0700 $KGT_KEYGELIDIR
+    chown root:wheel $KGT_KEYGELIDIR
     # generate key if not exist
-    if [ ! -e $KGT_KEYPKGPUBCERT ]; then
+    if [ ! -e $KGT_KEYGELIPUBCERT ]; then
         echo "Generating a $KGT_KEYSIZE bit $KGT_KEYTYPE private key. Please wait..."
         yes '' | openssl req -x509 -nodes -days 36500 -newkey $KGT_KEYTYPE:$KGT_KEYSIZE \
-            -keyout $KGT_KEYPKGKEY -out $KGT_KEYPKGPUBCERT 2>/dev/null
-        chmod 400 $KGT_KEYPKGKEY
-        chmod 400 $KGT_KEYPKGPUBCERT
+            -keyout $KGT_KEYGELIKEY -out $KGT_KEYGELIPUBCERT 2>/dev/null
+        chmod 400 $KGT_KEYGELIKEY
+        chmod 400 $KGT_KEYGELIPUBCERT
     fi
 }
 
@@ -77,32 +77,32 @@ create_encpassfile() {
         fi
         # encrypt $NEWPASSFILE to $ENCPASSFILE
         openssl smime -sign -binary -nodetach -nocerts \
-            -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
+            -signer $KGT_KEYGELIPUBCERT -inkey $KGT_KEYGELIKEY \
             -in $NEWPASSFILE \
-                | openssl smime -encrypt -aes-256-cbc $KGT_KEYPKGPUBCERT \
+                | openssl smime -encrypt -aes-256-cbc $KGT_KEYGELIPUBCERT \
                 | openssl smime -sign -binary -nodetach -nocerts \
-                    -signer $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
+                    -signer $KGT_KEYGELIPUBCERT -inkey $KGT_KEYGELIKEY \
                     -out $ENCPASSFILE
         chmod 600 $ENCPASSFILE
         rm $NEWPASSFILE
     fi
 }
 
-verify_keypkg() {
+verify_keygeli() {
     # Verify package was for self
-    if ! openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
+    if ! openssl smime -verify -CAfile $KGT_KEYGELIPUBCERT -certfile $KGT_KEYGELIPUBCERT \
             -in $ENCPASSFILE >/dev/null 2>/dev/null ; then
         echo "Verification of $ENCPASSFILE failed."
         exit 1
     fi
 }
 
-decrypt_keypkg() {
+decrypt_keygeli() {
     # Decrypt ENCPASSFILE to KGT_TMPFS to make sure it works
-    openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
+    openssl smime -verify -CAfile $KGT_KEYGELIPUBCERT -certfile $KGT_KEYGELIPUBCERT \
         -in $ENCPASSFILE 2>/dev/null \
-            | openssl smime -decrypt -binary -nointern -recip $KGT_KEYPKGPUBCERT -inkey $KGT_KEYPKGKEY \
-            | openssl smime -verify -CAfile $KGT_KEYPKGPUBCERT -certfile $KGT_KEYPKGPUBCERT \
+            | openssl smime -decrypt -binary -nointern -recip $KGT_KEYGELIPUBCERT -inkey $KGT_KEYGELIKEY \
+            | openssl smime -verify -CAfile $KGT_KEYGELIPUBCERT -certfile $KGT_KEYGELIPUBCERT \
                 -out $NEWPASSFILE 2>/dev/null
     chmod 600 $NEWPASSFILE
 }
@@ -172,20 +172,20 @@ EOF
     runorerror "zpool create -O compress=lz4 -O atime=off $KGT_NEW_POOL_NAME $KGT_VDEV_TYPE $vdevs"
 }
 
-configure_keypkg() {
-    # enable keypkg in rc.conf
-    runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/keypkg ${FZG_MNT}/etc/rc.d/keypkg"
-    runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_enable=YES"
-    runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_file=keypkg_$(hostname -s).smime"
-    cat >>/etc/rc.conf.d/keypkg <<EOF
-# keypkg_zpool="$KGT_KEY_POOL_NAME"
-# keypkg_ssh="one two three"
-keypkg_ssh_flags="-F $keypkg_ssh_config -l$(hostname -s)"
+configure_keygeli() {
+    # enable keygeli in rc.conf
+    runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/keygeli ${FZG_MNT}/etc/rc.d/keygeli"
+    runorerror "sysrc -f /etc/rc.conf.d/keygeli keygeli_enable=YES"
+    runorerror "sysrc -f /etc/rc.conf.d/keygeli keygeli_file=keygeli_$(hostname -s).smime"
+    cat >>/etc/rc.conf.d/keygeli <<EOF
+# keygeli_zpool="$KGT_KEY_POOL_NAME"
+# keygeli_ssh="one two three"
+keygeli_ssh_flags="-F $keygeli_ssh_config -l$(hostname -s)"
 EOF
-    if [ ! -e $keypkg_ssh_config ]; then
-        cat >>$keypkg_ssh_config <<EOF
-UserKnownHostsFile /etc/keypkg/known_hosts
-IdentityFile /etc/keypkg/id_rsa
+    if [ ! -e $keygeli_ssh_config ]; then
+        cat >>$keygeli_ssh_config <<EOF
+UserKnownHostsFile /etc/keygeli/known_hosts
+IdentityFile /etc/keygeli/id_rsa
 ConnectTimeout 15
 Host one
     Hostname keyserver1
@@ -200,7 +200,7 @@ EOF
     fi
 
     # Generate ssh keys
-    if [ ! -e /etc/keypkg/id_rsa ]; then
-        ssh-keygen -N '' -t rsa -b 4096 -f /etc/keypkg/id_rsa
+    if [ ! -e /etc/keygeli/id_rsa ]; then
+        ssh-keygen -N '' -t rsa -b 4096 -f /etc/keygeli/id_rsa
     fi
 }

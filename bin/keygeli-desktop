@@ -15,9 +15,9 @@ ada3p5 ada3p6"
 zfs create -V 64M pool/$KEYZVOL
 zpool create -O compress=lz4 -O atime=off $KEYPOOL /dev/zvol/pool/$KEYZVOL
 
-# Enable keypkg
-sysrc -f /etc/rc.conf.d/keypkg keypkg_enable=YES
-sysrc -f /etc/rc.conf.d/keypkg keypkg_zpool=$KEYPOOL
+# Enable keygeli
+sysrc -f /etc/rc.conf.d/keygeli keygeli_enable=YES
+sysrc -f /etc/rc.conf.d/keygeli keygeli_zpool=$KEYPOOL
 
 # Create tank.key
 dd if=/dev/random of=$KEYFILE bs=4096 count=1

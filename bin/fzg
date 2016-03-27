@@ -756,7 +756,7 @@ EOF
 fi
 
 ### install the rc.d script
-runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/keypkg ${FZG_MNT}/etc/rc.d/keypkg"
+runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/keygeli ${FZG_MNT}/etc/rc.d/keygeli"
 
 ### install the firstboot script
 runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboot_realhost ${FZG_MNT}/etc/rc.d/firstboot_realhost"

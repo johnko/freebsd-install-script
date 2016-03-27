@@ -2,7 +2,7 @@
 
 . /usr/local/bin/loadmyvars.sh
 
-. /usr/local/bin/keypkg-functions
+. /usr/local/bin/keygeli-functions
 
 
 
@@ -50,9 +50,9 @@ fi
 
 
 
-ENCPASSFILE=${KGT_TMPFS}/keypkg_$(hostname -s).smime
+ENCPASSFILE=${KGT_TMPFS}/keygeli_$(hostname -s).smime
 
-create_etckeypkg
+create_etckeygeli
 
 create_encpassfile
 
@@ -69,18 +69,18 @@ fi
 
 
 
-configure_keypkg
+configure_keygeli
 
 cat <<EOF
-Add the /etc/keypkg/id_rsa.pub to the server as user `hostname -s`/.ssh/authorized_keys2:
-keypkg-auth `hostname -s`
+Add the /etc/keygeli/id_rsa.pub to the server as user `hostname -s`/.ssh/authorized_keys2:
+keygeli-auth `hostname -s`
 
-Edit the keypkg_ssh with: vi /etc/rc.conf.d/keypkg
-Edit the Hostname with:   vi /etc/keypkg/ssh_config
+Edit the keygeli_ssh with: vi /etc/rc.conf.d/keygeli
+Edit the Hostname with:   vi /etc/keygeli/ssh_config
 
 Then upload the key to the server:
-cat $ENCPASSFILE | ssh -F /etc/keypkg/ssh_config -l$(hostname -s) one keypkg put
+cat $ENCPASSFILE | ssh -F /etc/keygeli/ssh_config -l$(hostname -s) one keygeli put
 
 Then proceed to part2:
-keypkg-part2 -t 4 -p tank -r mirror -d ada0 -d ada1 -d ada2
+keygeli-part2 -t 4 -p tank -r mirror -d ada0 -d ada1 -d ada2
 EOF

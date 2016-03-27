@@ -2,7 +2,7 @@
 
 . /usr/local/bin/loadmyvars.sh
 
-. /usr/local/bin/keypkg-functions
+. /usr/local/bin/keygeli-functions
 
 usage() {
     cat <<EOF
@@ -50,17 +50,17 @@ if [ "yes" != "$ismounted" ]; then
 fi
 
 mountdir=$( zfs list -H -o mountpoint $KGT_KEY_POOL_NAME )
-ENCPASSFILE=${mountdir}/keypkg_$(hostname -s).smime
+ENCPASSFILE=${mountdir}/keygeli_$(hostname -s).smime
 
-create_etckeypkg
+create_etckeygeli
 
 create_encpassfile
 
-verify_keypkg
+verify_keygeli
 
 mount_tmpfsdir
 
-decrypt_keypkg
+decrypt_keygeli
 
 
 
@@ -69,14 +69,14 @@ decrypt_keypkg
 
 create_gelizpool
 
-configure_keypkg
+configure_keygeli
 
-runorerror "sysrc -f /etc/rc.conf.d/keypkg keypkg_zpool=$KGT_KEY_POOL_NAME"
+runorerror "sysrc -f /etc/rc.conf.d/keygeli keygeli_zpool=$KGT_KEY_POOL_NAME"
 
 cat <<EOF
 You may want to:
 
-    vi /etc/rc.conf.d/{geli,keypkg}
+    vi /etc/rc.conf.d/{geli,keygeli}
 
 And reboot to test.
 EOF
