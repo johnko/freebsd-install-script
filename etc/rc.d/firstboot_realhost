@@ -50,12 +50,12 @@ firstboot_realhost_run()
     echo "RUN: gdf"
                gdf
 
-    echo "RUN: env PAGER=cat freebsd-update --not-running-from-cron fetch install"
-               env PAGER=cat freebsd-update --not-running-from-cron fetch install
-
     ## Setup $HOME/git and more
     echo "RUN: fres"
                fres
+
+    echo "RUN: env PAGER=cat freebsd-update --not-running-from-cron fetch install"
+               env PAGER=cat freebsd-update --not-running-from-cron fetch install
 
     ## Create an ssh key
     if [ ! -e ${HOME}/.ssh/id_ed25519 ]; then
@@ -66,8 +66,8 @@ firstboot_realhost_run()
     # Count rc.d scripts again
     nscriptsn=`ls /usr/local/etc/rc.d | wc -l`
 
-    zfs list bootpool && zfs snap -r bootpool@2_firstboot_done
-    zfs list pool     && zfs snap -r     pool@2_firstboot_done
+    zfs list bootpool >/dev/null 2>&1 && zfs snap -r bootpool@2_firstboot_done
+    zfs list pool     >/dev/null 2>&1 && zfs snap -r     pool@2_firstboot_done
 
     # If we have more scripts, request a reboot
     if [ $nscriptsn -ne $nscriptso ]; then
