@@ -764,7 +764,7 @@ runorerror "install -C -m 755 /root/git/freebsd-install-script/etc/rc.d/firstboo
 
 install -d -m 755 -o root -g wheel ${FZG_MNT}/usr/local/bin
 ### install some scripts for firstboot
-for i in setproxy noproxy gdf fres ssh-makeprivkey-ed25519 ; do
+for i in setproxy noproxy gdf fres net-nic net-ip loadmyvars.sh ssh-makeprivkey-ed25519 ; do
     which $i >/dev/null 2>&1 && cp $(which $i) ${FZG_MNT}/usr/local/bin/
 done
 
