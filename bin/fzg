@@ -742,10 +742,11 @@ if ! grep "stat-all" ${FZG_MNT}/etc/motd >/dev/null 2>&1 ; then
     To update programs:                     pkg update
                                             pkg upgrade
     To update my scripts:                   fres
+    To update jails:                        ioc-update
+                                            ioc-fres
 
     System information:                     stat-all
     Hard drive information:                 hddid
-    zpool status + geli translation:        zss
 
     PF firewall, regenerate new pf.conf:    gdf
                 block ssh spammers:         pf-sshinvaliduserip
