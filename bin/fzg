@@ -28,7 +28,7 @@ export BSDINSTALL_TMPETC=/tmp/bsdinstall_etc
 export DISTRIBUTIONS="MANIFEST kernel.txz base.txz lib32.txz doc.txz src.txz"
 export BSDINSTALL_DISTSITE_BASE="http://ftp.freebsd.org/pub/FreeBSD/releases"
 if [ "x" = "x${IOCRELEASE}" ]; then
-    IOCRELEASE=10.2-RELEASE
+    IOCRELEASE=10.3-RELEASE
 fi
 export BSDINSTALL_DISTSITE="${BSDINSTALL_DISTSITE_BASE}/`uname -m`/`uname -p`/${IOCRELEASE}"
 export BSDINSTALL_DISTDIR=/boot/../${IOCRELEASE}
