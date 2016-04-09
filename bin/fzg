@@ -283,7 +283,7 @@ freebsdconfiglocal() {
         nics="${nics} laggport ${line}"
         cat >/tmp/network.lagg <<EOF
 ### To enable Link Aggregation: BEGIN
-cloned_interfaces="lo1 lagg0"
+cloned_interfaces="lo1 lo2 lagg0"
 # ifconfig_lagg0="SYNCDHCP laggproto loadbalance ${nics}"
 # ifconfig_lagg0="inet 192.168.0.2/24 laggproto loadbalance ${nics}"
 ### To enable Link Aggregation: END
