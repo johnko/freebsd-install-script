@@ -158,8 +158,8 @@ EOF
     /boot/loader.conf              kern.geom.label.disk_ident.enable=0      #  MUST BE DISABLED
     /boot/loader.conf              kern.geom.label.gpt.enable=0             #  MUST BE DISABLED
     /boot/loader.conf              kern.geom.label.gptid.enable=0           #  MUST BE DISABLED
-    /boot/loader.conf              kern.maxfiles=99999                      #  Kernel max
-    /boot/loader.conf              loader_logo=none                         #  should stop logo from showing, appears to be BROKEN
+    /boot/loader.conf              kern.maxfiles=999999                     #  Kernel max
+    /boot/loader.conf              loader_logo=none                         #  stop logo from showing
     /boot/loader.conf              nullfs_load=YES
     /boot/loader.conf              tmpfs_load=YES                           #  for mfsroot /usr
 
